@@ -2,7 +2,7 @@ import prisma from '../config/db.js';
 import { generateQueryVariations } from './queryGenerator.js';
 import { searchGoogle, searchGooglePlaces } from './serper.js';
 import { crawlWebsite } from './crawler.js';
-import { validateAndCleanEmails } from './extractor.js';
+import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
 import { calculateMatchScore } from './aiScoring.js';
 import { type EmailCandidate, extractEmailCandidates, extractPhoneCandidates, normalizePhoneList } from './contactUtils.js';
@@ -318,7 +318,10 @@ export async function processSearchTask(taskId: string) {
           ? await crawlWebsite(biz.website, maxInnerPages)
           : { emails: [], phones: [], socials: [], companySize: 'Unknown' as const, hasContactForm: false, notes: 'No website available' };
 
-        const validatedEmails = await validateAndCleanEmails([...biz.snippetEmails, ...crawlData.emails]);
+        const validatedEmails = await aiFilterEmails(
+          await validateAndCleanEmails([...biz.snippetEmails, ...crawlData.emails]),
+          { businessName: biz.name, website: biz.website, userId: task.userId }
+        );
         const phoneNumbers = normalizePhoneList(
           [...biz.phoneNumbers, ...biz.snippetPhones, ...crawlData.phones],
           2

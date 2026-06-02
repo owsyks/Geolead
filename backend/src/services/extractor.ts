@@ -7,6 +7,7 @@ import {
   isRoleOrBusinessPrefix,
   normalizeEmail,
 } from './contactUtils.js';
+import { nvidiaChat, getNvidiaKey } from './nvidiaAi.js';
 
 export interface ValidatedEmail {
   email: string;
@@ -237,4 +238,56 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 function isDnsMiss(error: unknown): boolean {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : '';
   return ['ENOTFOUND', 'ENODATA', 'ENODOMAIN', 'ENONAME'].includes(code);
+}
+
+/**
+ * Uses AI to remove emails that are logically bad in context — scraped artifacts,
+ * image filenames, CSS classes, or addresses clearly unrelated to the business.
+ * Falls back to returning all emails unchanged if AI is unavailable or fails.
+ */
+export async function aiFilterEmails(
+  emails: ValidatedEmail[],
+  context: { businessName: string; website?: string | null; userId?: string | null }
+): Promise<ValidatedEmail[]> {
+  if (emails.length < 2) return emails;
+
+  const key = await getNvidiaKey(context.userId);
+  if (!key) return emails;
+
+  let domain = '';
+  try {
+    const raw = context.website || '';
+    domain = new URL(raw.startsWith('http') ? raw : `https://${raw}`).hostname;
+  } catch { /* ignore */ }
+
+  const numbered = emails.map((e, i) => `${i + 1}. ${e.email}`).join('\n');
+
+  const prompt = `Business: ${context.businessName}${domain ? ` (${domain})` : ''}
+Email addresses found on their website:
+${numbered}
+
+For each number reply KEEP or REJECT.
+REJECT only if clearly an artifact (image filename, CSS class, CMS placeholder, wrong domain).
+KEEP all plausible contact addresses.
+Reply with ONLY a JSON array: [{"n":1,"keep":true},{"n":2,"keep":false},...]`;
+
+  try {
+    const raw = await nvidiaChat(
+      [{ role: 'user', content: prompt }],
+      { maxTokens: 300, temperature: 0.1, timeoutMs: 15000, userId: context.userId }
+    );
+    const match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) return emails;
+
+    const decisions: Array<{ n: number; keep: boolean }> = JSON.parse(match[0]);
+    const keepIndexes = new Set(decisions.filter(d => d.keep).map(d => d.n - 1));
+
+    // If AI rejected everything, distrust the response and keep all.
+    if (keepIndexes.size === 0) return emails;
+
+    const filtered = emails.filter((_, i) => keepIndexes.has(i));
+    return filtered;
+  } catch {
+    return emails;
+  }
 }
