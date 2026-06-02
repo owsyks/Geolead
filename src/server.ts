@@ -244,6 +244,27 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
 });
 
 /**
+ * GET /api/leads/emails
+ * Returns every non-invalid email address for a task (no pagination).
+ * Used by the frontend verify-all flow so it doesn't miss pages.
+ */
+app.get('/api/leads/emails', requireAuth, async (req, res) => {
+  const { taskId } = req.query;
+  try {
+    const where: any = { lead: { ownerId: req.userId! }, status: { in: ['VALID', 'RISKY'] } };
+    if (taskId) where.lead = { ...where.lead, taskId: taskId as string };
+    const rows = await prisma.leadEmail.findMany({
+      where,
+      select: { email: true },
+    });
+    return res.json({ emails: rows.map(r => r.email) });
+  } catch (err: any) {
+    console.error('[Server] leads/emails error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/leads/:id/notes
  * Adds CRM-style notes/comments to a lead.
  */
