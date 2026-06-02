@@ -141,7 +141,7 @@ export function normalizeEmail(email: string): string {
     decoded = email;
   }
 
-  return decoded
+  let normalized = decoded
     .trim()
     .toLowerCase()
     .replace(/^mailto:/i, '')
@@ -154,6 +154,31 @@ export function normalizeEmail(email: string): string {
     .replace(/\s*\.\s*/g, '.')
     .replace(/[<>()"'.,;:]+$/g, '')
     .replace(/^[<>()"'.,;:]+/g, '');
+
+  // Strip phone-number fragments that got concatenated onto the local part
+  // e.g. "565-1220emailinfo@domain.com" → "emailinfo@domain.com"
+  // e.g. "555.123.4567sales@co.com"     → "sales@co.com"
+  // e.g. "5551234info@domain.com"       → "info@domain.com"
+  // Deliberately conservative: does NOT strip short digit prefixes like "1password"
+  const atIdx = normalized.indexOf('@');
+  if (atIdx > 0) {
+    let local = normalized.slice(0, atIdx);
+    const rest = normalized.slice(atIdx);
+    local = local
+      // Full 10-digit phone: optional +1, (NXX) NXX-XXXX
+      .replace(/^\+?1?[-.\s]?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}/, '')
+      // 7-digit phone with separator: NXX-XXXX
+      .replace(/^\d{3}[-.\s]\d{4}/, '')
+      // Any two separator-joined groups of 3+ digits (e.g. 565-1220)
+      .replace(/^\d{3,}[-.\s]\d{3,}/, '')
+      // Bare run of 7+ digits (unformatted phone number)
+      .replace(/^\d{7,}/, '');
+    if (local.length > 0 && local !== normalized.slice(0, atIdx)) {
+      normalized = local + rest;
+    }
+  }
+
+  return normalized;
 }
 
 export function extractEmailCandidates(text: string, sourcePage?: string): EmailCandidate[] {

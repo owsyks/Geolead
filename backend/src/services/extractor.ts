@@ -47,6 +47,18 @@ export async function validateEmail(email: string, sourcePage?: string): Promise
     };
   }
 
+  // Reject local parts that still contain phone-number-like digit sequences
+  // e.g. "565-1220emailinfo" or "5551234info" — normalizeEmail strips most but
+  // this catches any that slipped through.
+  if (/\d{3,}[-.\s]\d{3,}/.test(prefix) || /^\d{5,}/.test(prefix)) {
+    return {
+      email: cleanedEmail,
+      status: 'INVALID',
+      confidenceScore: 0.0,
+      sourcePage
+    };
+  }
+
   // 2. Filter out fake/placeholder/test emails
   if (
     isPlaceholderEmail(cleanedEmail) ||
