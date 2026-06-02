@@ -24,13 +24,14 @@ export interface SerperPlace {
 interface SerperSearchOptions {
   page?: number;
   num?: number;
+  userId?: string | null; // resolve the calling user's Serper key
 }
 
 /**
  * Searches Google using Serper.dev API. Falls back to mock data if key is missing.
  */
 export async function searchGoogle(query: string, options: SerperSearchOptions = {}): Promise<SerperResult[]> {
-  const apiKey = await getSetting('serperApiKey');
+  const apiKey = await getSetting('serperApiKey', options.userId);
 
   if (!apiKey) {
     console.log(`[Serper.dev] API key missing. Generating mock search results for: "${query}"`);
@@ -73,7 +74,7 @@ export async function searchGoogle(query: string, options: SerperSearchOptions =
  * Searches Google Maps via Serper.dev Places. Falls back to mock data if key is missing.
  */
 export async function searchGooglePlaces(query: string, options: SerperSearchOptions = {}): Promise<SerperPlace[]> {
-  const apiKey = await getSetting('serperApiKey');
+  const apiKey = await getSetting('serperApiKey', options.userId);
 
   if (!apiKey) {
     console.log(`[Serper.dev] API key missing. Generating mock places results for: "${query}"`);

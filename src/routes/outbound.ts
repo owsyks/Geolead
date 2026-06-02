@@ -36,6 +36,7 @@ import {
   updateLeadCrm,
   verifySenderAccount,
 } from '../services/outboundPlatform.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 const trackingPixel = Buffer.from(
@@ -52,16 +53,25 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get('/overview', wrap(async (_req, res) => {
-  res.json(await getOutboundOverview());
+// Public, unauthenticated endpoints hit by email clients and providers (open/
+// click pixels, unsubscribe links, provider + inbound webhooks). Everything
+// else requires a valid Bearer token and is scoped to the authenticated user.
+const PUBLIC_PREFIXES = ['/track/', '/unsubscribe/', '/inbound/', '/webhooks/'];
+router.use((req, res, next) => {
+  if (PUBLIC_PREFIXES.some((p) => req.path.startsWith(p))) return next();
+  return requireAuth(req, res, next);
+});
+
+router.get('/overview', wrap(async (req, res) => {
+  res.json(await getOutboundOverview(req.userId!));
 }));
 
-router.get('/campaigns', wrap(async (_req, res) => {
-  res.json(await listCampaigns());
+router.get('/campaigns', wrap(async (req, res) => {
+  res.json(await listCampaigns(req.userId!));
 }));
 
 router.get('/campaigns/:id', wrap(async (req, res) => {
-  const campaign = await getCampaignDetail(req.params.id);
+  const campaign = await getCampaignDetail(req.params.id, req.userId!);
   if (!campaign) {
     return res.status(404).json({ error: 'Campaign not found.' });
   }
@@ -122,7 +132,7 @@ router.post(
   rateLimit({ key: 'campaign-queue', limit: 20, windowMs: 10 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
-    const result = await queueCampaignSends(req.params.id, asString(req.body.senderAccountId) || undefined);
+    const result = await queueCampaignSends(req.params.id, asString(req.body.senderAccountId) || undefined, req.userId!);
     await writeAudit(getActor(req), 'Campaign', req.params.id, 'QUEUE_SENDS', result);
     res.json(result);
   })
@@ -139,8 +149,8 @@ router.delete(
   })
 );
 
-router.get('/templates', wrap(async (_req, res) => {
-  res.json(await listTemplates());
+router.get('/templates', wrap(async (req, res) => {
+  res.json(await listTemplates(req.userId!));
 }));
 
 router.post(
@@ -168,8 +178,8 @@ router.post(
   })
 );
 
-router.get('/senders', wrap(async (_req, res) => {
-  res.json(await listSenderAccounts());
+router.get('/senders', wrap(async (req, res) => {
+  res.json(await listSenderAccounts(req.userId!));
 }));
 
 router.post(
@@ -232,15 +242,15 @@ router.post(
   })
 );
 
-router.get('/inbox', wrap(async (_req, res) => {
-  res.json(await listInbox());
+router.get('/inbox', wrap(async (req, res) => {
+  res.json(await listInbox(req.userId!));
 }));
 
 router.get(
   '/inbox/:id/thread',
   requireRoles('ADMIN', 'MANAGER', 'MEMBER'),
   wrap(async (req, res) => {
-    const thread = await getReplyThread(req.params.id);
+    const thread = await getReplyThread(req.params.id, req.userId!);
     if (!thread) {
       return res.status(404).json({ error: 'Reply not found.' });
     }
@@ -302,8 +312,8 @@ router.post(
   })
 );
 
-router.get('/analytics', wrap(async (_req, res) => {
-  res.json(await getAnalytics());
+router.get('/analytics', wrap(async (req, res) => {
+  res.json(await getAnalytics(req.userId!));
 }));
 
 router.get(
@@ -359,7 +369,7 @@ router.post(
     // If a domain is selected from the portfolio, prefill geoDomain/niche/city
     // from it so the email generator doesn't need the user to retype them.
     const domainId = asString(req.body.domainId);
-    const domain = domainId ? await prisma.domain.findUnique({ where: { id: domainId } }) : null;
+    const domain = domainId ? await prisma.domain.findFirst({ where: { id: domainId, userId: req.userId! } }) : null;
     const cityFromDomain = [domain?.city, domain?.state].filter(Boolean).join(', ');
 
     const result = await generateEmail({
@@ -375,6 +385,7 @@ router.post(
       tone: asString(req.body.tone),
       language: asString(req.body.language),
       variant: asVariant(req.body.variant),
+      userId: req.userId!,
     });
 
     res.json(result);
@@ -397,7 +408,7 @@ router.patch(
   rateLimit({ key: 'lead-crm', limit: 40, windowMs: 15 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER', 'MEMBER'),
   wrap(async (req, res) => {
-    const lead = await updateLeadCrm(req.params.id, req.body as Record<string, unknown>);
+    const lead = await updateLeadCrm(req.params.id, req.body as Record<string, unknown>, req.userId!);
     await writeAudit(getActor(req), 'Lead', req.params.id, 'LEAD_CRM_UPDATED', req.body as Record<string, unknown>);
     res.json(lead);
   })
@@ -512,19 +523,16 @@ function requireRoles(...roles: Role[]): RequestHandler {
   };
 }
 
-function getRole(req: Request): Role {
-  const value = asString(req.headers['x-user-role']) || asString(req.headers['x-role']) || 'ADMIN';
-  const upper = value.toUpperCase();
-  if (upper === 'ADMIN' || upper === 'MANAGER' || upper === 'MEMBER' || upper === 'VIEWER') {
-    return upper;
-  }
+function getRole(_req: Request): Role {
+  // Roles are not yet differentiated per user; every authenticated user acts as
+  // ADMIN within their own workspace. (Team roles are a future enhancement.)
   return 'ADMIN';
 }
 
 function getActor(req: Request) {
   return {
-    userId: asString(req.headers['x-user-id']) || null,
-    userName: asString(req.headers['x-user-name']) || null,
+    userId: req.userId || null,
+    userName: req.userEmail || null,
     role: getRole(req),
   };
 }

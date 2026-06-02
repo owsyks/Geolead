@@ -9,6 +9,8 @@ generator client {
 
 model SearchTask {
   id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   keyword       String
   domainIdea    String
   country       String?
@@ -23,6 +25,8 @@ model SearchTask {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   leads         Lead[]
+
+  @@index([userId])
 }
 
 model Lead {
@@ -74,10 +78,15 @@ model User {
   id            String         @id @default(uuid())
   email         String         @unique
   name          String
+  passwordHash  String?
+  avatarUrl     String?
+  emailVerified Boolean        @default(false)
+  plan          String         @default("free")
   role          String         @default("ADMIN")
   isActive      Boolean        @default(true)
   timezone      String?        @default("UTC")
   locale        String?        @default("en")
+  dateFormat    String?        @default("MMM d, yyyy")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   campaigns     Campaign[]
@@ -86,6 +95,111 @@ model User {
   auditLogs     AuditLog[]
   leads         Lead[]
   domains       Domain[]
+  searchTasks   SearchTask[]
+  mailboxes     Mailbox[]
+  settings      Setting[]
+  sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+  verificationTokens  VerificationToken[]
+  oauthAccounts OAuthAccount[]
+  integrations  Integration[]
+  userSettings  UserSettings?
+  notificationPreference NotificationPreference?
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model UserSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName        String?
+  aiTone             String?  @default("professional")
+  defaultEmailStyle  String?  @default("concise")
+  preferredModel     String?
+  pricingStrategy    String?
+  portfolioCategories String[] @default([])
+  outreachDefaults   Json?
+  followUpDefaults   Json?
+  buyerScoringPrefs  Json?
+  onboardingComplete Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model NotificationPreference {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  desktop        Boolean  @default(true)
+  email          Boolean  @default(true)
+  campaignAlerts Boolean  @default(true)
+  replyAlerts    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Integration {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String
+  status         String    @default("disconnected")
+  healthStatus   String?
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 model Campaign {
@@ -438,12 +552,18 @@ model EmailVerificationJob {
 // `value` column holds an `enc:` prefixed payload when isSecret=true). The
 // effective value at runtime is `DB value || process.env[envFallback]`.
 model Setting {
-  key       String   @id
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
   value     String?  @db.Text
   category  String   @default("general")
   isSecret  Boolean  @default(false)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([userId])
 }
 
 // Gmail/IMAP mailbox the InboxSyncWorker polls to import replies. Single-user
@@ -451,8 +571,10 @@ model Setting {
 // app password is stored encrypted (enc: prefix).
 model Mailbox {
   id              String    @id @default(uuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   label           String    @default("Gmail")
-  email           String    @unique
+  email           String
   imapHost        String    @default("imap.gmail.com")
   imapPort        Int       @default(993)
   useSsl          Boolean   @default(true)
@@ -469,6 +591,9 @@ model Mailbox {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   replies         Reply[]
+
+  @@unique([userId, email])
+  @@index([userId])
 }
 
 // Append-only log of pipeline transitions for a lead, powering the sales CRM
@@ -497,7 +622,7 @@ model Domain {
   id                  String        @id @default(uuid())
   userId              String?
   user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name                String        @unique
+  name                String
   status              String        @default("Available")
   purchaseDate        DateTime?
   purchasePrice       Float?
@@ -534,6 +659,7 @@ model Domain {
   offers              DomainOffer[]
   sale                DomainSale?
 
+  @@unique([userId, name])
   @@index([status])
   @@index([archivedAt])
   @@index([soldAt])

@@ -199,7 +199,7 @@ export async function processSearchTask(taskId: string) {
       console.log(`[Processor] Scrape Query [${queryIndex}/${queries.length}]: "${query}"`);
 
       for (let page = 1; page <= pagesPerQuery; page++) {
-        const places = await searchGooglePlaces(query, { page, num: 20 });
+        const places = await searchGooglePlaces(query, { page, num: 20, userId: task.userId });
         places.forEach((place) => {
           if (!place.website) return;
 
@@ -237,7 +237,7 @@ export async function processSearchTask(taskId: string) {
           }
         });
 
-        const searchResults = await searchGoogle(query, { page, num: 20 });
+        const searchResults = await searchGoogle(query, { page, num: 20, userId: task.userId });
         searchResults.forEach((result) => {
           let domainKey = '';
 
@@ -341,6 +341,7 @@ export async function processSearchTask(taskId: string) {
         const createdLead = await prisma.lead.create({
           data: {
             taskId,
+            ownerId: task.userId,
             businessName,
             website: biz.website || null,
             location: biz.location || null,

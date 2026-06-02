@@ -4,6 +4,7 @@ import prisma from '../config/db.js';
 import { encryptSecret, decryptSecret, isEncrypted } from '../config/secrets.js';
 import { getMailbox, syncMailbox, testImapConnection } from '../services/inboxSync.js';
 import { REPLY_CATEGORIES } from '../services/replyAnalysis.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -12,19 +13,29 @@ router.use((_req, res, next) => {
   next();
 });
 
+// The inbox is per-user.
+router.use(requireAuth);
+
+// A reply belongs to a user if it's in their mailbox, tied to their campaign,
+// or matched to a lead they own.
+const ownershipWhere = (userId: string) => ({
+  OR: [{ mailbox: { userId } }, { campaign: { userId } }, { lead: { ownerId: userId } }],
+});
+
 // ---- Mailbox configuration ---------------------------------------------
 
-router.get('/mailbox', wrap(async (_req, res) => {
-  const mailbox = await getMailbox();
+router.get('/mailbox', wrap(async (req, res) => {
+  const mailbox = await getMailbox(req.userId!);
   res.json({ mailbox: mailbox ? redactMailbox(mailbox) : null, categories: REPLY_CATEGORIES });
 }));
 
 router.patch('/mailbox', wrap(async (req, res) => {
-  const existing = await getMailbox();
+  const existing = await getMailbox(req.userId!);
   const email = asString(req.body.email) || existing?.email;
   if (!email) return res.status(400).json({ error: 'email is required.' });
 
   const data: any = {
+    userId: req.userId!,
     email,
     label: asString(req.body.label) || existing?.label || 'Gmail',
     imapHost: asString(req.body.imapHost) || existing?.imapHost || 'imap.gmail.com',
@@ -50,7 +61,7 @@ router.patch('/mailbox', wrap(async (req, res) => {
 }));
 
 router.post('/mailbox/test', wrap(async (req, res) => {
-  const existing = await getMailbox();
+  const existing = await getMailbox(req.userId!);
   const password = asString(req.body.appPassword)
     ? asString(req.body.appPassword).replace(/\s+/g, '')
     : existing && isEncrypted(existing.appPassword)
@@ -68,16 +79,18 @@ router.post('/mailbox/test', wrap(async (req, res) => {
   res.status(result.ok ? 200 : 400).json(result);
 }));
 
-router.delete('/mailbox', wrap(async (_req, res) => {
-  const existing = await getMailbox();
+router.delete('/mailbox', wrap(async (req, res) => {
+  const existing = await getMailbox(req.userId!);
   if (existing) await prisma.mailbox.delete({ where: { id: existing.id } });
   res.json({ ok: true });
 }));
 
 // ---- Sync ---------------------------------------------------------------
 
-router.post('/sync', wrap(async (_req, res) => {
-  const result = await syncMailbox(true);
+router.post('/sync', wrap(async (req, res) => {
+  const mailbox = await getMailbox(req.userId!);
+  if (!mailbox) return res.status(400).json({ ok: false, error: 'No mailbox configured.' });
+  const result = await syncMailbox(mailbox.id, true);
   res.status(result.ok ? 200 : 400).json(result);
 }));
 
@@ -86,7 +99,7 @@ router.post('/sync', wrap(async (_req, res) => {
 router.get('/', wrap(async (req, res) => {
   const filter = asString(req.query.filter); // unread | interested | not_interested | negotiating | sold | archived | all
   const search = asString(req.query.search);
-  const where: any = {};
+  const where: any = { AND: [ownershipWhere(req.userId!)] };
 
   switch (filter) {
     case 'unread': where.isRead = false; break;
@@ -117,8 +130,8 @@ router.get('/', wrap(async (req, res) => {
   });
 
   const [unreadCount, counts] = await Promise.all([
-    prisma.reply.count({ where: { isRead: false } }),
-    prisma.reply.groupBy({ by: ['aiCategory'], _count: { aiCategory: true } }),
+    prisma.reply.count({ where: { isRead: false, ...ownershipWhere(req.userId!) } }),
+    prisma.reply.groupBy({ by: ['aiCategory'], _count: { aiCategory: true }, where: ownershipWhere(req.userId!) }),
   ]);
 
   res.json({
@@ -150,11 +163,16 @@ router.get('/', wrap(async (req, res) => {
 }));
 
 router.post('/:id/read', wrap(async (req, res) => {
+  const owned = await prisma.reply.findFirst({ where: { id: req.params.id, ...ownershipWhere(req.userId!) }, select: { id: true } });
+  if (!owned) return res.status(404).json({ error: 'Reply not found.' });
   const reply = await prisma.reply.update({ where: { id: req.params.id }, data: { isRead: true } });
   res.json({ id: reply.id, isRead: reply.isRead });
 }));
 
 router.get('/history/:leadId', wrap(async (req, res) => {
+  // Only expose history for leads the user owns.
+  const lead = await prisma.lead.findFirst({ where: { id: req.params.leadId, ownerId: req.userId! }, select: { id: true } });
+  if (!lead) return res.status(404).json({ error: 'Lead not found.' });
   const history = await prisma.leadStatusHistory.findMany({
     where: { leadId: req.params.leadId },
     orderBy: { createdAt: 'desc' },

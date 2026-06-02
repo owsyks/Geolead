@@ -14,6 +14,7 @@ export interface EmailGenerationInput {
   tone?: string;
   language?: string;
   variant?: 'cold' | 'follow_up' | 'short' | 'long' | 'persuasive' | 'friendly';
+  userId?: string | null; // resolve the requesting user's NVIDIA key/model
 }
 
 // Post-process generated copy:
@@ -247,7 +248,7 @@ async function generateWithNvidia(input: EmailGenerationInput, intel: WebsiteInt
       },
       { role: 'user', content: prompt },
     ],
-    { temperature: 0.5, maxTokens: 4096, timeoutMs: 30000 }
+    { temperature: 0.5, maxTokens: 4096, timeoutMs: 30000, userId: input.userId }
   );
   const parsed = extractJson<any>(content);
 

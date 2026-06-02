@@ -324,14 +324,21 @@ function buildIntelligenceFields(name: string, override?: Partial<DomainInput>):
   };
 }
 
-export async function listDomains(filter?: {
+// Guard helper: throws unless the domain belongs to the user. Used before any
+// mutation that targets a domain (or its buyers/offers/sale) by id.
+async function assertDomainOwner(domainId: string, userId: string): Promise<void> {
+  const owned = await prisma.domain.findFirst({ where: { id: domainId, userId }, select: { id: true } });
+  if (!owned) throw new Error('Domain not found.');
+}
+
+export async function listDomains(userId: string, filter?: {
   status?: string;
   search?: string;
   category?: string;
   tag?: string;
   includeArchived?: boolean;
 }) {
-  const where: Prisma.DomainWhereInput = {};
+  const where: Prisma.DomainWhereInput = { userId };
   if (filter?.status) where.status = filter.status;
   if (filter?.category) where.category = filter.category;
   if (filter?.tag) where.tags = { has: filter.tag };
@@ -356,9 +363,9 @@ export async function listDomains(filter?: {
   });
 }
 
-export async function getDomain(id: string) {
-  return prisma.domain.findUnique({
-    where: { id },
+export async function getDomain(id: string, userId: string) {
+  return prisma.domain.findFirst({
+    where: { id, userId },
     include: {
       campaigns: {
         select: {
@@ -401,7 +408,8 @@ export async function createDomain(input: DomainInput, userId?: string) {
   });
 }
 
-export async function updateDomain(id: string, input: Partial<DomainInput> & { status?: string }) {
+export async function updateDomain(id: string, input: Partial<DomainInput> & { status?: string }, userId: string) {
+  await assertDomainOwner(id, userId);
   const data: Prisma.DomainUpdateInput = {};
   if (input.name !== undefined) {
     const renamed = normalizeDomainName(input.name);
@@ -428,27 +436,30 @@ export async function updateDomain(id: string, input: Partial<DomainInput> & { s
   return prisma.domain.update({ where: { id }, data });
 }
 
-export async function archiveDomain(id: string) {
+export async function archiveDomain(id: string, userId: string) {
+  await assertDomainOwner(id, userId);
   return prisma.domain.update({
     where: { id },
     data: { status: 'Archived', archivedAt: new Date() },
   });
 }
 
-export async function restoreDomain(id: string) {
+export async function restoreDomain(id: string, userId: string) {
+  await assertDomainOwner(id, userId);
   return prisma.domain.update({
     where: { id },
     data: { status: 'Available', archivedAt: null },
   });
 }
 
-export async function deleteDomain(id: string) {
+export async function deleteDomain(id: string, userId: string) {
+  await assertDomainOwner(id, userId);
   await prisma.domain.delete({ where: { id } });
   return { deleted: true };
 }
 
-export async function reanalyzeDomain(id: string) {
-  const domain = await prisma.domain.findUnique({ where: { id } });
+export async function reanalyzeDomain(id: string, userId: string) {
+  const domain = await prisma.domain.findFirst({ where: { id, userId } });
   if (!domain) throw new Error('Domain not found.');
   const intel = deriveDomainIntelligence(domain.name);
   return prisma.domain.update({
@@ -499,7 +510,7 @@ export async function bulkImportDomains(input: BulkImportInput, userId?: string)
     if (seen.has(name)) { skipped += 1; continue; }
     seen.add(name);
     try {
-      const existing = await prisma.domain.findUnique({ where: { name } });
+      const existing = await prisma.domain.findFirst({ where: { name, userId: userId ?? null } });
       if (existing) { skipped += 1; continue; }
       await createDomain({ ...candidate, name }, userId);
       created.push(name);
@@ -511,8 +522,8 @@ export async function bulkImportDomains(input: BulkImportInput, userId?: string)
   return { imported: created.length, skipped, errors, names: created };
 }
 
-export async function recordSale(domainId: string, input: SaleInput) {
-  const domain = await prisma.domain.findUnique({ where: { id: domainId } });
+export async function recordSale(domainId: string, input: SaleInput, userId: string) {
+  const domain = await prisma.domain.findFirst({ where: { id: domainId, userId } });
   if (!domain) throw new Error('Domain not found.');
   if (!Number.isFinite(input.salePrice) || input.salePrice <= 0) {
     throw new Error('Sale price must be greater than zero.');
@@ -549,7 +560,8 @@ export async function recordSale(domainId: string, input: SaleInput) {
   return sale;
 }
 
-export async function markUnsold(domainId: string) {
+export async function markUnsold(domainId: string, userId: string) {
+  await assertDomainOwner(domainId, userId);
   await prisma.domainSale.deleteMany({ where: { domainId } });
   return prisma.domain.update({
     where: { id: domainId },
@@ -557,7 +569,8 @@ export async function markUnsold(domainId: string) {
   });
 }
 
-export async function listBuyers(domainId: string) {
+export async function listBuyers(domainId: string, userId: string) {
+  await assertDomainOwner(domainId, userId);
   return prisma.domainBuyer.findMany({
     where: { domainId },
     include: { offers: { orderBy: { receivedAt: 'desc' } } },
@@ -565,7 +578,8 @@ export async function listBuyers(domainId: string) {
   });
 }
 
-export async function createBuyer(domainId: string, input: BuyerInput) {
+export async function createBuyer(domainId: string, input: BuyerInput, userId: string) {
+  await assertDomainOwner(domainId, userId);
   return prisma.domainBuyer.create({
     data: {
       domainId,
@@ -584,7 +598,9 @@ export async function createBuyer(domainId: string, input: BuyerInput) {
   });
 }
 
-export async function updateBuyer(buyerId: string, input: Partial<BuyerInput>) {
+export async function updateBuyer(buyerId: string, input: Partial<BuyerInput>, userId: string) {
+  const owned = await prisma.domainBuyer.findFirst({ where: { id: buyerId, domain: { userId } }, select: { id: true } });
+  if (!owned) throw new Error('Buyer not found.');
   return prisma.domainBuyer.update({
     where: { id: buyerId },
     data: {
@@ -602,12 +618,15 @@ export async function updateBuyer(buyerId: string, input: Partial<BuyerInput>) {
   });
 }
 
-export async function deleteBuyer(buyerId: string) {
+export async function deleteBuyer(buyerId: string, userId: string) {
+  const owned = await prisma.domainBuyer.findFirst({ where: { id: buyerId, domain: { userId } }, select: { id: true } });
+  if (!owned) throw new Error('Buyer not found.');
   await prisma.domainBuyer.delete({ where: { id: buyerId } });
   return { deleted: true };
 }
 
-export async function recordOffer(domainId: string, input: OfferInput) {
+export async function recordOffer(domainId: string, input: OfferInput, userId: string) {
+  await assertDomainOwner(domainId, userId);
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new Error('Offer amount must be greater than zero.');
   }
@@ -625,7 +644,9 @@ export async function recordOffer(domainId: string, input: OfferInput) {
   });
 }
 
-export async function updateOffer(offerId: string, input: Partial<OfferInput>) {
+export async function updateOffer(offerId: string, input: Partial<OfferInput>, userId: string) {
+  const owned = await prisma.domainOffer.findFirst({ where: { id: offerId, domain: { userId } }, select: { id: true } });
+  if (!owned) throw new Error('Offer not found.');
   return prisma.domainOffer.update({
     where: { id: offerId },
     data: {
@@ -639,13 +660,15 @@ export async function updateOffer(offerId: string, input: Partial<OfferInput>) {
   });
 }
 
-export async function deleteOffer(offerId: string) {
+export async function deleteOffer(offerId: string, userId: string) {
+  const owned = await prisma.domainOffer.findFirst({ where: { id: offerId, domain: { userId } }, select: { id: true } });
+  if (!owned) throw new Error('Offer not found.');
   await prisma.domainOffer.delete({ where: { id: offerId } });
   return { deleted: true };
 }
 
 // Dashboard aggregates: stats cards + recent activity + Kanban columns.
-export async function getPortfolioDashboard() {
+export async function getPortfolioDashboard(userId: string) {
   const now = new Date();
   const soon = new Date(now);
   soon.setDate(soon.getDate() + 30);
@@ -660,33 +683,34 @@ export async function getPortfolioDashboard() {
     soldAgg,
     revenueAgg,
   ] = await Promise.all([
-    prisma.domain.count({ where: { archivedAt: null } }),
+    prisma.domain.count({ where: { userId, archivedAt: null } }),
     prisma.domain.aggregate({
-      where: { archivedAt: null },
+      where: { userId, archivedAt: null },
       _sum: { estimatedValue: true, purchasePrice: true },
     }),
     prisma.domain.count({
       where: {
+        userId,
         archivedAt: null,
         expirationDate: { gte: now, lte: soon },
       },
     }),
     prisma.campaign.count({
-      where: { status: 'ACTIVE', domainId: { not: null } },
+      where: { userId, status: 'ACTIVE', domainId: { not: null } },
     }),
     prisma.campaignLead.count({
-      where: { campaign: { domainId: { not: null } } },
+      where: { campaign: { userId, domainId: { not: null } } },
     }),
     prisma.reply.count({
-      where: { campaign: { domainId: { not: null } } },
+      where: { campaign: { userId, domainId: { not: null } } },
     }),
-    prisma.domain.count({ where: { status: 'Sold' } }),
-    prisma.domainSale.aggregate({ _sum: { salePrice: true, fees: true } }),
+    prisma.domain.count({ where: { userId, status: 'Sold' } }),
+    prisma.domainSale.aggregate({ where: { domain: { userId } }, _sum: { salePrice: true, fees: true } }),
   ]);
 
   const byStatus = await prisma.domain.groupBy({
     by: ['status'],
-    where: { archivedAt: null },
+    where: { userId, archivedAt: null },
     _count: { status: true },
   });
   const statusCounts: Record<string, number> = {};
@@ -715,9 +739,9 @@ export async function getPortfolioDashboard() {
   };
 }
 
-export async function getKanban() {
+export async function getKanban(userId: string) {
   const domains = await prisma.domain.findMany({
-    where: { archivedAt: null },
+    where: { userId, archivedAt: null },
     include: {
       _count: { select: { campaigns: true, buyers: true, offers: true } },
       sale: true,
@@ -742,8 +766,8 @@ export async function getKanban() {
 // Buyer discovery: surface lead-explorer rows that match the domain's
 // derived industry + geo. The frontend uses this to launch a Lead Explorer
 // search seeded entirely from the domain — no manual keyword entry.
-export async function buyerDiscoveryParams(domainId: string) {
-  const domain = await prisma.domain.findUnique({ where: { id: domainId } });
+export async function buyerDiscoveryParams(domainId: string, userId: string) {
+  const domain = await prisma.domain.findFirst({ where: { id: domainId, userId } });
   if (!domain) throw new Error('Domain not found.');
   const keyword = [domain.industry, domain.niche].filter(Boolean).join(' ') || domain.category || 'local business';
   const cityState = [domain.city, domain.state].filter(Boolean).join(', ') || domain.state || '';

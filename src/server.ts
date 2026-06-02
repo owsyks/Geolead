@@ -13,6 +13,9 @@ import emailRouter from './routes/email.js';
 import domainsRouter from './routes/domains.js';
 import settingsRouter from './routes/settings.js';
 import inboxRouter from './routes/inbox.js';
+import authRouter from './routes/auth.js';
+import { requireAuth } from './middleware/auth.js';
+import { seedAdminAndClaim } from './services/auth.js';
 import { startInboxSyncWorker } from './services/inboxSync.js';
 import { attachOutboundWebSocket } from './services/outboundRealtime.js';
 import { ensureOutboundSeedData, startOutboundScheduler } from './services/outboundPlatform.js';
@@ -34,6 +37,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use('/api/auth', authRouter);
 app.use('/api/outbound', outboundRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/domains', domainsRouter);
@@ -70,7 +74,7 @@ app.get('/api/health', (req, res) => {
  * POST /api/search
  * Initiates a lead search task.
  */
-app.post('/api/search', rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
+app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
   const { keyword, domainIdea, country, cityState, searchDepth } = req.body;
 
   if (!keyword || !domainIdea) {
@@ -80,10 +84,11 @@ app.post('/api/search', rateLimit('search', 10, 10 * 60 * 1000), async (req, res
   try {
     const requestedDepth = searchDepth ? parseInt(searchDepth as string, 10) : 10;
     const depth = Math.min(Math.max(Number.isNaN(requestedDepth) ? 10 : requestedDepth, 1), 200);
-    
-    // Create database entry for the task
+
+    // Create database entry for the task, owned by the requesting user.
     const task = await prisma.searchTask.create({
       data: {
+        userId: req.userId!,
         keyword,
         domainIdea,
         country: country || null,
@@ -109,12 +114,12 @@ app.post('/api/search', rateLimit('search', 10, 10 * 60 * 1000), async (req, res
  * GET /api/tasks/:id
  * Fetches status and progress of an active task.
  */
-app.get('/api/tasks/:id', async (req, res) => {
+app.get('/api/tasks/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const task = await prisma.searchTask.findUnique({
-      where: { id },
+    const task = await prisma.searchTask.findFirst({
+      where: { id, userId: req.userId! },
       include: {
         leads: {
           orderBy: { domainMatchScore: 'desc' },
@@ -143,9 +148,10 @@ app.get('/api/tasks/:id', async (req, res) => {
  * GET /api/history
  * Fetches previous searches history.
  */
-app.get('/api/history', rateLimit('history', 30, 10 * 60 * 1000), async (req, res) => {
+app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), async (req, res) => {
   try {
     const tasks = await prisma.searchTask.findMany({
+      where: { userId: req.userId! },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
@@ -160,7 +166,7 @@ app.get('/api/history', rateLimit('history', 30, 10 * 60 * 1000), async (req, re
  * GET /api/leads
  * Get leads with advanced filters, search queries, sorting, and pagination.
  */
-app.get('/api/leads', rateLimit('leads', 60, 10 * 60 * 1000), async (req, res) => {
+app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async (req, res) => {
   const {
     taskId,
     search,
@@ -177,8 +183,8 @@ app.get('/api/leads', rateLimit('leads', 60, 10 * 60 * 1000), async (req, res) =
     const limitNum = parseInt(limit as string, 10);
     const offset = (pageNum - 1) * limitNum;
 
-    // Build Prisma query filters
-    const whereClause: any = {};
+    // Build Prisma query filters — always scoped to the requesting user.
+    const whereClause: any = { ownerId: req.userId! };
 
     if (taskId) {
       whereClause.taskId = taskId as string;
@@ -241,11 +247,13 @@ app.get('/api/leads', rateLimit('leads', 60, 10 * 60 * 1000), async (req, res) =
  * POST /api/leads/:id/notes
  * Adds CRM-style notes/comments to a lead.
  */
-app.post('/api/leads/:id/notes', async (req, res) => {
+app.post('/api/leads/:id/notes', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { notes } = req.body;
 
   try {
+    const owned = await prisma.lead.findFirst({ where: { id, ownerId: req.userId! }, select: { id: true } });
+    if (!owned) return res.status(404).json({ error: 'Lead not found.' });
     const updatedLead = await prisma.lead.update({
       where: { id },
       data: { notes },
@@ -261,11 +269,11 @@ app.post('/api/leads/:id/notes', async (req, res) => {
  * GET /api/export
  * Exports leads to CSV, Excel, or JSON based on filters.
  */
-app.get('/api/export', rateLimit('export', 20, 10 * 60 * 1000), async (req, res) => {
+app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), async (req, res) => {
   const { taskId, format = 'csv', emailsOnly = 'false', includeRisky = 'true' } = req.query;
 
   try {
-    const whereClause: any = {};
+    const whereClause: any = { ownerId: req.userId! };
     if (taskId) {
       whereClause.taskId = taskId as string;
     }
@@ -387,6 +395,7 @@ server.listen(Number(PORT), process.env.HOST || '0.0.0.0', async () => {
   startInboxSyncWorker();
   // Defer heavy startup tasks so the server is ready to accept requests first
   setTimeout(() => {
+    void seedAdminAndClaim();
     void cleanupStoredContacts();
     void resumePendingSearchTasks();
     void ensureOutboundSeedData();

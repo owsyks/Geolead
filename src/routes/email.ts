@@ -13,6 +13,7 @@ import {
   type DeliverabilityResult,
 } from '../services/deliverabilityEngine.js';
 import { emailVerificationQueue } from '../queues/queues.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -22,6 +23,9 @@ router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
+
+// Email verification/deliverability utilities require authentication.
+router.use(requireAuth);
 
 router.post(
   '/verify',

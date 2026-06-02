@@ -5,6 +5,7 @@ import {
   setSettings,
   testProvider,
 } from '../services/settings.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -13,9 +14,12 @@ router.use((_req, res, next) => {
   next();
 });
 
+// All settings are per-user.
+router.use(requireAuth);
+
 // Full redacted view for the Settings page (secrets masked, never plaintext).
-router.get('/', wrap(async (_req, res) => {
-  res.json({ settings: await getSettingsForDisplay() });
+router.get('/', wrap(async (req, res) => {
+  res.json({ settings: await getSettingsForDisplay(req.userId!) });
 }));
 
 // Bulk update. Body: { values: { key: value, ... } }. Empty string clears an
@@ -29,13 +33,13 @@ router.patch('/', wrap(async (req, res) => {
     else if (typeof value === 'string') clean[key] = value;
     else if (typeof value === 'number' || typeof value === 'boolean') clean[key] = String(value);
   }
-  await setSettings(clean);
-  res.json({ settings: await getSettingsForDisplay() });
+  await setSettings(clean, req.userId!);
+  res.json({ settings: await getSettingsForDisplay(req.userId!) });
 }));
 
-// Live connection test for a provider: openai | serper | resend | smtp.
+// Live connection test for a provider: nvidia | serper | resend | smtp.
 router.post('/test/:provider', wrap(async (req, res) => {
-  const result = await testProvider(req.params.provider);
+  const result = await testProvider(req.params.provider, req.userId!);
   res.status(result.ok ? 200 : 400).json(result);
 }));
 
