@@ -1,0 +1,337 @@
+Upgrade the GeoLead AI dashboard into a complete AI-powered outbound email automation platform.
+
+MAIN GOAL:
+Allow users to:
+
+* generate personalized cold emails using AI
+* send emails at scale
+* track opens/clicks/replies
+* manage campaigns
+* automate outreach sequences
+* monitor deliverability
+* convert leads into buyers for geo domains
+
+IMPORTANT:
+The system must follow anti-spam best practices, support opt-outs/unsubscribes, rate limiting, and comply with email regulations (CAN-SPAM/GDPR where applicable). Avoid deceptive sending practices.
+
+====================================
+
+1. AI EMAIL GENERATION SYSTEM
+   ====================================
+
+Build an advanced AI email writer.
+
+The AI should generate:
+
+* cold outreach emails
+* follow-up emails
+* short versions
+* long versions
+* persuasive sales emails
+* friendly conversational emails
+
+Inputs:
+
+* business name
+* geo domain name
+* niche/category
+* city/state
+* business website
+* business description
+* pain points
+* tone
+
+Example:
+Lead:
+“Texas Auto Sales”
+
+Geo domain:
+“TexasCarVendor.com”
+
+AI should generate:
+
+* subject line
+* preview text
+* email body
+* follow-up suggestions
+
+Features:
+
+* personalization variables
+* dynamic placeholders
+* AI tone selector
+* multilingual support
+* spam-score optimization
+* subject line A/B testing
+* AI rewrite button
+* “make shorter”
+* “make more professional”
+* “make more persuasive”
+
+Create a modern outbound campaign manager.
+
+Features:
+
+* create campaign
+* select leads
+* assign templates
+* schedule sending
+* drip sequences
+* follow-up automation
+* pause/resume campaigns
+
+Dashboard metrics:
+
+* sent emails
+* delivered
+* opens
+* clicks
+* replies
+* bounce rate
+* unsubscribe rate
+* spam complaints
+
+UI:
+
+* Kanban-style campaign view
+* analytics charts
+* real-time activity feed
+* campaign timeline
+* inbox preview
+
+Integrate:
+
+* SendGrid
+* Resend
+* Mailgun
+* Amazon SES
+* SMTP custom providers
+
+Features:
+
+* multiple sender accounts
+* sender rotation
+* warm-up support
+* queue-based sending
+* throttling
+* retry system
+* deliverability optimization
+
+Advanced:
+
+* sending schedules by timezone
+* smart delays between emails
+* spam prevention heuristics
+* inbox placement monitoring
+
+Implement:
+
+* open tracking
+* click tracking
+* reply detection
+* bounce detection
+* unsubscribe tracking
+
+Tracking dashboard should show:
+
+* open rate
+* CTR
+* reply rate
+* positive replies
+* negative replies
+* lead engagement score
+
+Include:
+
+* tracking pixels
+* tracked redirect links
+* webhook handling
+* event logs
+
+Before generating emails:
+
+* scrape company website
+* analyze homepage
+* detect business niche
+* extract slogans/services
+* summarize company
+
+AI then uses that context to create hyper-personalized emails.
+
+Example:
+“Noticed your dealership specializes in used trucks in Texas…”
+
+AI automatically generates follow-ups:
+
+* follow-up #1
+* follow-up #2
+* breakup email
+
+Rules:
+
+* stop sequence if reply received
+* detect positive intent
+* auto-tag interested leads
+
+Add CRM functionality:
+
+* lead statuses
+* notes
+* reminders
+* tags
+* pipeline stages
+
+Pipeline examples:
+
+* New
+* Contacted
+* Opened
+* Replied
+* Interested
+* Negotiating
+* Sold
+
+Create inbox UI for:
+
+* viewing replies
+* AI reply suggestions
+* thread history
+* smart categorization
+
+Features:
+
+* reply sentiment analysis
+* detect buying intent
+* AI suggested responses
+* quick actions
+
+AI analyzes campaigns and suggests:
+
+* best subject lines
+* best send times
+* best-performing templates
+* hottest leads
+* likely buyers
+
+Generate:
+
+* AI insights dashboard
+* conversion predictions
+* deliverability alerts
+
+Frontend:
+
+* Next.js
+* TypeScript
+* TailwindCSS
+* shadcn/ui
+* Framer Motion
+
+Backend:
+
+* FastAPI or Node.js NestJS
+
+Email:
+
+* SendGrid API
+* Resend API
+* SES integration
+
+Queue:
+
+* Redis + BullMQ
+
+AI:
+
+* OpenAI GPT models
+* embeddings
+* lead scoring AI
+
+Database:
+
+* PostgreSQL
+
+Realtime:
+
+* WebSockets
+* live tracking updates
+
+Create schemas for:
+
+* users
+* leads
+* campaigns
+* templates
+* email_logs
+* email_events
+* sender_accounts
+* replies
+* analytics
+* sequences
+
+- AI spam checker
+- AI deliverability scoring
+- automatic unsubscribe handling
+- email warm-up monitoring
+- custom domains
+- DKIM/SPF verification
+- webhook monitoring
+- inbox rotation
+- AI lead priority scoring
+- AI-powered domain recommendations
+
+Style:
+
+* modern SaaS
+* premium dark mode
+* animated dashboards
+* glassmorphism
+* clean CRM layout
+* responsive
+* enterprise-grade
+
+Pages:
+
+* campaign manager
+* AI email generator
+* unified inbox
+* analytics center
+* lead explorer
+* settings
+* sender accounts
+* templates library
+
+Implement:
+
+* RBAC permissions
+* API rate limiting
+* encrypted API keys
+* background workers
+* scalable microservice-ready architecture
+* audit logs
+* activity monitoring
+
+Generate:
+
+* production-ready codebase
+* scalable architecture
+* API routes
+* email engine
+* AI generation system
+* tracking infrastructure
+* frontend UI
+* analytics dashboard
+* Docker deployment
+* CI/CD setup
+* reusable components
+* environment variables
+* setup documentation
+
+Code quality:
+
+* clean architecture
+* modular
+* enterprise-level
+* highly scalable
+* optimized performance
+* TypeScript-first

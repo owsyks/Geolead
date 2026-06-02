@@ -1,0 +1,623 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model SearchTask {
+  id            String   @id @default(uuid())
+  keyword       String
+  domainIdea    String
+  country       String?
+  cityState     String?
+  searchDepth   Int      @default(10)
+  status        String   // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  progress      Int      @default(0) // 0 to 100
+  totalLeads    Int      @default(0)
+  validEmails   Int      @default(0)
+  failedBusinesses Int   @default(0)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  leads         Lead[]
+}
+
+model Lead {
+  id                 String      @id @default(uuid())
+  taskId             String
+  task               SearchTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  ownerId            String?
+  owner              User?       @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  businessName       String
+  website            String?
+  location           String?
+  googleMapsLink     String?
+  category           String?
+  rating             Float?
+  reviewsCount       Int?
+  phoneNumbers       String[]
+  socialLinks        String[]
+  domainMatchScore   Int         // AI matching score: 0 to 100
+  scoreExplanation   String?     @db.Text
+  notes              String?     @db.Text
+  leadStatus         String      @default("New")
+  pipelineStage      String      @default("New")
+  tags               String[]    @default([])
+  reminderAt         DateTime?
+  lastContactedAt    DateTime?
+  nextFollowUpAt     DateTime?
+  engagementScore    Int         @default(0)
+  replyCount         Int         @default(0)
+  openCount          Int         @default(0)
+  clickCount         Int         @default(0)
+  unsubscribed       Boolean     @default(false)
+  doNotContact       Boolean     @default(false)
+  companySize        String?     // "Small", "Medium", "Large", "Unknown"
+  summary            String?     @db.Text
+  companyDescription String?     @db.Text
+  painPoints         String?     @db.Text
+  timezone           String?
+  prospectLanguage   String      @default("en")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  emails             LeadEmail[]
+  campaignLeads      CampaignLead[]
+  outboundReplies    Reply[]
+  emailLogs          EmailLog[]
+  statusHistory      LeadStatusHistory[]
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  role          String         @default("ADMIN")
+  isActive      Boolean        @default(true)
+  timezone      String?        @default("UTC")
+  locale        String?        @default("en")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  campaigns     Campaign[]
+  templates     Template[]
+  senderAccounts SenderAccount[]
+  auditLogs     AuditLog[]
+  leads         Lead[]
+  domains       Domain[]
+}
+
+model Campaign {
+  id              String            @id @default(uuid())
+  userId          String?
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  domainId        String?
+  domain          Domain?           @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  name            String
+  objective       String
+  geoDomain       String
+  niche           String
+  cityState       String?
+  tone            String            @default("professional")
+  language        String            @default("en")
+  status          String            @default("DRAFT")
+  timezone        String            @default("UTC")
+  dailyLimit      Int               @default(30)
+  smartDelayMin   Int               @default(5)
+  smartDelayMax   Int               @default(30)
+  sendWindowStart String?
+  sendWindowEnd   String?
+  startsAt        DateTime?
+  pausedAt        DateTime?
+  aBTestEnabled   Boolean           @default(false)
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  sequences       Sequence[]
+  campaignLeads   CampaignLead[]
+  emailLogs       EmailLog[]
+  replies         Reply[]
+  events          EmailEvent[]
+  analytics       AnalyticsSnapshot[]
+}
+
+model Template {
+  id               String         @id @default(uuid())
+  userId           String?
+  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name             String
+  type             String         @default("cold")
+  purpose          String         @default("cold")
+  language         String         @default("en")
+  tone             String         @default("professional")
+  subject          String
+  previewText      String?
+  body             String         @db.Text
+  followUpBody     String?        @db.Text
+  variables        Json?
+  aiPrompt         String?        @db.Text
+  spamScore        Int            @default(0)
+  deliverabilityScore Int         @default(50)
+  isArchived       Boolean        @default(false)
+  tags             String[]       @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  sequenceSteps    SequenceStep[]
+  emailLogs        EmailLog[]
+}
+
+model SenderAccount {
+  id               String         @id @default(uuid())
+  userId           String?
+  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  label            String
+  provider         String
+  fromName         String
+  fromEmail        String
+  replyTo          String?
+  status           String         @default("inactive")
+  timezone         String         @default("UTC")
+  dailyLimit       Int            @default(100)
+  hourlyLimit      Int            @default(20)
+  warmupEnabled    Boolean        @default(false)
+  warmupTarget     Int            @default(20)
+  sendWindowStart  String?
+  sendWindowEnd    String?
+  rotationRank     Int            @default(0)
+  providerConfig   Json?
+  dkimStatus       String         @default("unknown")
+  spfStatus        String         @default("unknown")
+  dmarcStatus      String         @default("unknown")
+  deliverabilityScore Int         @default(50)
+  bounceRate       Float          @default(0)
+  spamComplaintRate Float          @default(0)
+  lastVerifiedAt    DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  emailLogs        EmailLog[]
+}
+
+model Sequence {
+  id             String        @id @default(uuid())
+  campaignId     String
+  campaign       Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name           String
+  status         String        @default("ACTIVE")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  steps          SequenceStep[]
+  campaignLeads  CampaignLead[]
+}
+
+model SequenceStep {
+  id             String        @id @default(uuid())
+  sequenceId     String
+  sequence       Sequence      @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  templateId     String?
+  template       Template?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  stepOrder      Int
+  delayHours     Int           @default(0)
+  stepType       String        @default("FOLLOW_UP")
+  subject        String
+  previewText    String?
+  body           String        @db.Text
+  useAI          Boolean       @default(false)
+  stopOnReply    Boolean       @default(true)
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model CampaignLead {
+  id               String      @id @default(uuid())
+  campaignId       String
+  campaign         Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId           String
+  lead             Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sequenceId       String?
+  sequence         Sequence?   @relation(fields: [sequenceId], references: [id], onDelete: SetNull)
+  status           String      @default("NEW")
+  stage            String      @default("New")
+  currentStep      Int         @default(0)
+  nextSendAt       DateTime?
+  lastSentAt       DateTime?
+  openedAt         DateTime?
+  clickedAt        DateTime?
+  repliedAt        DateTime?
+  unsubscribedAt   DateTime?
+  engaged          Boolean     @default(false)
+  positiveReply    Boolean     @default(false)
+  negativeReply    Boolean     @default(false)
+  engagementScore  Int         @default(0)
+  personalization  Json?
+  trackingToken    String      @unique
+  unsubscribeToken String      @unique
+  messageId        String?
+  pausedReason     String?
+  attemptCount     Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  emailLogs        EmailLog[]
+  replies          Reply[]
+  events           EmailEvent[]
+
+  @@unique([campaignId, leadId])
+}
+
+model EmailLog {
+  id               String      @id @default(uuid())
+  campaignId       String
+  campaign         Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignLeadId   String?
+  campaignLead     CampaignLead? @relation(fields: [campaignLeadId], references: [id], onDelete: SetNull)
+  leadId           String
+  lead             Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  senderAccountId   String?
+  senderAccount     SenderAccount? @relation(fields: [senderAccountId], references: [id], onDelete: SetNull)
+  templateId       String?
+  template         Template?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  sequenceStepId   String?
+  provider         String
+  providerMessageId String?
+  toEmail          String
+  fromEmail        String
+  subject          String
+  previewText      String?
+  bodyText         String      @db.Text
+  bodyHtml         String?     @db.Text
+  status           String      @default("QUEUED")
+  trackingToken    String      @unique
+  unsubscribeToken String
+  scheduledAt      DateTime?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  openedAt         DateTime?
+  clickedAt        DateTime?
+  repliedAt        DateTime?
+  bouncedAt        DateTime?
+  unsubscribedAt   DateTime?
+  errorMessage     String?     @db.Text
+  metadata         Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  events           EmailEvent[]
+  replies          Reply[]
+}
+
+model EmailEvent {
+  id              String      @id @default(uuid())
+  campaignId      String
+  campaign        Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignLeadId  String?
+  campaignLead    CampaignLead? @relation(fields: [campaignLeadId], references: [id], onDelete: SetNull)
+  emailLogId      String?
+  emailLog        EmailLog?   @relation(fields: [emailLogId], references: [id], onDelete: SetNull)
+  type            String
+  payload         Json?
+  ipAddress       String?
+  userAgent       String?
+  provider        String?
+  occurredAt      DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+}
+
+model Reply {
+  id              String      @id @default(uuid())
+  campaignId      String
+  campaign        Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignLeadId  String?
+  campaignLead    CampaignLead? @relation(fields: [campaignLeadId], references: [id], onDelete: SetNull)
+  leadId          String
+  lead            Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  emailLogId      String?
+  emailLog        EmailLog?   @relation(fields: [emailLogId], references: [id], onDelete: SetNull)
+  mailboxId       String?
+  mailbox         Mailbox?    @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+  fromEmail       String
+  subject         String
+  body            String      @db.Text
+  threadId        String?
+  messageId       String?     @unique
+  inReplyTo       String?
+  direction       String      @default("INBOUND")
+  source          String      @default("manual") // imap | resend-webhook | manual
+  matchConfidence Int         @default(0)
+  matchMethod     String?
+  isRead          Boolean     @default(false)
+  aiCategory      String?     // Interested | Maybe Interested | Negotiating | Not Interested | Unsubscribe | Out Of Office | Spam
+  aiSummary       String?     @db.Text
+  sentiment       String      @default("neutral")
+  intentScore     Int         @default(0)
+  buyingIntent    Boolean     @default(false)
+  status          String      @default("NEW")
+  suggestedResponse String?    @db.Text
+  tags            String[]    @default([])
+  receivedAt      DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model AnalyticsSnapshot {
+  id               String      @id @default(uuid())
+  campaignId       String
+  campaign         Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date             DateTime
+  sent             Int         @default(0)
+  delivered        Int         @default(0)
+  opens            Int         @default(0)
+  clicks           Int         @default(0)
+  replies          Int         @default(0)
+  positiveReplies  Int         @default(0)
+  negativeReplies  Int         @default(0)
+  bounces          Int         @default(0)
+  unsubscribes     Int         @default(0)
+  complaints       Int         @default(0)
+  engagementScore  Int         @default(0)
+  deliverabilityScore Int      @default(50)
+}
+
+model WebhookEvent {
+  id             String      @id @default(uuid())
+  provider       String
+  type           String
+  externalId     String?
+  payload        Json
+  processed      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+}
+
+model SuppressionEntry {
+  id             String      @id @default(uuid())
+  email          String      @unique
+  reason         String
+  source         String      @default("manual")
+  campaignId     String?
+  leadId         String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  entityType     String
+  entityId       String?
+  action         String
+  payload        Json?
+  createdAt      DateTime    @default(now())
+}
+
+model LeadEmail {
+  id              String   @id @default(uuid())
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  email           String
+  status          String   // "VALID", "RISKY", "INVALID"
+  confidenceScore Float    // 0.0 to 1.0
+  sourcePage      String?
+
+  // Enhanced verification fields
+  provider        String?  // "google_workspace", "microsoft_365", "zoho", "custom", etc.
+  mxHost          String?  // Primary MX hostname
+  mxValid         Boolean  @default(false)
+  disposable      Boolean  @default(false)
+  roleAccount     Boolean  @default(false)
+  freeProvider    Boolean  @default(false)
+  catchAllRisk    String?  // "low", "medium", "high", "unknown"
+  riskLevel       String?  // "low", "medium", "high"
+  reputationScore Int?     // 0-100 domain reputation
+  verifiedAt      DateTime?
+  verificationMetadata Json?
+
+  createdAt       DateTime @default(now())
+
+  @@index([email])
+  @@index([status])
+  @@index([leadId, status])
+}
+
+model EmailVerificationJob {
+  id              String   @id @default(uuid())
+  status          String   @default("PENDING") // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  totalEmails     Int      @default(0)
+  processedEmails Int      @default(0)
+  validEmails     Int      @default(0)
+  riskyEmails     Int      @default(0)
+  invalidEmails   Int      @default(0)
+  errorMessage    String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Key/value config table that the Settings page reads & writes. Lets users
+// change provider keys (OpenAI, Serper, Resend, etc), compliance defaults, and
+// branding without redeploying. Secret values are stored encrypted (the
+// `value` column holds an `enc:` prefixed payload when isSecret=true). The
+// effective value at runtime is `DB value || process.env[envFallback]`.
+model Setting {
+  key       String   @id
+  value     String?  @db.Text
+  category  String   @default("general")
+  isSecret  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// Gmail/IMAP mailbox the InboxSyncWorker polls to import replies. Single-user
+// app, but modeled as a table so multiple mailboxes can be added later. The
+// app password is stored encrypted (enc: prefix).
+model Mailbox {
+  id              String    @id @default(uuid())
+  label           String    @default("Gmail")
+  email           String    @unique
+  imapHost        String    @default("imap.gmail.com")
+  imapPort        Int       @default(993)
+  useSsl          Boolean   @default(true)
+  username        String
+  appPassword     String    // encrypted
+  enabled         Boolean   @default(false)
+  syncIntervalSec Int       @default(60)
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?   // ok | error | running
+  lastSyncError   String?   @db.Text
+  lastSeenUid     Int       @default(0)
+  uidValidity     String?
+  totalImported   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  replies         Reply[]
+}
+
+// Append-only log of pipeline transitions for a lead, powering the sales CRM
+// timeline (Prospect -> Contacted -> Opened -> Replied -> Interested ->
+// Negotiating -> Sold).
+model LeadStatusHistory {
+  id          String   @id @default(uuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId  String?
+  domainId    String?
+  fromStatus  String?
+  toStatus    String
+  reason      String?
+  source      String   @default("system")
+  createdAt   DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+// Domain Portfolio: every domain the user owns or is prospecting on becomes a
+// first-class entity. Campaigns, leads, buyer outreach, and sales pipeline are
+// all anchored on a Domain so workflows never need a free-text domain input.
+model Domain {
+  id                  String        @id @default(uuid())
+  userId              String?
+  user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name                String        @unique
+  status              String        @default("Available")
+  purchaseDate        DateTime?
+  purchasePrice       Float?
+  registrar           String?
+  expirationDate      DateTime?
+  category            String?
+  niche               String?
+  industry            String?
+  city                String?
+  state               String?
+  country             String?
+  tags                String[]      @default([])
+  targetIndustries    String[]      @default([])
+  targetLocations     String[]      @default([])
+  notes               String?       @db.Text
+  brandingScore       Int           @default(0)
+  estimatedValue      Float?
+  buyerDemandScore    Int           @default(0)
+  leadOpportunityScore Int          @default(0)
+  saleProbability     Int           @default(0)
+  recommendedPrice    Float?
+  bestIndustries      String[]      @default([])
+  bestCities          String[]      @default([])
+  outreachStrategy    String?       @db.Text
+  aiSummary           String?       @db.Text
+  archivedAt          DateTime?
+  soldAt              DateTime?
+  intelligenceUpdatedAt DateTime?
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  campaigns           Campaign[]
+  buyers              DomainBuyer[]
+  offers              DomainOffer[]
+  sale                DomainSale?
+
+  @@index([status])
+  @@index([archivedAt])
+  @@index([soldAt])
+}
+
+model DomainBuyer {
+  id            String      @id @default(uuid())
+  domainId      String
+  domain        Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  leadId        String?
+  businessName  String
+  contactName   String?
+  email         String?
+  phone         String?
+  website       String?
+  location      String?
+  industry      String?
+  buyerScore    Int         @default(0)
+  status        String      @default("Prospect")
+  notes         String?     @db.Text
+  lastContactedAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  offers        DomainOffer[]
+
+  @@index([domainId])
+  @@index([status])
+}
+
+model DomainOffer {
+  id            String      @id @default(uuid())
+  domainId      String
+  domain        Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  buyerId       String?
+  buyer         DomainBuyer? @relation(fields: [buyerId], references: [id], onDelete: SetNull)
+  direction     String      @default("INBOUND")
+  amount        Float
+  currency      String      @default("USD")
+  status        String      @default("OPEN")
+  notes         String?     @db.Text
+  receivedAt    DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([domainId])
+  @@index([status])
+}
+
+model DomainSale {
+  id            String      @id @default(uuid())
+  domainId      String      @unique
+  domain        Domain      @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  buyerName     String
+  buyerEmail    String?
+  salePrice     Float
+  currency      String      @default("USD")
+  saleDate      DateTime    @default(now())
+  marketplace   String?
+  fees          Float       @default(0)
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Aggregated per-domain reputation data, used to bias the deliverability model
+// with historical campaign performance. Updated by webhook handlers and
+// recomputed by a background job.
+model DomainReputation {
+  domain            String   @id
+  totalSent         Int      @default(0)
+  totalDelivered    Int      @default(0)
+  totalBounced      Int      @default(0)
+  totalOpened       Int      @default(0)
+  totalReplied      Int      @default(0)
+  totalComplaints   Int      @default(0)
+  bounceRate        Float    @default(0)  // 0-1
+  deliveryRate      Float    @default(0)  // 0-1
+  replyRate         Float    @default(0)  // 0-1
+  reputationDelta   Float    @default(0)  // -30 to +30, applied to model score
+  lastBounceAt      DateTime?
+  lastDeliveryAt    DateTime?
+  lastUpdatedAt     DateTime @default(now()) @updatedAt
+  metadata          Json?
+
+  @@index([bounceRate])
+  @@index([lastUpdatedAt])
+}

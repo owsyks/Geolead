@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(taskkill *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000 :5000 :3001\")",
+      "Bash(xargs grep -l \"webpack\\\\|turbopack\")",
+      "Bash(curl -s http://localhost:5000/api/history)",
+      "Bash(npm run *)",
+      "Bash(curl *)",
+      "Bash(tasklist)",
+      "Bash(git config *)",
+      "Bash(echo \"user.name: $\\(git config --global user.name\\)\")",
+      "Bash(echo \"user.email: $\\(git config --global user.email\\)\")",
+      "Bash(gh auth *)",
+      "Bash(heroku auth:whoami)",
+      "Bash(echo \"name: $\\(git config --global user.name\\)\")",
+      "Bash(echo \"email: $\\(git config --global user.email\\)\")",
+      "Bash(vercel whoami *)"
+    ]
+  }
+}

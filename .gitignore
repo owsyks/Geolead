@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# build output
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+backend-dev.log
+backend-dev.err.log
+frontend-dev.log
+frontend-dev.err.log
+worker-dev.log
+worker-dev.err.log
+dev.log
+
+# misc
+.DS_Store
+*.local
