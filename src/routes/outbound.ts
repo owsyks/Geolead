@@ -454,18 +454,44 @@ router.get('/track/click/:trackingToken', wrap(async (req, res) => {
   res.redirect(url);
 }));
 
-router.get('/unsubscribe/:unsubscribeToken', wrap(async (req, res) => {
+// GET — show confirmation page only (never unsubscribe on GET; email clients
+// pre-fetch links and would silently unsubscribe every recipient).
+router.get('/unsubscribe/:unsubscribeToken', (req, res) => {
+  const token = req.params.unsubscribeToken;
+  const action = `${process.env.OUTBOUND_BASE_URL || ''}/api/outbound/unsubscribe/${token}`;
+  res.status(200).type('html').send(`<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title></head>
+<body style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0">
+  <div style="max-width:420px;text-align:center;padding:40px 24px">
+    <h2 style="margin:0 0 12px;font-size:22px">Unsubscribe</h2>
+    <p style="color:#94a3b8;margin:0 0 28px;line-height:1.6">Click the button below to stop receiving emails from this campaign. This cannot be undone.</p>
+    <form method="POST" action="${action}">
+      <button type="submit" style="background:#ef4444;color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">Confirm Unsubscribe</button>
+    </form>
+    <p style="margin-top:20px;font-size:12px;color:#475569">If you did not request this, simply close this page.</p>
+  </div>
+</body>
+</html>`);
+});
+
+// POST — actually perform the unsubscribe after user confirms.
+router.post('/unsubscribe/:unsubscribeToken', wrap(async (req, res) => {
   const log = await unsubscribe(req.params.unsubscribeToken);
   if (!log) {
     return res.status(404).type('text/plain').send('Unsubscribe token not found.');
   }
-
-  res
-    .status(200)
-    .type('html')
-    .send(
-      `<html><body style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;padding:40px"><h1>Unsubscribed</h1><p>You will not receive more email from this campaign.</p></body></html>`
-    );
+  res.status(200).type('html').send(`<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribed</title></head>
+<body style="font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0">
+  <div style="max-width:420px;text-align:center;padding:40px 24px">
+    <div style="font-size:48px;margin-bottom:16px">✓</div>
+    <h2 style="margin:0 0 12px;font-size:22px">You're unsubscribed</h2>
+    <p style="color:#94a3b8;margin:0;line-height:1.6">You will not receive any more emails from this campaign.</p>
+  </div>
+</body>
+</html>`);
 }));
 
 router.get('/track/open/:trackingToken', wrap(async (req, res) => {
