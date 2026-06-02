@@ -912,13 +912,17 @@ export default function DashboardPage() {
   };
 
   const handleVerifyEmails = async () => {
-    if (!selectedTask || leads.length === 0) return;
-    const allEmails = leads.flatMap(l => l.emails.map(e => e.email));
-    if (allEmails.length === 0) return;
+    if (!selectedTask) return;
 
     setVerifying(true);
     setVerifyResult(null);
     try {
+      // Fetch ALL emails for the task (not just the current page)
+      const emailRes = await authFetch(`${BACKEND_URL}/api/leads/emails?taskId=${selectedTask.id}`);
+      if (!emailRes.ok) throw new Error(`HTTP ${emailRes.status}`);
+      const { emails: allEmails } = await emailRes.json() as { emails: string[] };
+      if (allEmails.length === 0) { setVerifying(false); return; }
+
       const res = await authFetch(`${BACKEND_URL}/api/email/verify-bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
