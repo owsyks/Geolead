@@ -26,8 +26,14 @@ let syncing = false;
 let workerStarted = false;
 let workerTimer: NodeJS.Timeout | null = null;
 
-export async function getMailbox() {
-  return prisma.mailbox.findFirst({ orderBy: { createdAt: 'asc' } });
+// The mailbox belonging to a specific user (each user configures their own).
+export async function getMailbox(userId: string) {
+  return prisma.mailbox.findFirst({ where: { userId }, orderBy: { createdAt: 'asc' } });
+}
+
+// All enabled mailboxes across users — the background worker syncs each.
+export async function listEnabledMailboxes() {
+  return prisma.mailbox.findMany({ where: { enabled: true } });
 }
 
 // Background InboxSyncWorker: polls the mailbox on its configured interval
@@ -39,14 +45,16 @@ export function startInboxSyncWorker() {
   const tick = async () => {
     let intervalSec = 60;
     try {
-      const mailbox = await getMailbox();
-      if (mailbox) {
-        intervalSec = Math.max(30, mailbox.syncIntervalSec || 60);
-        if (mailbox.enabled && !syncing) {
-          const res = await syncMailbox();
-          if (res.imported > 0) console.log(`[InboxSyncWorker] Imported ${res.imported} reply(ies).`);
+      // Sync every enabled mailbox across all users, one at a time.
+      const mailboxes = await listEnabledMailboxes();
+      if (mailboxes.length) {
+        intervalSec = Math.max(30, Math.min(...mailboxes.map((m) => m.syncIntervalSec || 60)));
+        for (const mailbox of mailboxes) {
+          if (syncing) break;
+          const res = await syncMailbox(mailbox.id);
+          if (res.imported > 0) console.log(`[InboxSyncWorker] Imported ${res.imported} reply(ies) for ${mailbox.email}.`);
           else if (res.error && res.error !== 'A sync is already running.') {
-            console.warn('[InboxSyncWorker]', res.error);
+            console.warn('[InboxSyncWorker]', mailbox.email, res.error);
           }
         }
       }
@@ -103,10 +111,10 @@ function friendlyImapError(err: any): string {
   return err?.message || 'IMAP connection failed.';
 }
 
-// Run a single sync pass for the configured mailbox.
-export async function syncMailbox(force = false): Promise<SyncResult> {
+// Run a single sync pass for one mailbox (by id).
+export async function syncMailbox(mailboxId: string, force = false): Promise<SyncResult> {
   if (syncing) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'A sync is already running.' };
-  const mailbox = await getMailbox();
+  const mailbox = await prisma.mailbox.findUnique({ where: { id: mailboxId } });
   if (!mailbox) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'No mailbox configured.' };
   if (!mailbox.enabled && !force) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'Mailbox sync is disabled.' };
 

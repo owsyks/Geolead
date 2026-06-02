@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { OutboundShell } from "@/components/OutboundShell";
-import { OUTBOUND_API_BASE, fetchOutbound, type OutboundSenderSummary } from "@/lib/outbound";
+import { OUTBOUND_API_BASE, fetchOutbound, authFetch, type OutboundSenderSummary } from "@/lib/outbound";
 
 interface SendResult {
   ok: boolean;
@@ -50,7 +50,7 @@ export default function QuickSendPage() {
     setResult(null);
     setError("");
     try {
-      const res = await fetch(`${OUTBOUND_API_BASE}/api/outbound/send-now`, {
+      const res = await authFetch(`${OUTBOUND_API_BASE}/api/outbound/send-now`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ senderAccountId: senderId, to, subject, body }),

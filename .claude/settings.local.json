@@ -18,7 +18,27 @@
       "Bash(heroku auth:whoami)",
       "Bash(echo \"name: $\\(git config --global user.name\\)\")",
       "Bash(echo \"email: $\\(git config --global user.email\\)\")",
-      "Bash(vercel whoami *)"
+      "Bash(vercel whoami *)",
+      "Bash(heroku create *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(heroku addons:create heroku-postgresql:essential-0 -a geolead-ai-api)",
+      "Bash(heroku config:set OUTBOUND_BASE_URL=\"https://geolead-ai-api-0e677b174df3.herokuapp.com\" -a geolead-ai-api)",
+      "Bash(heroku config:set NVIDIA_API_KEY=\"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\" -a geolead-ai-api)",
+      "Bash(heroku config:set OUTBOUND_PHYSICAL_ADDRESS=\"GeoLead AI, 123 Market St, Austin, TX 78701\" -a geolead-ai-api)",
+      "Bash(heroku config *)",
+      "Bash(sed -E 's/\\(:\\).*/\\\\1 <set>/')",
+      "Bash(heroku addons:info postgresql-octagonal-56336)",
+      "Bash(heroku git:remote -a geolead-ai-api)",
+      "Bash(git subtree *)",
+      "Bash(heroku ps:scale web=1:basic -a geolead-ai-api)",
+      "Bash(heroku ps *)",
+      "Bash(heroku logs *)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel --prod --yes)",
+      "Bash(heroku config:set CORS_ORIGIN=\"https://geoai-ashen.vercel.app\" -a geolead-ai-api)"
     ]
   }
 }

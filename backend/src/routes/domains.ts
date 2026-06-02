@@ -24,6 +24,7 @@ import {
   updateOffer,
   DOMAIN_STATUSES,
 } from '../services/domains.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -32,20 +33,23 @@ router.use((_req, res, next) => {
   next();
 });
 
+// Every domain endpoint is scoped to the authenticated user.
+router.use(requireAuth);
+
 router.get('/statuses', (_req, res) => {
   res.json({ statuses: DOMAIN_STATUSES });
 });
 
-router.get('/dashboard', wrap(async (_req, res) => {
-  res.json(await getPortfolioDashboard());
+router.get('/dashboard', wrap(async (req, res) => {
+  res.json(await getPortfolioDashboard(req.userId!));
 }));
 
-router.get('/kanban', wrap(async (_req, res) => {
-  res.json(await getKanban());
+router.get('/kanban', wrap(async (req, res) => {
+  res.json(await getKanban(req.userId!));
 }));
 
 router.get('/', wrap(async (req, res) => {
-  const domains = await listDomains({
+  const domains = await listDomains(req.userId!, {
     status: asString(req.query.status),
     search: asString(req.query.search),
     category: asString(req.query.category),
@@ -75,7 +79,7 @@ router.post('/', wrap(async (req, res) => {
     targetIndustries: asStringArray(req.body.targetIndustries),
     targetLocations: asStringArray(req.body.targetLocations),
     notes: nonEmpty(req.body.notes),
-  });
+  }, req.userId!);
   res.status(201).json(domain);
 }));
 
@@ -84,12 +88,12 @@ router.post('/import', wrap(async (req, res) => {
   const result = await bulkImportDomains({
     rows,
     defaultStatus: asString(req.body.defaultStatus) || undefined,
-  });
+  }, req.userId!);
   res.json(result);
 }));
 
 router.get('/:id', wrap(async (req, res) => {
-  const domain = await getDomain(req.params.id);
+  const domain = await getDomain(req.params.id, req.userId!);
   if (!domain) return res.status(404).json({ error: 'Domain not found.' });
   res.json(domain);
 }));
@@ -112,24 +116,24 @@ router.patch('/:id', wrap(async (req, res) => {
     targetIndustries: req.body.targetIndustries === undefined ? undefined : asStringArray(req.body.targetIndustries),
     targetLocations: req.body.targetLocations === undefined ? undefined : asStringArray(req.body.targetLocations),
     notes: req.body.notes === undefined ? undefined : (asString(req.body.notes) || null),
-  });
+  }, req.userId!);
   res.json(domain);
 }));
 
 router.delete('/:id', wrap(async (req, res) => {
-  res.json(await deleteDomain(req.params.id));
+  res.json(await deleteDomain(req.params.id, req.userId!));
 }));
 
 router.post('/:id/archive', wrap(async (req, res) => {
-  res.json(await archiveDomain(req.params.id));
+  res.json(await archiveDomain(req.params.id, req.userId!));
 }));
 
 router.post('/:id/restore', wrap(async (req, res) => {
-  res.json(await restoreDomain(req.params.id));
+  res.json(await restoreDomain(req.params.id, req.userId!));
 }));
 
 router.post('/:id/analyze', wrap(async (req, res) => {
-  res.json(await reanalyzeDomain(req.params.id));
+  res.json(await reanalyzeDomain(req.params.id, req.userId!));
 }));
 
 router.post('/:id/sale', wrap(async (req, res) => {
@@ -145,15 +149,15 @@ router.post('/:id/sale', wrap(async (req, res) => {
     marketplace: asString(req.body.marketplace),
     fees: asNumber(req.body.fees) ?? 0,
     notes: asString(req.body.notes),
-  }));
+  }, req.userId!));
 }));
 
 router.delete('/:id/sale', wrap(async (req, res) => {
-  res.json(await markUnsold(req.params.id));
+  res.json(await markUnsold(req.params.id, req.userId!));
 }));
 
 router.get('/:id/buyers', wrap(async (req, res) => {
-  res.json(await listBuyers(req.params.id));
+  res.json(await listBuyers(req.params.id, req.userId!));
 }));
 
 router.post('/:id/buyers', wrap(async (req, res) => {
@@ -171,7 +175,7 @@ router.post('/:id/buyers', wrap(async (req, res) => {
     status: asString(req.body.status),
     notes: asString(req.body.notes),
     leadId: asString(req.body.leadId),
-  }));
+  }, req.userId!));
 }));
 
 router.patch('/:id/buyers/:buyerId', wrap(async (req, res) => {
@@ -186,11 +190,11 @@ router.patch('/:id/buyers/:buyerId', wrap(async (req, res) => {
     buyerScore: asNumber(req.body.buyerScore) ?? undefined,
     status: asString(req.body.status) || undefined,
     notes: asString(req.body.notes) || undefined,
-  }));
+  }, req.userId!));
 }));
 
 router.delete('/:id/buyers/:buyerId', wrap(async (req, res) => {
-  res.json(await deleteBuyer(req.params.buyerId));
+  res.json(await deleteBuyer(req.params.buyerId, req.userId!));
 }));
 
 router.post('/:id/offers', wrap(async (req, res) => {
@@ -204,7 +208,7 @@ router.post('/:id/offers', wrap(async (req, res) => {
     buyerId: asString(req.body.buyerId),
     notes: asString(req.body.notes),
     receivedAt: asString(req.body.receivedAt) || undefined,
-  }));
+  }, req.userId!));
 }));
 
 router.patch('/:id/offers/:offerId', wrap(async (req, res) => {
@@ -215,15 +219,15 @@ router.patch('/:id/offers/:offerId', wrap(async (req, res) => {
     status: asString(req.body.status) || undefined,
     buyerId: asString(req.body.buyerId) || undefined,
     notes: asString(req.body.notes) || undefined,
-  }));
+  }, req.userId!));
 }));
 
 router.delete('/:id/offers/:offerId', wrap(async (req, res) => {
-  res.json(await deleteOffer(req.params.offerId));
+  res.json(await deleteOffer(req.params.offerId, req.userId!));
 }));
 
 router.get('/:id/buyer-discovery', wrap(async (req, res) => {
-  res.json(await buyerDiscoveryParams(req.params.id));
+  res.json(await buyerDiscoveryParams(req.params.id, req.userId!));
 }));
 
 router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

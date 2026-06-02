@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ComposerModal } from "./ComposerModal";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
+import { authFetch } from "@/lib/outbound";
 import {
   Search,
   MapPin,
@@ -168,7 +169,7 @@ export default function DashboardPage() {
   // Fetch search task history
   const fetchHistory = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/history`);
+      const response = await authFetch(`${BACKEND_URL}/api/history`);
       if (!response.ok) throw new Error();
       const data = await response.json();
       setTasks(data);
@@ -410,7 +411,7 @@ export default function DashboardPage() {
         limit: limit.toString()
       });
 
-      const response = await fetch(`${BACKEND_URL}/api/leads?${queryParams}`);
+      const response = await authFetch(`${BACKEND_URL}/api/leads?${queryParams}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       setLeads(data.leads);
@@ -430,7 +431,7 @@ export default function DashboardPage() {
     console.log(`[Dashboard] Starting task polling for ${taskId}...`);
     pollingInterval.current = setInterval(async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/tasks/${taskId}`);
+        const response = await authFetch(`${BACKEND_URL}/api/tasks/${taskId}`);
         if (!response.ok) throw new Error();
         const updatedTask = await response.json();
         if (!mounted.current) { stopPolling(); return; }
@@ -474,7 +475,7 @@ export default function DashboardPage() {
     if (!isDemoMode) return;
     const id = setInterval(async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/health`);
+        const res = await authFetch(`${BACKEND_URL}/api/health`);
         if (res.ok && mounted.current) {
           clearInterval(id);
           fetchHistory();
@@ -595,7 +596,7 @@ export default function DashboardPage() {
     // Live search submission
     try {
       setLoading(true);
-      const response = await fetch(`${BACKEND_URL}/api/search`, {
+      const response = await authFetch(`${BACKEND_URL}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -644,7 +645,7 @@ export default function DashboardPage() {
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/leads/${leadId}/notes`, {
+      const response = await authFetch(`${BACKEND_URL}/api/leads/${leadId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notesText })
@@ -683,7 +684,7 @@ export default function DashboardPage() {
           limit: limit.toString(),
         });
 
-        const response = await fetch(`${BACKEND_URL}/api/leads?${queryParams}`);
+        const response = await authFetch(`${BACKEND_URL}/api/leads?${queryParams}`);
         if (!response.ok) throw new Error();
         const data = await response.json();
         if (!active) return;
@@ -819,7 +820,7 @@ export default function DashboardPage() {
           emailsOnly: String(exportEmailsOnly),
           includeRisky: String(exportIncludeRisky)
         });
-        const response = await fetch(`${BACKEND_URL}/api/export?${params}`);
+        const response = await authFetch(`${BACKEND_URL}/api/export?${params}`);
         if (!response.ok) {
           throw new Error(`Failed to generate export file from backend API (Status ${response.status}).`);
         }
@@ -860,7 +861,7 @@ export default function DashboardPage() {
     setComposerResult(null);
     if (senders.length === 0) {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/outbound/senders`);
+        const res = await authFetch(`${BACKEND_URL}/api/outbound/senders`);
         if (res.ok) {
           const list = await res.json();
           const active = list.filter((s: any) => s.status === 'active');
@@ -885,7 +886,7 @@ export default function DashboardPage() {
     setComposerSending(true);
     setComposerResult(null);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/outbound/send-now`, {
+      const res = await authFetch(`${BACKEND_URL}/api/outbound/send-now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -918,7 +919,7 @@ export default function DashboardPage() {
     setVerifying(true);
     setVerifyResult(null);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/email/verify-bulk`, {
+      const res = await authFetch(`${BACKEND_URL}/api/email/verify-bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emails: allEmails }),
@@ -936,7 +937,7 @@ export default function DashboardPage() {
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
           try {
-            const statusRes = await fetch(`${BACKEND_URL}/api/email/verify-bulk/${jobId}`);
+            const statusRes = await authFetch(`${BACKEND_URL}/api/email/verify-bulk/${jobId}`);
             if (!statusRes.ok) return;
             const job = await statusRes.json();
             if (!mounted.current) {

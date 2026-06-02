@@ -124,10 +124,10 @@ export async function ensureOutboundSeedData() {
   // already present. getSetting falls back to env, so existing deployments keep
   // working and users who set the key in the Settings page get provisioned too.
   const [resendKey, resendFromEmail, resendFromName, resendReplyTo] = await Promise.all([
-    getSetting('resendApiKey'),
-    getSetting('resendFromEmail'),
-    getSetting('resendFromName'),
-    getSetting('resendReplyTo'),
+    getSetting('resendApiKey', user.id),
+    getSetting('resendFromEmail', user.id),
+    getSetting('resendFromName', user.id),
+    getSetting('resendReplyTo', user.id),
   ]);
   if (resendKey && resendFromEmail) {
     const fromEmail = resendFromEmail;
@@ -218,28 +218,32 @@ export async function enqueueOutboundQueueTick() {
   }
 }
 
-export async function getOutboundOverview() {
+export async function getOutboundOverview(userId: string) {
   await ensureOutboundSeedData();
 
   const [campaigns, senders, queued, replies, recentEvents, topLeads] = await Promise.all([
     prisma.campaign.findMany({
+      where: { userId },
       orderBy: { updatedAt: 'desc' },
       take: 8,
       include: { campaignLeads: true, emailLogs: true, replies: true },
     }),
-    prisma.senderAccount.findMany({ orderBy: { createdAt: 'desc' } }),
-    prisma.emailLog.count({ where: { status: 'QUEUED' } }),
+    prisma.senderAccount.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+    prisma.emailLog.count({ where: { status: 'QUEUED', campaign: { userId } } }),
     prisma.reply.findMany({
+      where: { campaign: { userId } },
       orderBy: { receivedAt: 'desc' },
       take: 6,
       include: { lead: true, campaign: true },
     }),
     prisma.emailEvent.findMany({
+      where: { campaign: { userId } },
       orderBy: { occurredAt: 'desc' },
       take: 12,
       include: { campaign: true },
     }),
     prisma.lead.findMany({
+      where: { ownerId: userId },
       orderBy: { engagementScore: 'desc' },
       take: 8,
       include: {
@@ -293,9 +297,10 @@ export async function getOutboundOverview() {
   };
 }
 
-export async function listCampaigns() {
+export async function listCampaigns(userId: string) {
   await ensureOutboundSeedData();
   const campaigns = await prisma.campaign.findMany({
+    where: { userId },
     orderBy: { updatedAt: 'desc' },
     include: { campaignLeads: { include: { lead: true } }, emailLogs: true, replies: true, sequences: { include: { steps: true } } },
   });
@@ -303,9 +308,9 @@ export async function listCampaigns() {
   return campaigns.map(summarizeCampaign);
 }
 
-export async function getCampaignDetail(id: string) {
-  const campaign = await prisma.campaign.findUnique({
-    where: { id },
+export async function getCampaignDetail(id: string, userId: string) {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id, userId },
     include: {
       campaignLeads: {
         include: {
@@ -348,7 +353,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
   // from it so the user doesn't re-type domain/niche/city for every campaign.
   // Explicit input values still win — the user can override per campaign.
   const domain = input.domainId
-    ? await prisma.domain.findUnique({ where: { id: input.domainId } })
+    ? await prisma.domain.findFirst({ where: { id: input.domainId, userId: userId ?? undefined } })
     : null;
   const geoDomain = input.geoDomain || domain?.name || 'example.com';
   const niche = input.niche || domain?.niche || domain?.industry || 'local business';
@@ -525,10 +530,14 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
     leadCount: (input.leadIds?.length || 0) + (input.uploadedEmails?.length || 0)
   });
 
-  return getCampaignDetail(campaign.id);
+  return getCampaignDetail(campaign.id, userId as string);
 }
 
 export async function updateCampaignStatus(id: string, status: string, userId?: string) {
+  if (userId) {
+    const owned = await prisma.campaign.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!owned) throw new Error('Campaign not found.');
+  }
   const campaign = await prisma.campaign.update({
     where: { id },
     data: {
@@ -552,7 +561,7 @@ export async function updateCampaignStatus(id: string, status: string, userId?: 
 // "Uploaded" leads created just for this campaign are cleaned up too so they
 // don't linger as orphans in the lead list.
 export async function deleteCampaign(id: string, userId?: string) {
-  const campaign = await prisma.campaign.findUnique({ where: { id } });
+  const campaign = await prisma.campaign.findFirst({ where: { id, ...(userId ? { userId } : {}) } });
   if (!campaign) return { deleted: false };
 
   // Collect upload-only leads tied solely to this campaign before cascade.
@@ -578,7 +587,11 @@ export async function deleteCampaign(id: string, userId?: string) {
   return { deleted: true };
 }
 
-export async function queueCampaignSends(campaignId: string, senderAccountIdOverride?: string) {
+export async function queueCampaignSends(campaignId: string, senderAccountIdOverride?: string, userId?: string) {
+  if (userId) {
+    const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
+    if (!owned) throw new Error('Campaign not found.');
+  }
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
     include: {
@@ -607,7 +620,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   const firstStep = campaign.sequences[0]?.steps[0];
   if (!sender || !firstStep) return { queued: 0 };
 
-  const physicalAddress = await resolvePhysicalAddress();
+  const physicalAddress = await resolvePhysicalAddress(campaign.userId);
   let queued = 0;
   for (const recipient of campaign.campaignLeads) {
     if (recipient.emailLogs.length > 0) continue;
@@ -817,7 +830,7 @@ async function queueNextSequenceStep(emailLogId: string) {
   const trackingToken = randomToken();
   const unsubscribeToken = campaignLead.unsubscribeToken || log.unsubscribeToken || randomToken();
   const scheduledAt = nextSequenceSendTime(nextStep.delayHours, log.sentAt || new Date(), log.campaign);
-  const physicalAddress = await resolvePhysicalAddress();
+  const physicalAddress = await resolvePhysicalAddress(log.campaign?.userId);
   const bodyText = personalize(nextStep.body, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress);
   const subject = personalize(nextStep.subject, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress, { isSubject: true });
 
@@ -888,9 +901,9 @@ function parseTimeToMinutes(value: string) {
   return 0;
 }
 
-export async function listTemplates() {
+export async function listTemplates(userId: string) {
   await ensureOutboundSeedData();
-  return prisma.template.findMany({ where: { isArchived: false }, orderBy: { updatedAt: 'desc' } });
+  return prisma.template.findMany({ where: { isArchived: false, userId }, orderBy: { updatedAt: 'desc' } });
 }
 
 export async function saveTemplate(input: TemplateInput, userId?: string) {
@@ -915,9 +928,9 @@ export async function saveTemplate(input: TemplateInput, userId?: string) {
   });
 }
 
-export async function listSenderAccounts() {
+export async function listSenderAccounts(userId: string) {
   await ensureOutboundSeedData();
-  const senders = await prisma.senderAccount.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] });
+  const senders = await prisma.senderAccount.findMany({ where: { userId }, orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] });
   return senders.map(maskSenderAccount);
 }
 
@@ -1017,7 +1030,11 @@ export async function verifySenderAccount(id: string, userId?: string) {
   };
 }
 
-export async function updateLeadCrm(id: string, input: Record<string, unknown>) {
+export async function updateLeadCrm(id: string, input: Record<string, unknown>, userId?: string) {
+  if (userId) {
+    const owned = await prisma.lead.findFirst({ where: { id, ownerId: userId }, select: { id: true } });
+    if (!owned) throw new Error('Lead not found.');
+  }
   return prisma.lead.update({
     where: { id },
     data: {
@@ -1157,9 +1174,16 @@ export async function addSuppressionEntry(
   };
 }
 
-export async function listInbox() {
+// A reply belongs to a user if it landed in their mailbox, is tied to their
+// campaign, or is matched to a lead they own.
+function replyOwnershipWhere(userId: string) {
+  return { OR: [{ mailbox: { userId } }, { campaign: { userId } }, { lead: { ownerId: userId } }] };
+}
+
+export async function listInbox(userId: string) {
   await ensureOutboundSeedData();
   const replies = await prisma.reply.findMany({
+    where: replyOwnershipWhere(userId),
     orderBy: { receivedAt: 'desc' },
     include: { lead: true, campaign: true, emailLog: true },
     take: 50,
@@ -1167,9 +1191,9 @@ export async function listInbox() {
   return replies.map(formatReply);
 }
 
-export async function getReplyThread(id: string) {
-  const reply = await prisma.reply.findUnique({
-    where: { id },
+export async function getReplyThread(id: string, userId: string) {
+  const reply = await prisma.reply.findFirst({
+    where: { id, ...replyOwnershipWhere(userId) },
     include: { lead: true, campaign: true, campaignLead: true, emailLog: true },
   });
 
@@ -1273,8 +1297,8 @@ export async function applyInboxAction(
   input: { action?: string; reminderAt?: string },
   userId?: string
 ) {
-  const reply = await prisma.reply.findUnique({
-    where: { id },
+  const reply = await prisma.reply.findFirst({
+    where: { id, ...(userId ? replyOwnershipWhere(userId) : {}) },
     include: { lead: true, campaignLead: true },
   });
 
@@ -1360,7 +1384,7 @@ export async function applyInboxAction(
   await Promise.all(updates);
   await writeAudit(userId, 'Reply', id, `INBOX_${action.toUpperCase()}`, { action });
 
-  return getReplyThread(id);
+  return getReplyThread(id, userId as string);
 }
 
 export async function ingestReply(input: {
@@ -1545,29 +1569,30 @@ export async function suggestReply(id: string) {
   });
 }
 
-export async function getAnalytics() {
+export async function getAnalytics(userId: string) {
   await ensureOutboundSeedData();
-  const overview = await getOutboundOverview();
-  const campaigns = await listCampaigns();
+  const overview = await getOutboundOverview(userId);
+  const campaigns = await listCampaigns(userId);
   const snapshots = await prisma.analyticsSnapshot.findMany({
+    where: { campaign: { userId } },
     orderBy: { date: 'desc' },
     take: 30,
   });
   const [topTemplates, subjectLines, recommendationLeads] = await Promise.all([
     prisma.template.findMany({
-      where: { isArchived: false },
+      where: { isArchived: false, userId },
       orderBy: [{ deliverabilityScore: 'desc' }, { spamScore: 'asc' }, { updatedAt: 'desc' }],
       take: 6,
     }),
     prisma.emailLog.groupBy({
       by: ['subject'],
       _count: { subject: true },
-      where: { status: { in: ['SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'REPLIED'] } },
+      where: { status: { in: ['SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'REPLIED'] }, campaign: { userId } },
       orderBy: { _count: { subject: 'desc' } },
       take: 8,
     }),
     prisma.lead.findMany({
-      where: { doNotContact: false, unsubscribed: false },
+      where: { doNotContact: false, unsubscribed: false, ownerId: userId },
       orderBy: [{ engagementScore: 'desc' }, { domainMatchScore: 'desc' }, { createdAt: 'desc' }],
       take: 8,
     }),
@@ -2604,9 +2629,9 @@ function personalize(
   return resolved.replace(/\n{3,}/g, '\n\n').trimEnd().concat(`\n\n${footer}`);
 }
 
-// Resolve the compliance footer address from Settings (env fallback baked in).
-async function resolvePhysicalAddress(): Promise<string> {
-  return (await getSetting('physicalAddress')) || DEFAULT_PHYSICAL_ADDRESS;
+// Resolve the compliance footer address from the owner's Settings (env fallback baked in).
+async function resolvePhysicalAddress(userId?: string | null): Promise<string> {
+  return (await getSetting('physicalAddress', userId)) || DEFAULT_PHYSICAL_ADDRESS;
 }
 
 function textToTrackedHtml(body: string, trackingToken: string) {

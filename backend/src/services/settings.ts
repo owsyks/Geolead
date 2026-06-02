@@ -52,19 +52,21 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
 
 const DEF_BY_KEY = new Map(SETTING_DEFINITIONS.map((def) => [def.key, def]));
 
-// In-memory cache so hot paths (every email send / lead search) don't hit the
-// DB. Invalidated on write. TTL guards against staleness if multiple processes
-// write (single-process dev: effectively永久 until write).
+// Per-user, in-memory cache so hot paths (every email send / lead search) don't
+// hit the DB. Keyed by `${userId}::${key}`. Invalidated on write.
 let cache: Map<string, string | null> | null = null;
 let cacheLoadedAt = 0;
 const CACHE_TTL_MS = 60_000;
+
+const SYSTEM = '∅'; // cache-key sentinel for rows with userId = null (system-level)
+const ck = (userId: string | null | undefined, key: string) => `${userId || SYSTEM}::${key}`;
 
 async function loadCache(): Promise<Map<string, string | null>> {
   const now = Date.now();
   if (cache && now - cacheLoadedAt < CACHE_TTL_MS) return cache;
   const rows = await prisma.setting.findMany();
   const next = new Map<string, string | null>();
-  for (const row of rows) next.set(row.key, row.value);
+  for (const row of rows) next.set(ck(row.userId, row.key), row.value);
   cache = next;
   cacheLoadedAt = now;
   return next;
@@ -75,12 +77,13 @@ export function invalidateSettingsCache() {
   cacheLoadedAt = 0;
 }
 
-// Resolve the effective value of a setting: decrypted DB value if present,
-// otherwise the env fallback, otherwise undefined.
-export async function getSetting(key: string): Promise<string | undefined> {
+// Resolve the effective value of a setting for a user: decrypted per-user DB
+// value if present, otherwise the env fallback, otherwise undefined. When no
+// userId is supplied (deep background contexts), only the env fallback applies.
+export async function getSetting(key: string, userId?: string | null): Promise<string | undefined> {
   const def = DEF_BY_KEY.get(key);
   const store = await loadCache();
-  const stored = store.get(key);
+  const stored = userId ? store.get(ck(userId, key)) : undefined;
   if (stored != null && stored !== '') {
     return isEncrypted(stored) ? decryptSecret(stored) : stored;
   }
@@ -88,39 +91,39 @@ export async function getSetting(key: string): Promise<string | undefined> {
   return undefined;
 }
 
-export async function getSettings(keys: string[]): Promise<Record<string, string | undefined>> {
+export async function getSettings(keys: string[], userId?: string | null): Promise<Record<string, string | undefined>> {
   const out: Record<string, string | undefined> = {};
-  await Promise.all(keys.map(async (key) => { out[key] = await getSetting(key); }));
+  await Promise.all(keys.map(async (key) => { out[key] = await getSetting(key, userId); }));
   return out;
 }
 
-// Persist one setting. Empty string clears the override (falls back to env).
-export async function setSetting(key: string, value: string | null) {
+// Persist one setting for a user. Empty string clears the override (falls back to env).
+export async function setSetting(key: string, value: string | null, userId: string) {
   const def = DEF_BY_KEY.get(key);
   if (!def) throw new Error(`Unknown setting: ${key}`);
   const trimmed = (value ?? '').trim();
   const toStore = trimmed === '' ? null : def.secret ? encryptSecret(trimmed) : trimmed;
   await prisma.setting.upsert({
-    where: { key },
+    where: { userId_key: { userId, key } },
     update: { value: toStore, category: def.category, isSecret: !!def.secret },
-    create: { key, value: toStore, category: def.category, isSecret: !!def.secret },
+    create: { userId, key, value: toStore, category: def.category, isSecret: !!def.secret },
   });
   invalidateSettingsCache();
 }
 
-export async function setSettings(values: Record<string, string | null>) {
+export async function setSettings(values: Record<string, string | null>, userId: string) {
   for (const [key, value] of Object.entries(values)) {
-    if (DEF_BY_KEY.has(key)) await setSetting(key, value);
+    if (DEF_BY_KEY.has(key)) await setSetting(key, value, userId);
   }
   invalidateSettingsCache();
 }
 
 // Build the redacted view for the Settings page. Secrets never travel back as
 // plaintext — we send a boolean `hasValue` and a masked hint instead.
-export async function getSettingsForDisplay() {
+export async function getSettingsForDisplay(userId: string) {
   const store = await loadCache();
   return SETTING_DEFINITIONS.map((def) => {
-    const stored = store.get(def.key);
+    const stored = store.get(ck(userId, def.key));
     const hasDbValue = stored != null && stored !== '';
     const fromEnv = !hasDbValue && !!(def.envKey && process.env[def.envKey]);
     let value = '';
@@ -149,25 +152,25 @@ export async function getSettingsForDisplay() {
 
 // ---- Connection tests ---------------------------------------------------
 
-export async function testProvider(provider: string): Promise<{ ok: boolean; message: string }> {
+export async function testProvider(provider: string, userId: string): Promise<{ ok: boolean; message: string }> {
   switch (provider) {
     case 'nvidia':
-      return testNvidia();
+      return testNvidia(userId);
     case 'serper':
-      return testSerper();
+      return testSerper(userId);
     case 'resend':
-      return testResend();
+      return testResend(userId);
     case 'smtp':
-      return testSmtp();
+      return testSmtp(userId);
     default:
       return { ok: false, message: `Unknown provider: ${provider}` };
   }
 }
 
-async function testNvidia(): Promise<{ ok: boolean; message: string }> {
-  const key = await getSetting('nvidiaApiKey');
+async function testNvidia(userId: string): Promise<{ ok: boolean; message: string }> {
+  const key = await getSetting('nvidiaApiKey', userId);
   if (!key) return { ok: false, message: 'No NVIDIA API key set.' };
-  const model = (await getSetting('nvidiaModel')) || 'moonshotai/kimi-k2.6';
+  const model = (await getSetting('nvidiaModel', userId)) || 'moonshotai/kimi-k2.6';
   try {
     // Cheapest possible authenticated call: a 1-token completion.
     const res = await axios.post(
@@ -183,8 +186,8 @@ async function testNvidia(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
-async function testSerper(): Promise<{ ok: boolean; message: string }> {
-  const key = await getSetting('serperApiKey');
+async function testSerper(userId: string): Promise<{ ok: boolean; message: string }> {
+  const key = await getSetting('serperApiKey', userId);
   if (!key) return { ok: false, message: 'No Serper API key set.' };
   try {
     const res = await axios.post(
@@ -199,8 +202,8 @@ async function testSerper(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
-async function testResend(): Promise<{ ok: boolean; message: string }> {
-  const key = await getSetting('resendApiKey');
+async function testResend(userId: string): Promise<{ ok: boolean; message: string }> {
+  const key = await getSetting('resendApiKey', userId);
   if (!key) return { ok: false, message: 'No Resend API key set.' };
   try {
     // GET /domains is a cheap authenticated read.
@@ -217,13 +220,13 @@ async function testResend(): Promise<{ ok: boolean; message: string }> {
   }
 }
 
-async function testSmtp(): Promise<{ ok: boolean; message: string }> {
+async function testSmtp(userId: string): Promise<{ ok: boolean; message: string }> {
   const [host, portRaw, secureRaw, user, password] = await Promise.all([
-    getSetting('smtpHost'),
-    getSetting('smtpPort'),
-    getSetting('smtpSecure'),
-    getSetting('smtpUser'),
-    getSetting('smtpPassword'),
+    getSetting('smtpHost', userId),
+    getSetting('smtpPort', userId),
+    getSetting('smtpSecure', userId),
+    getSetting('smtpUser', userId),
+    getSetting('smtpPassword', userId),
   ]);
   if (!host) return { ok: false, message: 'No SMTP host set.' };
   const port = Number(portRaw) || (secureRaw === 'true' ? 465 : 587);

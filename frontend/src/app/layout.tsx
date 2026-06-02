@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DomainContextProvider } from "@/lib/domainContext";
+import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -85,7 +86,9 @@ export default function RootLayout({
         className="min-h-full bg-slate-950 text-slate-100 antialiased flex flex-col font-sans"
         suppressHydrationWarning
       >
-        <DomainContextProvider>{children}</DomainContextProvider>
+        <AuthProvider>
+          <DomainContextProvider>{children}</DomainContextProvider>
+        </AuthProvider>
       </body>
     </html>
   );

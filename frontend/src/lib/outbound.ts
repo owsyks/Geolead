@@ -1,18 +1,117 @@
 export const OUTBOUND_API_BASE =
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 
-export async function fetchOutbound<T>(path: string, init?: RequestInit): Promise<T> {
+// ---- Auth token management ---------------------------------------------
+// Tokens live in localStorage so they survive reloads. The access token is a
+// short-lived JWT sent as a Bearer header; the refresh token mints new access
+// tokens. Both this module and the AuthProvider read/write through here.
+const ACCESS_KEY = "geolead.accessToken";
+const REFRESH_KEY = "geolead.refreshToken";
+
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(ACCESS_KEY);
+}
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(REFRESH_KEY);
+}
+export function setTokens(accessToken: string, refreshToken?: string) {
+  if (typeof window === "undefined") return;
+  if (accessToken) window.localStorage.setItem(ACCESS_KEY, accessToken);
+  if (refreshToken) window.localStorage.setItem(REFRESH_KEY, refreshToken);
+}
+export function clearTokens() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(ACCESS_KEY);
+  window.localStorage.removeItem(REFRESH_KEY);
+}
+
+// Exchange the refresh token for a fresh access token. Returns true on success.
+let refreshInFlight: Promise<boolean> | null = null;
+export function refreshAccessToken(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) return false;
+      const data = (await res.json()) as { accessToken: string; refreshToken: string };
+      setTokens(data.accessToken, data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+// Called when auth is irrecoverable (refresh failed). The AuthProvider registers
+// a handler that clears state and routes to /login.
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  onUnauthorized = fn;
+}
+
+// Thin wrapper around fetch that injects the Bearer token and returns the raw
+// Response — for call sites that need custom handling (blobs, status checks).
+// Does NOT auto-refresh; use fetchOutbound for JSON endpoints that should.
+export function authFetch(input: string, init?: RequestInit): Promise<Response> {
+  const token = getAccessToken();
+  return fetch(input, {
+    ...init,
+    headers: {
+      ...(init?.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+}
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export async function fetchOutbound<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
+  const token = getAccessToken();
   const response = await fetch(`${OUTBOUND_API_BASE}${path}`, {
     cache: "no-store",
+    ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}),
     },
-    ...init,
   });
 
+  if (response.status === 401 && !_retried) {
+    // Try a single silent refresh, then replay the request.
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return fetchOutbound<T>(path, init, true);
+    clearTokens();
+    onUnauthorized?.();
+    throw new ApiError(401, "Session expired. Please log in again.");
+  }
+
   if (!response.ok) {
-    throw new Error(`Outbound API request failed: ${response.status}`);
+    let message = `Outbound API request failed: ${response.status}`;
+    try {
+      const data = await response.json();
+      if (data?.error) message = data.error;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiError(response.status, message);
   }
 
   return response.json() as Promise<T>;

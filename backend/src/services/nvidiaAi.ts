@@ -18,17 +18,18 @@ export interface NvidiaChatOptions {
   topP?: number;
   maxTokens?: number;
   timeoutMs?: number;
+  userId?: string | null; // resolve the calling user's NVIDIA key + model
 }
 
-export async function getNvidiaKey(): Promise<string | undefined> {
-  return getSetting('nvidiaApiKey');
+export async function getNvidiaKey(userId?: string | null): Promise<string | undefined> {
+  return getSetting('nvidiaApiKey', userId);
 }
 
 // Low-level call: returns the assistant message text, or throws.
 export async function nvidiaChat(messages: NvidiaMessage[], options: NvidiaChatOptions = {}): Promise<string> {
-  const apiKey = await getNvidiaKey();
+  const apiKey = await getNvidiaKey(options.userId);
   if (!apiKey) throw new Error('No NVIDIA API key set.');
-  const model = (await getSetting('nvidiaModel')) || DEFAULT_NVIDIA_MODEL;
+  const model = (await getSetting('nvidiaModel', options.userId)) || DEFAULT_NVIDIA_MODEL;
 
   const response = await axios.post(
     NVIDIA_ENDPOINT,

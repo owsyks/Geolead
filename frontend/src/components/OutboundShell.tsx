@@ -11,12 +11,15 @@ import {
   Kanban,
   Layers3,
   LayoutDashboard,
+  LogOut,
   Mail,
   Search,
   Send,
   Settings,
   ShieldCheck,
+  UserCircle,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -45,6 +48,7 @@ export function OutboundShell({
   actions?: ReactNode;
 }) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -81,7 +85,7 @@ export function OutboundShell({
             })}
           </nav>
 
-          <div className="p-4 border-t border-slate-900">
+          <div className="p-4 border-t border-slate-900 space-y-3">
             <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
                 <ShieldCheck className="h-4 w-4" />
@@ -91,6 +95,24 @@ export function OutboundShell({
                 Opt-outs, sender limits, suppression checks, and truthful cold-email copy are enforced by default.
               </p>
             </div>
+            {user ? (
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <Link href="/profile" className="flex items-center gap-2 text-sm text-slate-200 hover:text-white">
+                  <UserCircle className="h-5 w-5 text-slate-400" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{user.name}</span>
+                    <span className="block truncate text-[11px] text-slate-500">{user.email}</span>
+                  </span>
+                </Link>
+                <button
+                  onClick={() => void logout()}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-800 bg-slate-950/60 px-3 py-1.5 text-xs text-slate-400 transition hover:text-white hover:border-slate-700"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sign out
+                </button>
+              </div>
+            ) : null}
           </div>
         </aside>
 
