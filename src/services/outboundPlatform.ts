@@ -2623,8 +2623,8 @@ function personalize(
     return resolved.replace(/\s+/g, ' ').trim();
   }
 
-  // Compact compliance footer: one short opt-out link + mailing address,
-  // kept minimal and visually separated from the message body.
+  // Compact compliance footer. textToTrackedHtml detects /unsubscribe/ URLs and
+  // renders them as a small link instead of a click-tracked raw URL.
   const footer = `—\nUnsubscribe: ${unsubscribeUrl} · ${physicalAddress}`;
   return resolved.replace(/\n{3,}/g, '\n\n').trimEnd().concat(`\n\n${footer}`);
 }
@@ -2636,10 +2636,13 @@ async function resolvePhysicalAddress(userId?: string | null): Promise<string> {
 
 function textToTrackedHtml(body: string, trackingToken: string) {
   const escaped = escapeHtml(body)
-    .replace(
-      /(https?:\/\/[^\s<]+)/g,
-      (url) => `${OUTBOUND_BASE_URL}/api/outbound/track/click/${trackingToken}?url=${encodeURIComponent(url)}`
-    )
+    .replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+      // Unsubscribe links: render as a small plain link, no click-tracking needed.
+      if (url.includes('/api/outbound/unsubscribe/')) {
+        return `<a href="${url}" style="font-size:11px;color:#9ca3af;text-decoration:underline;">Unsubscribe</a>`;
+      }
+      return `<a href="${OUTBOUND_BASE_URL}/api/outbound/track/click/${trackingToken}?url=${encodeURIComponent(url)}">${url}</a>`;
+    })
     .replace(/\n/g, '<br />');
   return `${escaped}<img src="${OUTBOUND_BASE_URL}/api/outbound/track/open/${trackingToken}.gif" width="1" height="1" alt="" />`;
 }
