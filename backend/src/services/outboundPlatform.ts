@@ -4,7 +4,7 @@ import axios from 'axios';
 import type { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import { outboundQueue } from '../queues/queues.js';
-import { generateOutboundEmail, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
+import { generateOutboundEmail, generateFollowUpBody, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
 import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
@@ -831,8 +831,29 @@ async function queueNextSequenceStep(emailLogId: string) {
   const unsubscribeToken = campaignLead.unsubscribeToken || log.unsubscribeToken || randomToken();
   const scheduledAt = nextSequenceSendTime(nextStep.delayHours, log.sentAt || new Date(), log.campaign);
   const physicalAddress = await resolvePhysicalAddress(log.campaign?.userId);
-  const bodyText = personalize(nextStep.body, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress);
-  const subject = personalize(nextStep.subject, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress, { isSubject: true });
+
+  let stepBody = nextStep.body;
+  let stepSubject = nextStep.subject;
+  if (nextStep.useAI && nextStep.stepType !== 'INITIAL') {
+    const aiResult = await generateFollowUpBody({
+      businessName: campaignLead.lead.businessName,
+      senderName: sender.fromName,
+      geoDomain: log.campaign?.geoDomain || '',
+      niche: log.campaign?.niche,
+      cityState: log.campaign?.cityState ?? undefined,
+      website: campaignLead.lead.website ?? undefined,
+      stepOrder: nextStep.stepOrder,
+      stepType: nextStep.stepType,
+      userId: log.campaign?.userId,
+    }).catch(() => null);
+    if (aiResult) {
+      stepBody = aiResult.body;
+      stepSubject = aiResult.subject;
+    }
+  }
+
+  const bodyText = personalize(stepBody, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress);
+  const subject = personalize(stepSubject, log.campaign, campaignLead.lead, { trackingToken, unsubscribeToken }, physicalAddress, { isSubject: true });
 
   const nextLog = await prisma.emailLog.create({
     data: {

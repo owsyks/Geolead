@@ -100,6 +100,76 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
   };
 }
 
+export interface FollowUpInput {
+  businessName?: string;
+  senderName?: string;
+  geoDomain: string;
+  niche?: string;
+  cityState?: string;
+  website?: string;
+  stepOrder: number;
+  stepType?: string; // 'FOLLOW_UP' | 'BREAKUP'
+  userId?: string | null;
+}
+
+export async function generateFollowUpBody(
+  input: FollowUpInput
+): Promise<{ subject: string; body: string } | null> {
+  const key = await getNvidiaKey(input.userId);
+  if (!key) return null;
+
+  const isBreakup = input.stepType === 'BREAKUP' || input.stepOrder >= 3;
+  const geo = input.geoDomain;
+  const niche = input.niche || 'your niche';
+  const city = input.cityState || 'your market';
+  const sender = input.senderName?.trim() || '{{senderName}}';
+  const greeting = input.businessName?.trim() ? `Hi ${input.businessName} team,` : 'Hi there,';
+
+  const prompt = isBreakup
+    ? [
+        `Write a short breakup/closing email (30-55 words, plain text) for a domain sales outreach sequence.`,
+        `Domain for sale: ${geo}`,
+        `Recipient niche: ${niche}, location: ${city}`,
+        `This is the FINAL email in the sequence. Acknowledge they haven't replied. Say you'll stop following up. Leave the door open politely. No pressure.`,
+        `Sign as: ${sender}`,
+        `Greeting: "${greeting}"`,
+        `Do NOT include an unsubscribe link or footer.`,
+        `Return strict JSON only: {"subject":"string","body":"string"}`,
+      ].join('\n')
+    : [
+        `Write a short follow-up email (45-80 words, plain text) for a domain sales outreach sequence.`,
+        `Domain for sale: ${geo}`,
+        `Recipient niche: ${niche}, location: ${city}`,
+        `This is a gentle follow-up to an unanswered first email. Briefly re-mention the domain, ask if they're the right contact or if there's interest. No pressure.`,
+        `Sign as: ${sender}`,
+        `Greeting: "${greeting}"`,
+        `Do NOT include an unsubscribe link or footer.`,
+        `Return strict JSON only: {"subject":"string","body":"string"}`,
+      ].join('\n');
+
+  try {
+    const content = await nvidiaChat(
+      [
+        {
+          role: 'system',
+          content:
+            'You are a B2B copywriter. Write short, natural follow-up emails. Never invent facts. Always respond with strict JSON and nothing else.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      { temperature: 0.6, maxTokens: 512, timeoutMs: 20000, userId: input.userId }
+    );
+    const parsed = extractJson<{ subject: string; body: string }>(content);
+    if (!parsed?.subject || !parsed?.body) return null;
+    return {
+      subject: String(parsed.subject).slice(0, 70),
+      body: String(parsed.body),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function rewriteEmail(
   body: string,
   action: 'shorter' | 'professional' | 'persuasive' | 'friendly'
