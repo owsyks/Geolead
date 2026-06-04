@@ -31,7 +31,7 @@ const CATEGORY_TONE: Record<string, string> = {
   Interested: "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
   "Maybe Interested": "border-teal-400/30 bg-teal-500/10 text-teal-300",
   Negotiating: "border-indigo-400/30 bg-indigo-500/10 text-indigo-200",
-  "Not Interested": "border-slate-600 bg-slate-800/70 text-slate-300",
+  "Not Interested": "border-slate-400 dark:border-slate-600 bg-slate-200 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300",
   Unsubscribe: "border-rose-400/30 bg-rose-500/10 text-rose-300",
   "Out Of Office": "border-amber-400/30 bg-amber-500/10 text-amber-300",
   Spam: "border-rose-400/30 bg-rose-500/10 text-rose-300",
@@ -170,11 +170,11 @@ export default function InboxPage() {
       actions={
         <>
           {!notify ? (
-            <button onClick={() => void enableNotifications()} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 inline-flex items-center gap-2">
+            <button onClick={() => void enableNotifications()} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2">
               <Bell className="h-4 w-4" /> Enable alerts
             </button>
           ) : null}
-          <Link href="/settings" className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 inline-flex items-center gap-2">
+          <Link href="/settings" className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2">
             <Settings className="h-4 w-4" /> Mailbox
           </Link>
           <button onClick={() => void syncNow()} disabled={syncing} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 inline-flex items-center gap-2 disabled:opacity-60">
@@ -183,7 +183,7 @@ export default function InboxPage() {
         </>
       }
     >
-      {message ? <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">{message}</div> : null}
+      {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}
 
       <section className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard label="Conversations" value={replies.length} helper="current view" />
@@ -198,7 +198,7 @@ export default function InboxPage() {
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`h-9 px-3 rounded-lg text-xs border ${filter === f.key ? "bg-indigo-500/15 border-indigo-400/30 text-indigo-100" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-100"}`}
+            className={`h-9 px-3 rounded-lg text-xs border ${filter === f.key ? "bg-indigo-500/15 border-indigo-400/30 text-indigo-100" : "bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"}`}
           >
             {f.label}
           </button>
@@ -208,13 +208,13 @@ export default function InboxPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search replies, leads, subjects…"
-            className="h-9 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+            className="h-9 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
           />
         </div>
       </div>
 
       <section className="mt-5 grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-5">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 divide-y divide-slate-900 max-h-[70vh] overflow-y-auto">
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 divide-y divide-slate-200 dark:divide-slate-900 max-h-[70vh] overflow-y-auto">
           {loading ? (
             <div className="p-6 text-sm text-slate-500">Loading…</div>
           ) : replies.length === 0 ? (
@@ -226,12 +226,12 @@ export default function InboxPage() {
               <button
                 key={reply.id}
                 onClick={() => void openReply(reply)}
-                className={`w-full text-left p-4 hover:bg-slate-900/60 ${selected?.id === reply.id ? "bg-slate-900/70" : ""} ${!reply.isRead ? "border-l-2 border-l-indigo-400" : "border-l-2 border-l-transparent"}`}
+                className={`w-full text-left p-4 hover:bg-slate-100 dark:hover:bg-slate-900/60 ${selected?.id === reply.id ? "bg-slate-100 dark:bg-slate-900/70" : ""} ${!reply.isRead ? "border-l-2 border-l-indigo-400" : "border-l-2 border-l-transparent"}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-slate-100 truncate">{reply.lead?.businessName || reply.fromEmail}</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{reply.lead?.businessName || reply.fromEmail}</span>
                   {reply.aiCategory ? (
-                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${CATEGORY_TONE[reply.aiCategory] || "border-slate-700 bg-slate-800 text-slate-300"}`}>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${CATEGORY_TONE[reply.aiCategory] || "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
                       {reply.aiCategory}
                     </span>
                   ) : null}
@@ -250,13 +250,13 @@ export default function InboxPage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           {selected ? (
             <ReplyDetail reply={selected} onAction={act} acting={acting} />
           ) : (
             <div className="h-full flex items-center justify-center text-sm text-slate-500">
               <div className="text-center">
-                <InboxIcon className="h-8 w-8 mx-auto text-slate-700" />
+                <InboxIcon className="h-8 w-8 mx-auto text-slate-400 dark:text-slate-700" />
                 <p className="mt-2">Select a conversation to view it.</p>
               </div>
             </div>
@@ -281,11 +281,11 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-black text-slate-100 truncate">{reply.lead?.businessName || reply.fromEmail}</h2>
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100 truncate">{reply.lead?.businessName || reply.fromEmail}</h2>
           <div className="text-xs text-slate-500">{reply.fromEmail}</div>
         </div>
         {reply.aiCategory ? (
-          <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-bold ${CATEGORY_TONE[reply.aiCategory] || "border-slate-700 bg-slate-800 text-slate-300"}`}>
+          <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-bold ${CATEGORY_TONE[reply.aiCategory] || "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
             {reply.aiCategory}
           </span>
         ) : null}
@@ -300,7 +300,7 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
 
       {reply.campaign ? (
         <div className="text-xs text-slate-400">
-          Campaign <span className="text-slate-200">{reply.campaign.name}</span> · Domain{" "}
+          Campaign <span className="text-slate-800 dark:text-slate-200">{reply.campaign.name}</span> · Domain{" "}
           {reply.campaign.domainId ? (
             <Link href={`/portfolio/${reply.campaign.domainId}`} className="text-indigo-300 underline">{reply.campaign.geoDomain}</Link>
           ) : (
@@ -311,12 +311,12 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
 
       <div>
         <div className="text-[10px] uppercase tracking-wide text-slate-500">Subject</div>
-        <div className="text-sm text-slate-200">{reply.subject}</div>
+        <div className="text-sm text-slate-800 dark:text-slate-200">{reply.subject}</div>
       </div>
 
       <div>
         <div className="text-[10px] uppercase tracking-wide text-slate-500">Message</div>
-        <div className="mt-1 max-h-56 overflow-y-auto rounded-md border border-slate-800 bg-slate-950 p-3 text-sm text-slate-200 whitespace-pre-wrap">
+        <div className="mt-1 max-h-56 overflow-y-auto rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
           {reply.body}
         </div>
       </div>
@@ -329,7 +329,7 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
               <ClipboardCopy className="h-3 w-3" /> {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <div className="mt-1 rounded-md border border-indigo-400/20 bg-indigo-500/5 p-3 text-sm text-slate-200 whitespace-pre-wrap">
+          <div className="mt-1 rounded-md border border-indigo-400/20 bg-indigo-500/5 p-3 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
             {reply.suggestedResponse}
           </div>
         </div>
@@ -342,10 +342,10 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
         <button onClick={() => onAction("send_to_negotiation")} disabled={acting !== ""} className="h-9 px-3 rounded-md border border-indigo-400/30 bg-indigo-500/15 text-xs text-indigo-100 inline-flex items-center gap-1 disabled:opacity-50">
           {acting === "send_to_negotiation" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Handshake className="h-3.5 w-3.5" />} To negotiation
         </button>
-        <button onClick={() => onAction("mark_not_interested")} disabled={acting !== ""} className="h-9 px-3 rounded-md border border-slate-800 bg-slate-950 text-xs text-slate-300 inline-flex items-center gap-1 disabled:opacity-50">
+        <button onClick={() => onAction("mark_not_interested")} disabled={acting !== ""} className="h-9 px-3 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs text-slate-700 dark:text-slate-300 inline-flex items-center gap-1 disabled:opacity-50">
           {acting === "mark_not_interested" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Not interested
         </button>
-        <button onClick={() => onAction("archive")} disabled={acting !== ""} className="h-9 px-3 rounded-md border border-slate-800 bg-slate-950 text-xs text-slate-300 inline-flex items-center gap-1 disabled:opacity-50">
+        <button onClick={() => onAction("archive")} disabled={acting !== ""} className="h-9 px-3 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs text-slate-700 dark:text-slate-300 inline-flex items-center gap-1 disabled:opacity-50">
           {acting === "archive" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />} Archive
         </button>
       </div>
@@ -355,9 +355,9 @@ function ReplyDetail({ reply, onAction, acting }: { reply: InboxReply; onAction:
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-950 px-2 py-1.5">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-2 py-1.5">
       <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="text-xs text-slate-200 truncate capitalize">{value}</div>
+      <div className="text-xs text-slate-800 dark:text-slate-200 truncate capitalize">{value}</div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -223,29 +223,29 @@ export default function SettingsPage() {
   const dirty = Object.keys(draft).length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-800 dark:text-slate-200 transition-colors">
             <ArrowLeft className="h-4 w-4" />
             Back to overview
           </Link>
         </div>
 
-        <div className="flex items-center justify-between gap-3 pb-6 border-b border-slate-900">
+        <div className="flex items-center justify-between gap-3 pb-6 border-b border-slate-200 dark:border-slate-900">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-lg border border-indigo-400/20 bg-indigo-500/10 flex items-center justify-center text-indigo-200">
               <SettingsIcon className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-100">Settings & Integrations</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">Settings & Integrations</h1>
               <p className="mt-1 text-sm text-slate-500">API keys, sending providers, SMTP, webhooks, and compliance — saved securely server-side.</p>
             </div>
           </div>
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="h-11 rounded-lg bg-indigo-600 px-5 text-sm font-black text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            className="h-11 rounded-lg bg-indigo-600 px-5 text-sm font-black text-slate-900 dark:text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
             {saving ? "Saving..." : saved ? "Saved" : dirty ? `Save ${Object.keys(draft).length} change(s)` : "Save settings"}
@@ -253,13 +253,13 @@ export default function SettingsPage() {
         </div>
 
         {message ? (
-          <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">{message}</div>
+          <div className="mt-4 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div>
         ) : null}
 
         <div className="mt-6 grid grid-cols-1 xl:grid-cols-[1fr_0.7fr] gap-5">
           <div className="space-y-5">
             {loading ? (
-              <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-6 text-sm text-slate-500">Loading settings…</div>
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-6 text-sm text-slate-500">Loading settings…</div>
             ) : (
               SECTION_ORDER.map((category) => {
                 const items = grouped.get(category) || [];
@@ -268,12 +268,12 @@ export default function SettingsPage() {
                 const Icon = meta.icon;
                 const test = meta.provider ? testResults[meta.provider] : undefined;
                 return (
-                  <div key={category} className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+                  <div key={category} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <Icon className="h-5 w-5 text-indigo-300" />
                         <div>
-                          <h2 className="text-base font-black text-slate-100">{meta.title}</h2>
+                          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">{meta.title}</h2>
                           <p className="text-[11px] text-slate-500">{meta.description}</p>
                         </div>
                       </div>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                         <button
                           onClick={() => void runTest(meta.provider!)}
                           disabled={testing === meta.provider}
-                          className="h-9 px-3 rounded-lg border border-slate-800 bg-slate-950 text-xs text-slate-300 hover:text-white inline-flex items-center gap-2 shrink-0 disabled:opacity-60"
+                          className="h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white inline-flex items-center gap-2 shrink-0 disabled:opacity-60"
                         >
                           {testing === meta.provider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                           Test connection
@@ -309,40 +309,40 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-5">
-            <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+            <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-indigo-300" />
-                <h2 className="text-base font-black text-slate-100">How keys are stored</h2>
+                <h2 className="text-base font-black text-slate-900 dark:text-slate-100">How keys are stored</h2>
               </div>
               <div className="mt-3 space-y-2 text-sm text-slate-400 leading-6">
                 <p>Secrets are encrypted (AES-256-GCM) before they touch the database and are never sent back to the browser in plain text.</p>
                 <p>Leave a secret field blank to keep the saved value. Type a new value to replace it; clear a non-secret field and save to revert to the server default.</p>
-                <p>The <span className="text-slate-200">source</span> tag on each field shows whether the value comes from the database or an environment variable.</p>
+                <p>The <span className="text-slate-800 dark:text-slate-200">source</span> tag on each field shows whether the value comes from the database or an environment variable.</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+            <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5 text-rose-300" />
-                <h2 className="text-base font-black text-slate-100">Suppression List</h2>
+                <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Suppression List</h2>
               </div>
               <div className="mt-4 grid grid-cols-1 gap-3">
                 <input
                   value={suppressionEmail}
                   onChange={(event) => setSuppressionEmail(event.target.value)}
                   placeholder="prospect@example.com"
-                  className="h-11 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-rose-400"
+                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-rose-400"
                 />
                 <input
                   value={suppressionReason}
                   onChange={(event) => setSuppressionReason(event.target.value)}
                   placeholder="manual"
-                  className="h-11 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-rose-400"
+                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-rose-400"
                 />
                 <button
                   onClick={handleAddSuppression}
                   disabled={savingSuppression}
-                  className="h-11 rounded-lg bg-rose-600 px-4 text-sm font-black text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="h-11 rounded-lg bg-rose-600 px-4 text-sm font-black text-slate-900 dark:text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
                   {savingSuppression ? "Saving..." : "Add suppression"}
                 </button>
@@ -353,10 +353,10 @@ export default function SettingsPage() {
                   <p className="text-sm text-slate-500">No suppression entries yet.</p>
                 ) : (
                   suppressionEntries.map((entry) => (
-                    <div key={entry.id} className="rounded-lg border border-slate-800 bg-slate-950/45 p-3 text-sm">
+                    <div key={entry.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="truncate font-bold text-slate-100">{entry.email}</div>
+                          <div className="truncate font-bold text-slate-900 dark:text-slate-100">{entry.email}</div>
                           <div className="mt-1 text-xs text-slate-500">{entry.reason} / {entry.source}</div>
                         </div>
                         <span className="shrink-0 text-[11px] text-slate-500"><ClientDate value={entry.createdAt} format="date" /></span>
@@ -367,20 +367,20 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+            <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
                 <Webhook className="h-5 w-5 text-cyan-300" />
-                <h2 className="text-base font-black text-slate-100">Webhook Monitor</h2>
+                <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Webhook Monitor</h2>
               </div>
               <div className="mt-4 space-y-3">
                 {webhookEvents.length === 0 ? (
                   <p className="text-sm text-slate-500">No provider webhook events yet.</p>
                 ) : (
                   webhookEvents.map((event) => (
-                    <div key={event.id} className="rounded-lg border border-slate-800 bg-slate-950/45 p-3 text-sm">
+                    <div key={event.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-100">{event.type}</div>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{event.type}</div>
                           <div className="mt-1 text-xs text-slate-500">{event.provider}{event.externalId ? ` / ${event.externalId}` : ""}</div>
                         </div>
                         <span className={`shrink-0 text-[11px] font-bold ${event.processed ? "text-emerald-300" : "text-amber-300"}`}>
@@ -395,20 +395,20 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+            <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-indigo-300" />
-                <h2 className="text-base font-black text-slate-100">Recent Audit Log</h2>
+                <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Recent Audit Log</h2>
               </div>
               <div className="mt-4 space-y-3">
                 {auditLogs.length === 0 ? (
                   <p className="text-sm text-slate-500">No recent audit activity.</p>
                 ) : (
                   auditLogs.map((log) => (
-                    <div key={log.id} className="rounded-lg border border-slate-800 bg-slate-950/45 p-3 text-sm">
+                    <div key={log.id} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-bold text-slate-100">{log.action}</div>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{log.action}</div>
                           <div className="mt-1 text-xs text-slate-500">{log.entityType}{log.entityId ? ` / ${log.entityId}` : ""}</div>
                         </div>
                         <span className="text-[11px] text-slate-500"><ClientDate value={log.createdAt} /></span>
@@ -445,7 +445,7 @@ function SettingField({ item, value, onChange }: { item: SettingItem; value: str
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         autoComplete="off"
-        className="mt-2 h-11 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+        className="mt-2 h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
       />
       {item.hint ? <span className="mt-1 block text-[11px] font-normal text-slate-500">{item.hint}</span> : null}
     </label>
@@ -568,12 +568,12 @@ function GmailInboxCard() {
   };
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+    <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <InboxIcon className="h-5 w-5 text-indigo-300" />
           <div>
-            <h2 className="text-base font-black text-slate-100">Gmail Inbox (IMAP)</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Gmail Inbox (IMAP)</h2>
             <p className="text-[11px] text-slate-500">Import replies from Gmail. Use an App Password (Google Account → Security → App Passwords) with IMAP enabled.</p>
           </div>
         </div>
@@ -597,36 +597,36 @@ function GmailInboxCard() {
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <SmallField label="Gmail address">
               <input value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} placeholder="you@gmail.com"
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
             <SmallField label="Username (usually same)">
               <input value={form.username} onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))} placeholder="you@gmail.com"
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
             <SmallField label="IMAP host">
               <input value={form.imapHost} onChange={(e) => setForm((c) => ({ ...c, imapHost: e.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
             <SmallField label="Port">
               <input value={form.imapPort} onChange={(e) => setForm((c) => ({ ...c, imapPort: e.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
             <SmallField label={`App Password ${mailbox?.hasPassword ? "(saved — leave blank to keep)" : ""}`}>
               <input type="password" value={form.appPassword} onChange={(e) => setForm((c) => ({ ...c, appPassword: e.target.value }))} placeholder="xxxx xxxx xxxx xxxx" autoComplete="off"
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
             <SmallField label="Sync interval (seconds)">
               <input value={form.syncIntervalSec} onChange={(e) => setForm((c) => ({ ...c, syncIntervalSec: e.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100" />
+                className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-xs text-slate-300">
+            <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
               <input type="checkbox" checked={form.useSsl} onChange={(e) => setForm((c) => ({ ...c, useSsl: e.target.checked }))} className="h-4 w-4 accent-indigo-500" />
               SSL (port 993)
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-300">
+            <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
               <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((c) => ({ ...c, enabled: e.target.checked }))} className="h-4 w-4 accent-indigo-500" />
               Auto-sync every minute
             </label>
@@ -641,10 +641,10 @@ function GmailInboxCard() {
             <button onClick={() => void save()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 inline-flex items-center gap-2 disabled:opacity-60">
               {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
             </button>
-            <button onClick={() => void test()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-950 text-sm text-slate-300 inline-flex items-center gap-2 disabled:opacity-60">
+            <button onClick={() => void test()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-60">
               {busy === "test" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Test connection
             </button>
-            <button onClick={() => void syncNow()} disabled={busy !== "" || !mailbox} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-950 text-sm text-slate-300 inline-flex items-center gap-2 disabled:opacity-60">
+            <button onClick={() => void syncNow()} disabled={busy !== "" || !mailbox} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-60">
               {busy === "sync" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />} Sync now
             </button>
           </div>

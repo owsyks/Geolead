@@ -161,14 +161,14 @@ export default function AiEmailGeneratorPage() {
       }
     >
       {message ? (
-        <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
           {message}
         </div>
       ) : null}
 
       <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-5">
         <form
-          className="rounded-lg border border-slate-800 bg-slate-900/35 p-5"
+          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5"
           onSubmit={(event) => {
             event.preventDefault();
             void generate();
@@ -176,7 +176,7 @@ export default function AiEmailGeneratorPage() {
         >
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-indigo-300" />
-            <h2 className="text-base font-black text-slate-100">Personalization Inputs</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Personalization Inputs</h2>
           </div>
 
           <div className="mt-4">
@@ -211,7 +211,7 @@ export default function AiEmailGeneratorPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => updateField(field as keyof typeof form, event.target.value)}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                 />
               </label>
             ))}
@@ -222,7 +222,7 @@ export default function AiEmailGeneratorPage() {
             <textarea
               value={form.painPoints}
               onChange={(event) => updateField("painPoints", event.target.value)}
-              className="mt-2 h-20 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             />
           </label>
 
@@ -232,7 +232,7 @@ export default function AiEmailGeneratorPage() {
               <select
                 value={form.tone}
                 onChange={(event) => updateField("tone", event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               >
                 <option value="professional">Professional</option>
                 <option value="friendly">Friendly</option>
@@ -245,7 +245,7 @@ export default function AiEmailGeneratorPage() {
               <select
                 value={form.variant}
                 onChange={(event) => updateField("variant", event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               >
                 <option value="cold">Cold outreach</option>
                 <option value="follow_up">Follow-up</option>
@@ -257,7 +257,7 @@ export default function AiEmailGeneratorPage() {
             </label>
             <label className="text-xs font-bold text-slate-400">
               Language
-              <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3">
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3">
                 <Languages className="h-4 w-4 text-slate-500" />
                 <input
                   value={form.language}
@@ -279,7 +279,7 @@ export default function AiEmailGeneratorPage() {
                 <MetricCard label="Follow-ups" value={result.followUps.length} helper="sequence drafts" />
               </div>
 
-              <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base font-black text-slate-100">Generated Email</h2>
@@ -302,7 +302,7 @@ export default function AiEmailGeneratorPage() {
                       type="text"
                       value={result.subjectLine}
                       onChange={(event) => setResult({ ...result, subjectLine: event.target.value })}
-                      className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                     />
                   </div>
                   <div>
@@ -311,7 +311,7 @@ export default function AiEmailGeneratorPage() {
                       type="text"
                       value={result.previewText}
                       onChange={(event) => setResult({ ...result, previewText: event.target.value })}
-                      className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm text-slate-300 outline-none focus:border-indigo-400"
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-400"
                     />
                   </div>
                   <div>
@@ -319,7 +319,7 @@ export default function AiEmailGeneratorPage() {
                     <textarea
                       value={result.body}
                       onChange={(event) => setResult({ ...result, body: event.target.value })}
-                      className="mt-1 h-72 w-full rounded-lg border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-100 outline-none focus:border-indigo-400"
+                      className="mt-1 h-72 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                     />
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export default function AiEmailGeneratorPage() {
                     <button
                       key={item.action}
                       onClick={() => void rewrite(item.action)}
-                      className="h-8 px-3 rounded-lg border border-slate-800 bg-slate-950/60 text-xs font-bold text-slate-300 hover:text-indigo-200"
+                      className="h-8 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-indigo-200"
                     >
                       {item.label}
                     </button>
@@ -338,8 +338,8 @@ export default function AiEmailGeneratorPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-                  <h3 className="text-sm font-black text-slate-100">A/B Subject Lines</h3>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">A/B Subject Lines</h3>
                   <p className="mt-1 text-[11px] text-slate-500">Click to use as subject</p>
                   <div className="mt-3 space-y-2">
                     {result.abSubjects.map((subject) => (
@@ -349,7 +349,7 @@ export default function AiEmailGeneratorPage() {
                         className={`w-full text-left rounded-lg border p-3 text-sm transition-colors ${
                           result.subjectLine === subject
                             ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-200'
-                            : 'border-slate-800 bg-slate-950/45 text-slate-300 hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                            : 'border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 text-slate-700 dark:text-slate-300 hover:border-indigo-500/30 hover:bg-indigo-500/5'
                         }`}
                       >
                         {subject}
@@ -358,8 +358,8 @@ export default function AiEmailGeneratorPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-                  <h3 className="text-sm font-black text-slate-100">Follow-up Suggestions</h3>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Follow-up Suggestions</h3>
                   <p className="mt-1 text-[11px] text-slate-500">Click to edit</p>
                   <div className="mt-3 space-y-2">
                     {result.followUps.map((followUp, index) => (
@@ -371,18 +371,18 @@ export default function AiEmailGeneratorPage() {
                           newFollowUps[index] = event.target.value;
                           setResult({ ...result, followUps: newFollowUps });
                         }}
-                        className="w-full rounded-lg border border-slate-800 bg-slate-950/45 p-3 text-xs leading-5 text-slate-400 outline-none focus:border-indigo-400 resize-y min-h-[80px]"
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-xs leading-5 text-slate-400 outline-none focus:border-indigo-400 resize-y min-h-[80px]"
                       />
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-                  <h3 className="text-sm font-black text-slate-100">Website Intel</h3>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Website Intel</h3>
                   <p className="mt-4 text-sm leading-6 text-slate-400">{result.websiteIntel.summary}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {result.variables.map((variable) => (
-                      <span key={variable} className="rounded-full border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-400">
+                      <span key={variable} className="rounded-full border border-slate-400 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2 py-1 text-[11px] text-slate-400">
                         {variable}
                       </span>
                     ))}

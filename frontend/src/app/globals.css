@@ -1,12 +1,19 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #030712; /* slate-950 */
-  --foreground: #f8fafc; /* slate-50 */
-  
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card-bg: rgba(241, 245, 249, 0.8);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --glow-color: rgba(99, 102, 241, 0.15);
+}
+.dark {
+  --background: #030712;
+  --foreground: #f8fafc;
   --card-bg: rgba(15, 23, 42, 0.4);
   --card-border: rgba(255, 255, 255, 0.06);
-  --glow-color: rgba(99, 102, 241, 0.15); /* indigo-500 with opacity */
+  --glow-color: rgba(99, 102, 241, 0.15);
 }
 
 body {
@@ -25,19 +32,28 @@ body {
 }
 
 .glass-card-hover:hover {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 20px var(--glow-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark .glass-card-hover:hover {
   background: rgba(15, 23, 42, 0.55);
   border-color: rgba(99, 102, 241, 0.3);
   box-shadow: 0 0 20px var(--glow-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Custom Scrollbar for premium dark tables */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+}
+.dark ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.5);
 }
 

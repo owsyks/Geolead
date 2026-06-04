@@ -212,7 +212,7 @@ export default function HomePage() {
               setLoading(true);
               void loadOverview();
             }}
-            className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
           >
             <RefreshCcw className="h-4 w-4" />
             Refresh
@@ -243,10 +243,10 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6 grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-5">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-black text-slate-100">Campaign Operating View</h2>
+              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Operating View</h2>
               <p className="mt-1 text-sm text-slate-500">Status, sender health, and conversion signals in one place.</p>
             </div>
             <Link href="/campaigns" className="text-sm text-indigo-300 hover:text-indigo-200 inline-flex items-center gap-1">
@@ -255,10 +255,10 @@ export default function HomePage() {
           </div>
 
           {hottestCampaign ? (
-            <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/45 p-4">
+            <div className="mt-5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-bold text-slate-100">{hottestCampaign.name}</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{hottestCampaign.name}</div>
                   <div className="mt-1 text-xs text-slate-500">
                     {hottestCampaign.geoDomain} for {hottestCampaign.niche}
                   </div>
@@ -268,15 +268,15 @@ export default function HomePage() {
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div>
                   <div className="text-slate-500">Recipients</div>
-                  <div className="font-black text-slate-100">{hottestCampaign.recipients}</div>
+                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.recipients}</div>
                 </div>
                 <div>
                   <div className="text-slate-500">Opens</div>
-                  <div className="font-black text-slate-100">{hottestCampaign.opens}</div>
+                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.opens}</div>
                 </div>
                 <div>
                   <div className="text-slate-500">Replies</div>
-                  <div className="font-black text-slate-100">{hottestCampaign.replies}</div>
+                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.replies}</div>
                 </div>
                 <div>
                   <div className="text-slate-500">Engagement</div>
@@ -299,7 +299,7 @@ export default function HomePage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-lg border border-slate-800 bg-slate-950/35 p-4 text-sm font-bold text-slate-200 hover:border-indigo-400/40 hover:text-indigo-100 transition-colors"
+                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/35 p-4 text-sm font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-400/40 hover:text-indigo-100 transition-colors"
                 >
                   <Icon className="h-5 w-5 text-indigo-300 mb-3" />
                   {item.label}
@@ -309,10 +309,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-black text-slate-100">Live Activity</h2>
+              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Live Activity</h2>
               <p className="mt-1 text-sm text-slate-500">{loading ? "Connecting..." : "WebSocket feed plus latest events"}</p>
             </div>
             <StatusBadge value={offline ? "Demo" : "Live"} />
@@ -322,9 +322,9 @@ export default function HomePage() {
               <EmptyState title="No recent events" body="Open, click, reply, bounce, and unsubscribe events will appear here." />
             ) : (
               events.map((event) => (
-                <div key={event.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+                <div key={event.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-black text-slate-200">{event.type}</span>
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{event.type}</span>
                     <span className="text-[11px] text-slate-500">
                       {event.occurredAt ? <ClientDate value={event.occurredAt} /> : "now"}
                     </span>
@@ -338,8 +338,8 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-100">Deliverability Alerts</h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Deliverability Alerts</h2>
           <div className="mt-4 space-y-3">
             {overview.deliverabilityAlerts.map((alert) => (
               <div key={alert} className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
@@ -349,12 +349,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-100">Hottest Leads</h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Hottest Leads</h2>
           <div className="mt-4 space-y-3">
             {overview.topLeads.map((lead) => (
-              <div key={lead.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-                <div className="text-sm font-bold text-slate-100">{lead.businessName}</div>
+              <div key={lead.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
+                <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{lead.businessName}</div>
                 <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
                   <span>{lead.pipelineStage}</span>
                   <span className="font-black text-emerald-300">{lead.engagementScore}/100</span>
@@ -364,19 +364,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-100">Sender Health</h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Sender Health</h2>
           <div className="mt-4 space-y-3">
             {overview.senders.map((sender) => (
-              <div key={sender.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div key={sender.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-bold text-slate-100">{sender.label}</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{sender.label}</div>
                     <div className="text-xs text-slate-500">{sender.fromEmail}</div>
                   </div>
                   <StatusBadge value={sender.status} />
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                   <div className="h-full rounded-full bg-emerald-400" style={{ width: `${sender.deliverabilityScore}%` }} />
                 </div>
                 <div className="mt-2 text-xs text-slate-500">Deliverability {sender.deliverabilityScore}/100</div>

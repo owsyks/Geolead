@@ -13,13 +13,16 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Moon,
   Search,
   Send,
   Settings,
   ShieldCheck,
+  Sun,
   UserCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "./ThemeProvider";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -49,12 +52,13 @@ export function OutboundShell({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { theme, toggle } = useTheme();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <div className="flex min-h-screen">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-slate-900 bg-slate-950/90">
-          <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-900">
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/90 sticky top-0 h-screen overflow-y-auto">
+          <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-200 dark:border-slate-900">
             <div className="h-9 w-9 rounded-lg bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-200 font-black">
               GL
             </div>
@@ -75,7 +79,7 @@ export function OutboundShell({
                   className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-colors ${
                     active
                       ? "bg-indigo-500/15 text-indigo-100 border border-indigo-400/20"
-                      : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/70"
+                      : "text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/70"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -85,7 +89,14 @@ export function OutboundShell({
             })}
           </nav>
 
-          <div className="p-4 border-t border-slate-900 space-y-3">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-900 space-y-3">
+            <button
+              onClick={toggle}
+              className="flex w-full items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
             <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
                 <ShieldCheck className="h-4 w-4" />
@@ -96,8 +107,8 @@ export function OutboundShell({
               </p>
             </div>
             {user ? (
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <Link href="/profile" className="flex items-center gap-2 text-sm text-slate-200 hover:text-white">
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
+                <Link href="/profile" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white">
                   <UserCircle className="h-5 w-5 text-slate-400" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{user.name}</span>
@@ -106,7 +117,7 @@ export function OutboundShell({
                 </Link>
                 <button
                   onClick={() => void logout()}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-800 bg-slate-950/60 px-3 py-1.5 text-xs text-slate-400 transition hover:text-white hover:border-slate-700"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-slate-950/60 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-slate-700"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Sign out
@@ -117,14 +128,14 @@ export function OutboundShell({
         </aside>
 
         <div className="flex-1 min-w-0">
-          <header className="sticky top-0 z-40 border-b border-slate-900 bg-slate-950/90 backdrop-blur">
+          <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/90 backdrop-blur">
             <div className="px-4 sm:px-6 lg:px-8 h-auto min-h-16 py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <Mail className="h-3.5 w-3.5" />
                   AI outbound email automation
                 </div>
-                <h1 className="mt-1 text-xl sm:text-2xl font-black text-slate-50">{title}</h1>
+                <h1 className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50">{title}</h1>
                 <p className="mt-1 text-sm text-slate-400 max-w-3xl">{subtitle}</p>
               </div>
               <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">{actions}</div>
@@ -141,7 +152,7 @@ export function OutboundShell({
                     className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border ${
                       active
                         ? "bg-indigo-500/15 text-indigo-100 border-indigo-400/20"
-                        : "bg-slate-900/60 text-slate-400 border-slate-800"
+                        : "bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-slate-300 dark:border-slate-800"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -169,9 +180,9 @@ export function MetricCard({
   helper?: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/45 p-4">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/45 p-4">
       <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-2 text-2xl font-black text-slate-50">{value}</div>
+      <div className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-50">{value}</div>
       {helper ? <div className="mt-1 text-xs text-slate-500">{helper}</div> : null}
     </div>
   );
@@ -186,7 +197,7 @@ export function StatusBadge({ value }: { value: string }) {
         ? "border-amber-400/25 bg-amber-500/10 text-amber-300"
         : normalized.includes("bounce") || normalized.includes("complaint") || normalized.includes("failed")
           ? "border-rose-400/25 bg-rose-500/10 text-rose-300"
-          : "border-slate-700 bg-slate-800/70 text-slate-300";
+          : "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300";
 
   return (
     <span className={`inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-bold ${tone}`}>
@@ -197,8 +208,8 @@ export function StatusBadge({ value }: { value: string }) {
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-8 text-center">
-      <div className="text-sm font-bold text-slate-300">{title}</div>
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/35 p-8 text-center">
+      <div className="text-sm font-bold text-slate-700 dark:text-slate-300">{title}</div>
       <p className="mt-1 text-sm text-slate-500">{body}</p>
     </div>
   );

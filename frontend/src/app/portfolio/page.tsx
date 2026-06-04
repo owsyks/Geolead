@@ -245,19 +245,19 @@ export default function PortfolioPage() {
         <>
           <button
             onClick={() => setShowImport(true)}
-            className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
           >
             <Upload className="h-4 w-4" /> Bulk import
           </button>
           <button
             onClick={openAdd}
-            className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 hover:bg-indigo-500/25 inline-flex items-center gap-2"
+            className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 hover:bg-indigo-500/25 inline-flex items-center gap-2 dark:text-indigo-100"
           >
             <Plus className="h-4 w-4" /> Add domain
           </button>
           <button
             onClick={() => void load()}
-            className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
           >
             <RefreshCcw className="h-4 w-4" /> Refresh
           </button>
@@ -265,7 +265,7 @@ export default function PortfolioPage() {
       }
     >
       {message ? (
-        <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300 flex items-center justify-between">
+        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 flex items-center justify-between">
           <span>{message}</span>
           <button onClick={() => setMessage("")} className="text-slate-500 hover:text-slate-300">
             <X className="h-3.5 w-3.5" />
@@ -291,21 +291,21 @@ export default function PortfolioPage() {
         />
       </section>
 
-      <section className="mt-6 rounded-lg border border-slate-800 bg-slate-900/35">
-        <div className="flex flex-col xl:flex-row gap-3 p-4 border-b border-slate-900">
+      <section className="mt-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35">
+        <div className="flex flex-col xl:flex-row gap-3 p-4 border-b border-slate-200 dark:border-slate-900">
           <div className="relative flex-1 min-w-0">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by name, niche, city, notes…"
-              className="h-10 w-full rounded-lg border border-slate-800 bg-slate-950 pl-10 pr-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+              className="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 pl-10 pr-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           >
             <option value="">All statuses</option>
             {DOMAIN_STATUSES.map((status) => (
@@ -315,7 +315,7 @@ export default function PortfolioPage() {
           <select
             value={categoryFilter}
             onChange={(event) => setCategoryFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           >
             <option value="">All categories</option>
             {allCategories.map((category) => (
@@ -325,7 +325,7 @@ export default function PortfolioPage() {
           <select
             value={tagFilter}
             onChange={(event) => setTagFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           >
             <option value="">All tags</option>
             {allTags.map((tag) => (
@@ -335,7 +335,7 @@ export default function PortfolioPage() {
           <select
             value={sortKey}
             onChange={(event) => setSortKey(event.target.value as SortKey)}
-            className="h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           >
             {Object.entries(SORT_LABELS).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
@@ -343,7 +343,7 @@ export default function PortfolioPage() {
           </select>
           <button
             onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-950 text-sm text-slate-300"
+            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-700 dark:text-slate-300"
           >
             {sortDir === "asc" ? "Asc" : "Desc"}
           </button>
@@ -370,7 +370,7 @@ export default function PortfolioPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-950/60 text-[11px] uppercase tracking-wide text-slate-500">
+              <thead className="bg-slate-50 dark:bg-slate-950/60 text-[11px] uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3 text-left">Domain</th>
                   <th className="px-4 py-3 text-left">Intelligence</th>
@@ -381,18 +381,18 @@ export default function PortfolioPage() {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-900">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-900">
                 {filtered.map((domain) => (
-                  <tr key={domain.id} className="hover:bg-slate-900/40">
+                  <tr key={domain.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
                     <td className="px-4 py-3 align-top">
-                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-slate-100 hover:text-indigo-200">
+                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-200">
                         {domain.name}
                       </Link>
                       <div className="text-[11px] text-slate-500">
                         {domain.registrar ? `Registrar: ${domain.registrar}` : "Unregistered registrar"}
                       </div>
                     </td>
-                    <td className="px-4 py-3 align-top text-slate-300">
+                    <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
                       <div>{domain.niche || domain.industry || "Uncategorized"}</div>
                       <div className="text-[11px] text-slate-500">
                         {[domain.city, domain.state].filter(Boolean).join(", ") || "Geo unknown"}
@@ -402,7 +402,7 @@ export default function PortfolioPage() {
                       <StatusBadge value={domain.status} />
                     </td>
                     <td className="px-4 py-3 align-top text-right">
-                      <div className="text-slate-200 font-bold">
+                      <div className="text-slate-800 dark:text-slate-200 font-bold">
                         ${(domain.estimatedValue || 0).toLocaleString()}
                       </div>
                       <div className="text-[11px] text-slate-500">
@@ -422,7 +422,7 @@ export default function PortfolioPage() {
                           <span className="text-[11px] text-slate-500">—</span>
                         ) : (
                           domain.tags.map((tag) => (
-                            <span key={tag} className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] text-slate-300">
+                            <span key={tag} className="rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300">
                               #{tag}
                             </span>
                           ))
@@ -443,7 +443,7 @@ export default function PortfolioPage() {
                         </button>
                         <Link
                           href={`/portfolio/${domain.id}`}
-                          className="h-7 px-2 rounded-md border border-slate-800 bg-slate-950 text-[11px] text-slate-300 inline-flex items-center gap-1"
+                          className="h-7 px-2 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-700 dark:text-slate-300 inline-flex items-center gap-1"
                         >
                           <ExternalLink className="h-3 w-3" /> Open
                         </Link>
@@ -505,8 +505,8 @@ export default function PortfolioPage() {
       </section>
 
       <section className="mt-6">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-100">Active selection</h2>
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Active selection</h2>
           <p className="mt-1 text-xs text-slate-500">
             Whatever you choose here becomes the default for lead generation, AI email generation, and campaign creation.
           </p>
@@ -575,14 +575,14 @@ function DomainFormModal({
             value={form.name}
             onChange={(event) => setForm((c) => ({ ...c, name: event.target.value }))}
             placeholder="TexasCarVendor.com"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 focus:border-indigo-400 outline-none"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-400 outline-none"
           />
         </Field>
         <Field label="Status">
           <select
             value={form.status}
             onChange={(event) => setForm((c) => ({ ...c, status: event.target.value as PortfolioStatus }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           >
             {DOMAIN_STATUSES.map((status) => (
               <option key={status} value={status}>{status}</option>
@@ -594,7 +594,7 @@ function DomainFormModal({
             type="date"
             value={form.purchaseDate}
             onChange={(event) => setForm((c) => ({ ...c, purchaseDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Purchase price (USD)">
@@ -603,7 +603,7 @@ function DomainFormModal({
             min={0}
             value={form.purchasePrice}
             onChange={(event) => setForm((c) => ({ ...c, purchasePrice: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Registrar">
@@ -611,7 +611,7 @@ function DomainFormModal({
             value={form.registrar}
             onChange={(event) => setForm((c) => ({ ...c, registrar: event.target.value }))}
             placeholder="Namecheap, GoDaddy, …"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Expiration date">
@@ -619,7 +619,7 @@ function DomainFormModal({
             type="date"
             value={form.expirationDate}
             onChange={(event) => setForm((c) => ({ ...c, expirationDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Tags (comma separated)">
@@ -627,7 +627,7 @@ function DomainFormModal({
             value={form.tags}
             onChange={(event) => setForm((c) => ({ ...c, tags: event.target.value }))}
             placeholder="premium, auto"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Target industries (comma separated)">
@@ -635,7 +635,7 @@ function DomainFormModal({
             value={form.targetIndustries}
             onChange={(event) => setForm((c) => ({ ...c, targetIndustries: event.target.value }))}
             placeholder="Automotive, Marketing"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Target locations (comma separated)">
@@ -643,7 +643,7 @@ function DomainFormModal({
             value={form.targetLocations}
             onChange={(event) => setForm((c) => ({ ...c, targetLocations: event.target.value }))}
             placeholder="Austin TX, Dallas TX"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <div className="md:col-span-2">
@@ -651,13 +651,13 @@ function DomainFormModal({
             <textarea
               value={form.notes}
               onChange={(event) => setForm((c) => ({ ...c, notes: event.target.value }))}
-              className="min-h-24 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+              className="min-h-24 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
             />
           </Field>
         </div>
       </div>
       <div className="mt-5 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900 text-sm text-slate-300">
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
         </button>
         <button onClick={onSave} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100">
@@ -719,7 +719,7 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
         Upload a CSV/TXT file or paste one domain per line. Excel: export as CSV first. AI categorization runs on every imported row.
       </p>
       <div className="mt-3 flex items-center gap-3">
-        <label className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 inline-flex items-center gap-2 cursor-pointer">
+        <label className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 cursor-pointer">
           <Upload className="h-4 w-4" />
           Choose file
           <input type="file" accept=".csv,.txt,.tsv" hidden onChange={onFile} />
@@ -730,11 +730,11 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={`TexasCarVendor.com\nMiamiRoofing.com\nDallasPlumber.com`}
-        className="mt-3 min-h-48 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
+        className="mt-3 min-h-48 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
       />
       {error ? <div className="mt-2 text-xs text-rose-300">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900 text-sm text-slate-300">
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
         </button>
         <button
@@ -792,14 +792,14 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
           <input
             value={form.buyerName}
             onChange={(event) => setForm((c) => ({ ...c, buyerName: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Buyer email">
           <input
             value={form.buyerEmail}
             onChange={(event) => setForm((c) => ({ ...c, buyerEmail: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Sale price (USD)" required>
@@ -807,7 +807,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
             type="number"
             value={form.salePrice}
             onChange={(event) => setForm((c) => ({ ...c, salePrice: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Sale date">
@@ -815,7 +815,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
             type="date"
             value={form.saleDate}
             onChange={(event) => setForm((c) => ({ ...c, saleDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Marketplace">
@@ -823,7 +823,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
             value={form.marketplace}
             onChange={(event) => setForm((c) => ({ ...c, marketplace: event.target.value }))}
             placeholder="Dan, Sedo, direct…"
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <Field label="Fees / commission">
@@ -831,7 +831,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
             type="number"
             value={form.fees}
             onChange={(event) => setForm((c) => ({ ...c, fees: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
           />
         </Field>
         <div className="md:col-span-2">
@@ -839,14 +839,14 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
             <textarea
               value={form.notes}
               onChange={(event) => setForm((c) => ({ ...c, notes: event.target.value }))}
-              className="min-h-20 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+              className="min-h-20 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
             />
           </Field>
         </div>
       </div>
       {error ? <div className="mt-2 text-xs text-rose-300">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900 text-sm text-slate-300">
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
         </button>
         <button onClick={() => void submit()} className="h-10 px-3 rounded-lg border border-emerald-400/30 bg-emerald-500/15 text-sm text-emerald-200">
@@ -860,10 +860,10 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-12 rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-900 px-5 py-3">
-          <h3 className="text-base font-black text-slate-100">{title}</h3>
-          <button onClick={onClose} className="h-8 w-8 rounded-md text-slate-400 hover:text-slate-100 inline-flex items-center justify-center">
+      <div className="w-full max-w-2xl mt-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-900 px-5 py-3">
+          <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{title}</h3>
+          <button onClick={onClose} className="h-8 w-8 rounded-md text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 inline-flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
         </div>

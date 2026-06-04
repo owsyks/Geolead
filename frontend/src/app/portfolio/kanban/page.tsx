@@ -69,14 +69,14 @@ export default function PortfolioKanbanPage() {
       actions={
         <button
           onClick={() => void load()}
-          className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 inline-flex items-center gap-2"
+          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2"
         >
           <RefreshCcw className="h-4 w-4" /> Refresh
         </button>
       }
     >
       {message ? (
-        <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
           {message}
         </div>
       ) : null}
@@ -90,10 +90,10 @@ export default function PortfolioKanbanPage() {
               key={status}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => onDrop(status)}
-              className="rounded-lg border border-slate-800 bg-slate-900/35 p-3 min-h-[320px]"
+              className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-3 min-h-[320px]"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wide text-slate-300">{status}</h3>
+                <h3 className="text-xs font-black uppercase tracking-wide text-slate-700 dark:text-slate-300">{status}</h3>
                 <span className="text-[11px] text-slate-500">{columns[status]?.length || 0}</span>
               </div>
               <div className="space-y-2">
@@ -103,12 +103,12 @@ export default function PortfolioKanbanPage() {
                     draggable
                     onDragStart={() => setDragId(domain.id)}
                     onDragEnd={() => setDragId(null)}
-                    className="rounded-md border border-slate-800 bg-slate-950 p-3 cursor-grab active:cursor-grabbing"
+                    className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 cursor-grab active:cursor-grabbing"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         href={`/portfolio/${domain.id}`}
-                        className="font-bold text-slate-100 hover:text-indigo-200 text-sm truncate"
+                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-200 text-sm truncate"
                       >
                         {domain.name}
                       </Link>
@@ -133,7 +133,7 @@ export default function PortfolioKanbanPage() {
                   </div>
                 ))}
                 {(columns[status]?.length || 0) === 0 ? (
-                  <div className="rounded-md border border-dashed border-slate-800 p-4 text-center text-[11px] text-slate-600">
+                  <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-800 p-4 text-center text-[11px] text-slate-600">
                     Drop here
                   </div>
                 ) : null}

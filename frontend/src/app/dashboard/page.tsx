@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -971,24 +971,24 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row relative">
       
       {/* Sidebar - Saved Tasks History */}
-      <aside className="w-full md:w-80 border-r border-slate-900 bg-slate-950 flex flex-col shrink-0">
+      <aside className="w-full md:w-80 border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 flex flex-col shrink-0">
         
         {/* Branding header */}
-        <div className="h-16 px-6 border-b border-slate-900 flex items-center justify-between">
+        <div className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="p-1.5 bg-indigo-600 rounded text-white font-bold text-xs">GL</span>
+            <span className="p-1.5 bg-indigo-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
             <span className="font-extrabold text-sm tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-indigo-300">GeoLead AI</span>
           </Link>
-          <Link href="/settings" className="p-1.5 bg-slate-900 rounded-lg text-slate-400 hover:text-slate-200 transition-colors" title="Settings">
+          <Link href="/settings" className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200 transition-colors" title="Settings">
             <Settings className="w-4 h-4" />
           </Link>
         </div>
 
         {/* Create Search Form Accordion */}
-        <div className="p-5 border-b border-slate-900">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-900">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">New Lead Generation</h3>
           <div className="mb-4">
             <DomainSelector
@@ -1010,7 +1010,7 @@ export default function DashboardPage() {
                 value={domainIdea}
                 onChange={(e) => setDomainIdea(e.target.value)}
                 placeholder="e.g. TexasCarVendor.com"
-                className="w-full h-10 bg-slate-900 border border-slate-800 rounded-lg px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
@@ -1021,7 +1021,7 @@ export default function DashboardPage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="e.g. Texas Car Dealership"
-                className="w-full h-10 bg-slate-900 border border-slate-800 rounded-lg px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1032,7 +1032,7 @@ export default function DashboardPage() {
                   value={cityState}
                   onChange={(e) => setCityState(e.target.value)}
                   placeholder="Texas"
-                  className="w-full h-10 bg-slate-900 border border-slate-800 rounded-lg px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -1040,7 +1040,7 @@ export default function DashboardPage() {
                 <select
                   value={searchDepth}
                   onChange={(e) => setSearchDepth(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-900 border border-slate-800 rounded-lg px-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                 >
                    <option value={5}>5 Leads</option>
                    <option value={10}>10 Leads</option>
@@ -1054,7 +1054,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-1.5"
+              className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> Start Lead Discovery
             </button>
@@ -1083,11 +1083,11 @@ export default function DashboardPage() {
                   className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
                     selectedTask?.id === task.id
                       ? "bg-indigo-950/20 border-indigo-500/40 shadow-inner"
-                      : "bg-slate-900/10 border-slate-900/60 hover:bg-slate-900/30"
+                      : "bg-slate-50 dark:bg-slate-900/10 border-slate-200 dark:border-slate-900/60 hover:bg-slate-100 dark:bg-slate-900/30"
                   }`}
                 >
                   <div className="flex justify-between items-start w-full">
-                    <span className="text-xs font-bold text-slate-200 truncate max-w-[150px]">{task.domainIdea}</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{task.domainIdea}</span>
                     <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
                       task.status === "COMPLETED" 
                         ? "bg-emerald-500/10 text-emerald-400"
@@ -1100,7 +1100,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-[10px] text-slate-500">Query: {task.keyword}</div>
                   {task.status === "PROCESSING" && (
-                    <div className="w-full bg-slate-900 rounded-full h-1 mt-1 overflow-hidden">
+                    <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1 mt-1 overflow-hidden">
                       <div className="bg-indigo-500 h-1 transition-all duration-300" style={{ width: `${task.progress}%` }} />
                     </div>
                   )}
@@ -1112,7 +1112,7 @@ export default function DashboardPage() {
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 bg-slate-950 flex flex-col relative overflow-hidden">
+      <main className="flex-1 bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden">
         
         {/* Email Verification Result Banner */}
         {verifyResult && (
@@ -1144,13 +1144,13 @@ export default function DashboardPage() {
         )}
 
         {/* Main Dashboard Top Header */}
-        <header className="h-16 px-6 border-b border-slate-900 bg-slate-950/40 backdrop-blur-md flex items-center justify-between">
+        <header className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/40 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="md:hidden p-2 bg-slate-900 rounded-lg text-slate-400 hover:text-slate-200">
+            <Link href="/" className="md:hidden p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200">
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 {selectedTask ? `Campaign: ${selectedTask.domainIdea}` : "Select a Search Campaign"}
               </h2>
               {selectedTask && (
@@ -1199,28 +1199,28 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <Database className="w-5 h-5 text-indigo-400 animate-pulse" />
                     <div>
-                      <h4 className="text-sm font-bold text-slate-200">Active Crawl & Extraction Pipeline</h4>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Crawl & Extraction Pipeline</h4>
                       <p className="text-[10px] text-slate-500 mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
                     </div>
                   </div>
                   <span className="text-sm font-black text-indigo-400">{selectedTask.progress}%</span>
                 </div>
-                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-900">
+                <div className="w-full bg-white dark:bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-slate-900">
                   <div 
                     className="bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 h-2.5 rounded-full transition-all duration-300"
                     style={{ width: `${selectedTask.progress}%` }}
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4 mt-6 text-center text-xs">
-                  <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-900">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
                     <span className="text-slate-500 block mb-1">Status</span>
                     <span className="font-bold text-indigo-400 capitalize">{selectedTask.status.toLowerCase()}</span>
                   </div>
-                  <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-900">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
                     <span className="text-slate-500 block mb-1">Leads Identified</span>
-                    <span className="font-bold text-slate-200">{selectedTask.totalLeads}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{selectedTask.totalLeads}</span>
                   </div>
-                  <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-900">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
                     <span className="text-slate-500 block mb-1">Validated Emails</span>
                     <span className="font-bold text-emerald-400">{selectedTask.validEmails}</span>
                   </div>
@@ -1231,21 +1231,21 @@ export default function DashboardPage() {
             {/* Campaign Analytics Stats Overview */}
             {selectedTask.status === "COMPLETED" && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="glass-card p-5 rounded-2xl border-slate-900">
+                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Total Prospects</span>
-                  <span className="text-2xl sm:text-3xl font-black text-slate-100 mt-1 block">{selectedTask.totalLeads}</span>
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-1 block">{selectedTask.totalLeads}</span>
                 </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-900">
+                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Validated Emails</span>
                   <span className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 block">{selectedTask.validEmails}</span>
                 </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-900">
+                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Unique Phones</span>
                   <span className="text-2xl sm:text-3xl font-black text-indigo-400 mt-1 block">
                     {leads.filter(l => l.phoneNumbers.length > 0).length}
                   </span>
                 </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-900">
+                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Avg Match Score</span>
                   <span className="text-2xl sm:text-3xl font-black text-cyan-400 mt-1 block">
                     {leads.length > 0
@@ -1257,10 +1257,10 @@ export default function DashboardPage() {
             )}
 
             {/* Leads Table Card with Filters */}
-            <div className="glass-card rounded-2xl border-slate-900 overflow-hidden flex flex-col">
+            <div className="glass-card rounded-2xl border-slate-200 dark:border-slate-900 overflow-hidden flex flex-col">
               
               {/* Filter controls bar */}
-              <div className="p-4 bg-slate-900/20 border-b border-slate-900 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+              <div className="p-4 bg-slate-100 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-900 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
                 
                 {/* Search input filter */}
                 <form onSubmit={triggerSearchFilterSubmit} className="flex items-center gap-2 flex-1">
@@ -1271,10 +1271,10 @@ export default function DashboardPage() {
                       value={searchFilterInput}
                       onChange={handleSearchFilterChange}
                       placeholder="Filter by business name, keyword, city..."
-                      className="w-full h-9 bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg pl-9 pr-4 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
-                  <button type="submit" className="h-9 px-4 bg-slate-900 border border-slate-800 hover:bg-slate-800 rounded-lg text-xs font-semibold text-slate-300">
+                  <button type="submit" className="h-9 px-4 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-200 dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Apply
                   </button>
                 </form>
@@ -1282,12 +1282,12 @@ export default function DashboardPage() {
                 {/* Dropdowns filters */}
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Min Relevance Score */}
-                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 h-9 rounded-lg px-2 text-xs">
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
                     <TrendingUp className="w-3.5 h-3.5 text-slate-500" />
                     <select
                       value={minScore}
                       onChange={(e) => setMinScore(Number(e.target.value))}
-                      className="bg-transparent border-none text-slate-300 focus:outline-none text-[11px]"
+                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value={0}>All Scores</option>
                       <option value={50}>&gt; 50% Match</option>
@@ -1302,7 +1302,7 @@ export default function DashboardPage() {
                     className={`h-9 px-3 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${
                       hasEmailsOnly
                         ? "bg-indigo-950/30 border-indigo-500/40 text-indigo-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-800 dark:text-slate-200"
                     }`}
                   >
                     <Mail className="w-3.5 h-3.5" /> Has Email Contacts
@@ -1326,24 +1326,24 @@ export default function DashboardPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-900 bg-slate-900/10 text-slate-400 font-medium">
+                      <tr className="border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-900/10 text-slate-400 font-medium">
                         <th className="py-4 px-6">Business Details</th>
                         <th className="py-4 px-4">Contact Info</th>
                         <th className="py-4 px-4 text-center">Score</th>
                         <th className="py-4 px-6">CRM Notes</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-900/80">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-900/80">
                       {leads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-slate-900/10 transition-colors align-top">
+                        <tr key={lead.id} className="hover:bg-slate-50 dark:bg-slate-900/10 transition-colors align-top">
                           
                           {/* Business Info Column */}
                           <td className="py-5 px-6 max-w-sm">
                             <div className="flex flex-col gap-1.5">
-                              <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5 flex-wrap">
+                              <div className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
                                 {lead.businessName}
                                 {lead.companySize && lead.companySize !== "Unknown" && (
-                                  <span className="px-1.5 py-0.2 bg-slate-900 border border-slate-800 text-slate-400 rounded text-[9px]">
+                                  <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-400 rounded text-[9px]">
                                     {lead.companySize}
                                   </span>
                                 )}
@@ -1379,7 +1379,7 @@ export default function DashboardPage() {
                                   href={lead.googleMapsLink} 
                                   target="_blank" 
                                   rel="noreferrer" 
-                                  className="text-[10px] text-slate-500 hover:text-slate-300 underline w-fit"
+                                  className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-slate-300 underline w-fit"
                                 >
                                   View on Google Maps
                                 </a>
@@ -1392,7 +1392,7 @@ export default function DashboardPage() {
                                   </span>
                                 )}
                                 {lead.leadStatus && (
-                                  <span className="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-900 text-[9px] font-bold text-slate-400">
+                                  <span className="px-2 py-0.5 rounded-full border border-slate-400 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-[9px] font-bold text-slate-400">
                                     {lead.leadStatus}
                                   </span>
                                 )}
@@ -1413,7 +1413,7 @@ export default function DashboardPage() {
                                   {lead.tags.slice(0, 3).map((tag) => (
                                     <span
                                       key={tag}
-                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-800 bg-slate-950/40"
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40"
                                     >
                                       {tag}
                                     </span>
@@ -1437,7 +1437,7 @@ export default function DashboardPage() {
                                       <a
                                         href={`mailto:${e.email}`}
                                         title={`Send email to ${e.email}`}
-                                        className="flex items-center gap-1 text-slate-300 hover:text-indigo-300 min-w-0 font-mono text-[11px]"
+                                        className="flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-indigo-300 min-w-0 font-mono text-[11px]"
                                       >
                                         <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
                                         <span className="truncate">{e.email}</span>
@@ -1468,7 +1468,7 @@ export default function DashboardPage() {
                                     <a
                                       key={i}
                                       href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                                      className="flex items-center gap-1 hover:text-slate-200 w-fit"
+                                      className="flex items-center gap-1 hover:text-slate-800 dark:text-slate-200 w-fit"
                                       title={`Call ${phone}`}
                                     >
                                       <Phone className="w-3 h-3 text-slate-500" /> {phone}
@@ -1487,7 +1487,7 @@ export default function DashboardPage() {
                                   ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500/20"
                                   : lead.domainMatchScore >= 65
                                   ? "bg-indigo-950/20 text-indigo-400 border border-indigo-500/20"
-                                  : "bg-slate-900 text-slate-500 border border-slate-800"
+                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-800"
                               }`}>
                                 {lead.domainMatchScore}%
                               </span>
@@ -1496,7 +1496,7 @@ export default function DashboardPage() {
                               {lead.scoreExplanation && (
                                 <div className="relative group cursor-help">
                                   <HelpCircle className="w-3.5 h-3.5 text-slate-600 hover:text-slate-400" />
-                                  <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-1.5 w-48 bg-slate-900 text-slate-400 text-[10px] p-2.5 rounded-lg border border-slate-800 hidden group-hover:block shadow-xl leading-relaxed z-10">
+                                  <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-1.5 w-48 bg-slate-100 dark:bg-slate-900 text-slate-400 text-[10px] p-2.5 rounded-lg border border-slate-300 dark:border-slate-800 hidden group-hover:block shadow-xl leading-relaxed z-10">
                                     {lead.scoreExplanation}
                                   </div>
                                 </div>
@@ -1511,19 +1511,19 @@ export default function DashboardPage() {
                                 <textarea
                                   value={notesText}
                                   onChange={(e) => setNotesText(e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-800 rounded p-1.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500 h-16 resize-none"
+                                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded p-1.5 text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 h-16 resize-none"
                                 />
                                 <div className="flex gap-1.5">
                                   <button
                                     onClick={() => handleSaveNotes(lead.id)}
-                                    className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-500"
+                                    className="p-1 bg-indigo-600 text-slate-900 dark:text-white rounded hover:bg-indigo-500"
                                     title="Save"
                                   >
                                     <Save className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setEditingNotesLeadId(null)}
-                                    className="p-1 bg-slate-800 text-slate-400 rounded hover:bg-slate-700"
+                                    className="p-1 bg-slate-200 dark:bg-slate-800 text-slate-400 rounded hover:bg-slate-700"
                                   >
                                     Cancel
                                   </button>
@@ -1553,20 +1553,20 @@ export default function DashboardPage() {
 
               {/* Table pagination controls */}
               {!loading && totalPages > 1 && (
-                <div className="p-4 bg-slate-900/10 border-t border-slate-900 flex justify-between items-center text-xs text-slate-500">
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-900 flex justify-between items-center text-xs text-slate-500">
                   <span>Page {page} of {totalPages} ({totalLeadsCount} total leads)</span>
                   <div className="flex items-center gap-1.5">
                     <button
                       disabled={page === 1}
                       onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                      className="p-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-300"
+                      className="p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-700 dark:text-slate-300"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       disabled={page === totalPages}
                       onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-                      className="p-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-300"
+                      className="p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-700 dark:text-slate-300"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -1608,17 +1608,17 @@ export default function DashboardPage() {
       {exportOptionsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setExportOptionsOpen(false)}>
           <div
-            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl"
+            className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-5 border-b border-slate-800">
+            <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
               <div>
-                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Download className="w-4 h-4 text-indigo-400" /> Export Options
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">Choose format and filters</p>
               </div>
-              <button onClick={() => setExportOptionsOpen(false)} className="p-1.5 text-slate-500 hover:text-slate-200 rounded">
+              <button onClick={() => setExportOptionsOpen(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-200 rounded">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1632,8 +1632,8 @@ export default function DashboardPage() {
                       onClick={() => setExportFormat(fmt)}
                       className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
                         exportFormat === fmt
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                          ? 'bg-indigo-600 text-slate-900 dark:text-white'
+                          : 'bg-white dark:bg-slate-950 text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-800'
                       }`}
                     >
                       {fmt.toUpperCase()}
@@ -1647,23 +1647,23 @@ export default function DashboardPage() {
                     type="checkbox"
                     checked={exportEmailsOnly}
                     onChange={(e) => setExportEmailsOnly(e.target.checked)}
-                    className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="text-xs text-slate-300">Export emails only (one row per email)</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Export emails only (one row per email)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={exportIncludeRisky}
                     onChange={(e) => setExportIncludeRisky(e.target.checked)}
-                    className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="text-xs text-slate-300">Include risky emails</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky emails</span>
                 </label>
               </div>
             </div>
-            <div className="p-5 border-t border-slate-800 flex justify-end gap-2">
-              <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 rounded-lg">Cancel</button>
+            <div className="p-5 border-t border-slate-300 dark:border-slate-800 flex justify-end gap-2">
+              <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-800 dark:text-slate-200 rounded-lg">Cancel</button>
               <button
                 onClick={() => { setExportOptionsOpen(false); handleExport(exportFormat); }}
                 className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"

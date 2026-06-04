@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
@@ -76,14 +76,14 @@ export default function QuickSendPage() {
   return (
     <OutboundShell title="Quick Send" subtitle="Fire a one-off email through any active sender account.">
       <div className="max-w-2xl">
-        <form onSubmit={handleSend} className="space-y-5 bg-slate-900/30 border border-slate-800 rounded-2xl p-6">
+        <form onSubmit={handleSend} className="space-y-5 bg-slate-100 dark:bg-slate-900/30 border border-slate-300 dark:border-slate-800 rounded-2xl p-6">
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">From</label>
             <select
               value={senderId}
               onChange={(e) => setSenderId(e.target.value)}
               disabled={loadingSenders || senders.length === 0}
-              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
             >
               {loadingSenders ? (
                 <option>Loading…</option>
@@ -107,7 +107,7 @@ export default function QuickSendPage() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
               placeholder="recipient@example.com"
-              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -119,7 +119,7 @@ export default function QuickSendPage() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Quick question about your business"
-              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -131,14 +131,14 @@ export default function QuickSendPage() {
               onChange={(e) => setBody(e.target.value)}
               rows={10}
               placeholder="Write your message…"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 resize-y"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 resize-y"
             />
           </div>
 
           <button
             type="submit"
             disabled={sending || !senderId || !to || !subject || !body}
-            className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 dark:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
           >
             <Send className={`w-4 h-4 ${sending ? "animate-pulse" : ""}`} />
             {sending ? "Sending…" : "Send Email"}

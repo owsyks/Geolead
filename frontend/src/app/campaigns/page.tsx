@@ -326,14 +326,14 @@ export default function CampaignsPage() {
             setMessage("");
             void load();
           }}
-          className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
         >
           <RefreshCcw className="h-4 w-4" />
           Refresh
         </button>
       }
     >
-      {message ? <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">{message}</div> : null}
+      {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}
 
       <section className="grid grid-cols-2 xl:grid-cols-6 gap-3">
         <MetricCard label="Campaigns" value={campaigns.length} helper={`${overview?.metrics.activeCampaigns ?? campaigns.filter((item) => item.status === "ACTIVE").length} active`} />
@@ -346,7 +346,7 @@ export default function CampaignsPage() {
 
       <section className="mt-6 grid grid-cols-1 2xl:grid-cols-[0.78fr_1.22fr] gap-5">
         <form
-          className="rounded-lg border border-slate-800 bg-slate-900/35 p-5"
+          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5"
           onSubmit={(event) => {
             event.preventDefault();
             void createCampaign();
@@ -354,7 +354,7 @@ export default function CampaignsPage() {
         >
           <div className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-indigo-300" />
-            <h2 className="text-base font-black text-slate-100">Create Campaign</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Create Campaign</h2>
           </div>
 
           <div className="mt-4">
@@ -381,7 +381,7 @@ export default function CampaignsPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                 />
               </label>
             ))}
@@ -391,7 +391,7 @@ export default function CampaignsPage() {
               <select
                 value={form.tone}
                 onChange={(event) => setForm((current) => ({ ...current, tone: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               >
                 <option value="professional">Professional</option>
                 <option value="friendly">Friendly</option>
@@ -405,11 +405,11 @@ export default function CampaignsPage() {
             <textarea
               value={form.objective}
               onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
-              className="mt-2 h-20 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             />
           </label>
 
-          <div className="mt-4 p-4 rounded-lg border border-slate-800 bg-slate-950/30 space-y-3">
+          <div className="mt-4 p-4 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wide text-slate-400">Sending Throttle</h3>
               <span className="text-[10px] text-slate-500">Controls send pace</span>
@@ -420,7 +420,7 @@ export default function CampaignsPage() {
               <select
                 value={form.throttlePreset}
                 onChange={(e) => setForm(current => ({ ...current, throttlePreset: e.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               >
                 {Object.entries(THROTTLE_PRESETS).map(([key, preset]) => (
                   <option key={key} value={key}>{preset.label}</option>
@@ -438,7 +438,7 @@ export default function CampaignsPage() {
                     max={1440}
                     value={form.smartDelayMin}
                     onChange={(e) => setForm(current => ({ ...current, smartDelayMin: e.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                   />
                 </label>
                 <label className="block text-xs font-bold text-slate-400">
@@ -449,7 +449,7 @@ export default function CampaignsPage() {
                     max={1440}
                     value={form.smartDelayMax}
                     onChange={(e) => setForm(current => ({ ...current, smartDelayMax: e.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                   />
                 </label>
               </div>
@@ -463,7 +463,7 @@ export default function CampaignsPage() {
                 max={1000}
                 value={form.dailyLimit}
                 onChange={(e) => setForm(current => ({ ...current, dailyLimit: e.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               />
             </label>
 
@@ -480,7 +480,7 @@ export default function CampaignsPage() {
             <select
               value={form.senderAccountId}
               onChange={(event) => setForm((current) => ({ ...current, senderAccountId: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             >
               {(overview?.senders || []).length === 0 ? <option value="">No senders — add one in Senders</option> : null}
               {(overview?.senders || []).map((s) => (
@@ -499,7 +499,7 @@ export default function CampaignsPage() {
             <select
               value={form.templateId}
               onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             >
               <option value="">Generate with AI</option>
               {templates.map(t => (
@@ -513,7 +513,7 @@ export default function CampaignsPage() {
               Upload Email List (CSV)
             </label>
             <div className="flex items-center gap-2">
-              <label className="flex-1 h-10 px-3 rounded-lg border border-slate-800 bg-slate-950 text-sm text-slate-400 flex items-center gap-2 cursor-pointer hover:border-indigo-500 transition-colors">
+              <label className="flex-1 h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-400 flex items-center gap-2 cursor-pointer hover:border-indigo-500 transition-colors">
                 <Upload className="w-4 h-4" />
                 <span className="text-xs">{uploadedEmails.length > 0 ? `${uploadedEmails.length} emails loaded` : 'Choose CSV / Excel file'}</span>
                 <input type="file" accept=".csv,.txt,.xlsx,.xls" onChange={handleCSVUpload} className="hidden" />
@@ -522,7 +522,7 @@ export default function CampaignsPage() {
                 <button
                   type="button"
                   onClick={() => setUploadedEmails([])}
-                  className="px-3 h-10 text-xs text-slate-400 hover:text-slate-200 rounded-lg border border-slate-800 hover:border-slate-700"
+                  className="px-3 h-10 text-xs text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700"
                 >
                   Clear
                 </button>
@@ -540,7 +540,7 @@ export default function CampaignsPage() {
                 <EmptyState title="No verified leads loaded" body="Run the lead explorer first, or create the campaign without assigned leads." />
               ) : (
                 leads.map((lead) => (
-                  <label key={lead.id} className="flex gap-3 rounded-lg border border-slate-800 bg-slate-950/45 p-3 text-sm">
+                  <label key={lead.id} className="flex gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-sm">
                     <input
                       type="checkbox"
                       checked={selectedLeadIds.includes(lead.id)}
@@ -548,7 +548,7 @@ export default function CampaignsPage() {
                       className="mt-1 h-4 w-4 accent-indigo-500"
                     />
                     <span className="min-w-0">
-                      <span className="block font-bold text-slate-100 truncate">{lead.businessName}</span>
+                      <span className="block font-bold text-slate-900 dark:text-slate-100 truncate">{lead.businessName}</span>
                       <span className="mt-1 block text-xs text-slate-500">
                         {lead.location || lead.category || "Verified lead"} - {lead.domainMatchScore}% match
                       </span>
@@ -565,10 +565,10 @@ export default function CampaignsPage() {
           </button>
         </form>
 
-        <section className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+        <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-black text-slate-100">Kanban Campaign View</h2>
+              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Kanban Campaign View</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Queue-based sending uses sender limits, opt-out checks, smart delays, and reply stops.
               </p>
@@ -580,39 +580,39 @@ export default function CampaignsPage() {
             {statusColumns.map((status) => {
               const columnCampaigns = campaigns.filter((campaign) => campaign.status === status);
               return (
-                <div key={status} className="rounded-lg border border-slate-800 bg-slate-950/35 p-3">
+                <div key={status} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/35 p-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">{status}</h3>
                     <span className="text-xs text-slate-600">{columnCampaigns.length}</span>
                   </div>
                   <div className="mt-3 space-y-3">
                     {columnCampaigns.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-800 p-4 text-xs text-slate-600">No campaigns</div>
+                      <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-800 p-4 text-xs text-slate-600">No campaigns</div>
                     ) : (
                       columnCampaigns.map((campaign) => (
-                        <article key={campaign.id} className="rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+                        <article key={campaign.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h4 className="text-sm font-black text-slate-100 truncate">{campaign.name}</h4>
+                              <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">{campaign.name}</h4>
                               <p className="mt-1 text-xs text-slate-500 truncate">{campaign.geoDomain}</p>
                             </div>
                             <span className="text-xs font-black text-emerald-300">{campaign.engagementScore}</span>
                           </div>
                           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                            <div className="rounded bg-slate-950/60 p-2">
-                              <div className="font-black text-slate-200">{campaign.sent}</div>
+                            <div className="rounded bg-slate-50 dark:bg-slate-950/60 p-2">
+                              <div className="font-black text-slate-800 dark:text-slate-200">{campaign.sent}</div>
                               <div className="text-slate-600">sent</div>
                             </div>
-                            <div className="rounded bg-slate-950/60 p-2">
-                              <div className="font-black text-slate-200">{campaign.opens}</div>
+                            <div className="rounded bg-slate-50 dark:bg-slate-950/60 p-2">
+                              <div className="font-black text-slate-800 dark:text-slate-200">{campaign.opens}</div>
                               <div className="text-slate-600">open</div>
                             </div>
-                            <div className="rounded bg-slate-950/60 p-2">
-                              <div className="font-black text-slate-200">{campaign.replies}</div>
+                            <div className="rounded bg-slate-50 dark:bg-slate-950/60 p-2">
+                              <div className="font-black text-slate-800 dark:text-slate-200">{campaign.replies}</div>
                               <div className="text-slate-600">reply</div>
                             </div>
                           </div>
-                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                             <div className="h-full rounded-full bg-indigo-400" style={{ width: `${Math.min(campaign.engagementScore, 100)}%` }} />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -635,7 +635,7 @@ export default function CampaignsPage() {
                             )}
                             <button
                               onClick={() => void queueCampaign(campaign.id)}
-                              className="h-8 px-2 rounded border border-slate-700 bg-slate-950/70 text-xs font-bold text-slate-300 inline-flex items-center gap-1"
+                              className="h-8 px-2 rounded border border-slate-400 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/70 text-xs font-bold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1"
                             >
                               <Send className="h-3.5 w-3.5" />
                               Queue

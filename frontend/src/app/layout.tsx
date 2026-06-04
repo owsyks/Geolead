@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DomainContextProvider } from "@/lib/domainContext";
 import { AuthProvider } from "@/lib/auth";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -73,7 +74,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
       suppressHydrationWarning
     >
       <head>
@@ -83,11 +84,13 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="min-h-full bg-slate-950 text-slate-100 antialiased flex flex-col font-sans"
+        className="min-h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased flex flex-col font-sans"
         suppressHydrationWarning
       >
         <AuthProvider>
-          <DomainContextProvider>{children}</DomainContextProvider>
+          <ThemeProvider>
+            <DomainContextProvider>{children}</DomainContextProvider>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

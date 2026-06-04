@@ -126,14 +126,14 @@ export default function SenderAccountsPage() {
             setMessage("");
             void load();
           }}
-          className="h-10 px-3 rounded-lg border border-slate-800 bg-slate-900/70 text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
         >
           <RefreshCcw className="h-4 w-4" />
           Refresh
         </button>
       }
     >
-      {message ? <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">{message}</div> : null}
+      {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard label="Senders" value={senders.length} helper="rotation pool" />
@@ -144,7 +144,7 @@ export default function SenderAccountsPage() {
 
       <section className="mt-6 grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-5">
         <form
-          className="rounded-lg border border-slate-800 bg-slate-900/35 p-5"
+          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5"
           onSubmit={(event) => {
             event.preventDefault();
             void saveSender();
@@ -152,7 +152,7 @@ export default function SenderAccountsPage() {
         >
           <div className="flex items-center gap-2">
             <PlugZap className="h-5 w-5 text-indigo-300" />
-            <h2 className="text-base font-black text-slate-100">Add Sender</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Add Sender</h2>
           </div>
 
           <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,7 +168,7 @@ export default function SenderAccountsPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
                 />
               </label>
             ))}
@@ -178,7 +178,7 @@ export default function SenderAccountsPage() {
               <select
                 value={form.provider}
                 onChange={(event) => setForm((current) => ({ ...current, provider: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               >
                 <option value="DRY_RUN">Dry run</option>
                 <option value="RESEND">Resend</option>
@@ -196,7 +196,7 @@ export default function SenderAccountsPage() {
               <input
                 value={form.dailyLimit}
                 onChange={(event) => setForm((current) => ({ ...current, dailyLimit: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               />
             </label>
             <label className="text-xs font-bold text-slate-400">
@@ -204,7 +204,7 @@ export default function SenderAccountsPage() {
               <input
                 value={form.hourlyLimit}
                 onChange={(event) => setForm((current) => ({ ...current, hourlyLimit: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
               />
             </label>
           </div>
@@ -214,7 +214,7 @@ export default function SenderAccountsPage() {
             <textarea
               value={form.providerConfig}
               onChange={(event) => setForm((current) => ({ ...current, providerConfig: event.target.value }))}
-              className="mt-2 h-44 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-44 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
             />
           </label>
 
@@ -224,43 +224,43 @@ export default function SenderAccountsPage() {
           </button>
         </form>
 
-        <section className="rounded-lg border border-slate-800 bg-slate-900/35 p-5">
+        <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-indigo-300" />
-            <h2 className="text-base font-black text-slate-100">Sender Fleet</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Sender Fleet</h2>
           </div>
           <div className="mt-5 space-y-4">
             {senders.length === 0 ? (
               <EmptyState title="No sender accounts" body="Add a sender account to rotate, warm up, and monitor deliverability." />
             ) : (
               senders.map((sender) => (
-                <article key={sender.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                <article key={sender.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-black text-slate-100">{sender.label}</h3>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{sender.label}</h3>
                       <p className="mt-1 text-xs text-slate-500">{sender.fromEmail}</p>
                     </div>
                     <StatusBadge value={sender.status} />
                   </div>
                   <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
                       <div className="text-slate-500">Provider</div>
-                      <div className="mt-1 font-black text-slate-100">{sender.provider}</div>
+                      <div className="mt-1 font-black text-slate-900 dark:text-slate-100">{sender.provider}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
                       <div className="text-slate-500">Warm-up</div>
-                      <div className="mt-1 font-black text-slate-100">{sender.warmupEnabled ? "On" : "Off"}</div>
+                      <div className="mt-1 font-black text-slate-900 dark:text-slate-100">{sender.warmupEnabled ? "On" : "Off"}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
                       <div className="text-slate-500">DKIM/SPF</div>
-                      <div className="mt-1 font-black text-slate-100">{sender.dkimStatus}/{sender.spfStatus}</div>
+                      <div className="mt-1 font-black text-slate-900 dark:text-slate-100">{sender.dkimStatus}/{sender.spfStatus}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
                       <div className="text-slate-500">Health</div>
                       <div className="mt-1 font-black text-emerald-300">{sender.deliverabilityScore}/100</div>
                     </div>
                   </div>
-                  <div className="mt-4 h-2 rounded-full bg-slate-800">
+                  <div className="mt-4 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
                     <div className="h-full rounded-full bg-emerald-400" style={{ width: `${sender.deliverabilityScore}%` }} />
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
