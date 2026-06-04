@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   BarChart3,
+  Bell,
   Bot,
   Globe2,
   Inbox,
@@ -19,9 +20,11 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
+  Star,
   Sun,
   UserCircle,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "./ThemeProvider";
 
@@ -30,6 +33,7 @@ const navItems = [
   { href: "/portfolio", label: "Portfolio", icon: Globe2 },
   { href: "/portfolio/kanban", label: "Sales Kanban", icon: Kanban },
   { href: "/acquisition", label: "Acquisition Advisor", icon: ShoppingCart },
+  { href: "/watchlist", label: "Watchlist", icon: Star },
   { href: "/dashboard", label: "Lead Explorer", icon: Search },
   { href: "/campaigns", label: "Campaigns", icon: LayoutDashboard },
   { href: "/quick-send", label: "Quick Send", icon: Mail },
@@ -40,6 +44,24 @@ const navItems = [
   { href: "/templates", label: "Templates", icon: Layers3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+function useUnreadCount() {
+  const [count, setCount] = useState(0);
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!user) return;
+    const fetch_ = () => {
+      fetch("/api/watchlist/notifications/unread-count", { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") ?? ""}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.count != null) setCount(d.count); })
+        .catch(() => {});
+    };
+    fetch_();
+    const id = setInterval(fetch_, 60000);
+    return () => clearInterval(id);
+  }, [user]);
+  return count;
+}
 
 export function OutboundShell({
   children,
@@ -55,6 +77,7 @@ export function OutboundShell({
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const unreadCount = useUnreadCount();
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
@@ -142,6 +165,18 @@ export function OutboundShell({
               </div>
               <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">
                 {actions}
+                <Link
+                  href="/watchlist?tab=notifications"
+                  title="Watchlist alerts"
+                  className="relative h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                >
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <button
                   onClick={toggle}
                   title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

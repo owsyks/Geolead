@@ -18,6 +18,7 @@ import {
   Search,
   Send,
   Sparkles,
+  Star,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export default function AcquisitionAdvisorPage() {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [chatDomain, setChatDomain] = useState<AcquisitionResult | null>(null);
   const [addingDomain, setAddingDomain] = useState<string | null>(null);
+  const [watchingDomain, setWatchingDomain] = useState<string | null>(null);
 
   const domainList = input
     .split(/[\n,]+/)
@@ -114,6 +116,28 @@ export default function AcquisitionAdvisorPage() {
       await fetchOutbound("/api/domains", { method: "POST", body: JSON.stringify({ name: domain }) });
     } catch { /* ignore dup errors */ }
     finally { setAddingDomain(null); }
+  };
+
+  const addToWatchlist = async (r: AcquisitionResult) => {
+    setWatchingDomain(r.domain);
+    const tierToReco: Record<string, string> = { STRONG_BUY: "BUY_NOW", BUY: "WAIT", WATCHLIST: "MONITOR", SPECULATIVE: "MONITOR", AVOID: "AVOID" };
+    try {
+      await fetchOutbound("/api/watchlist", {
+        method: "POST",
+        body: JSON.stringify({
+          domainName: r.domain,
+          priority: r.recommendation.tier === "STRONG_BUY" || r.recommendation.tier === "BUY" ? "HIGH" : "MEDIUM",
+          addedFrom: "acquisition_advisor",
+          brandScore: r.analysis.brandBreakdown.overall,
+          marketScore: r.analysis.geoScore,
+          acquisitionScore: r.recommendation.confidence,
+          estimatedValue: r.analysis.domainValue.expected,
+          aiRecommendation: tierToReco[r.recommendation.tier] || "MONITOR",
+          aiReasoning: r.recommendation.reasoning,
+        }),
+      });
+    } catch { /* ignore dup */ }
+    finally { setWatchingDomain(null); }
   };
 
   const exportCsv = () => {
@@ -305,7 +329,9 @@ export default function AcquisitionAdvisorPage() {
                 onToggle={() => setExpandedDomain(expandedDomain === r.domain ? null : r.domain)}
                 onChat={() => setChatDomain(r)}
                 onAddToPortfolio={() => void addToPortfolio(r.domain)}
+                onAddToWatchlist={() => void addToWatchlist(r)}
                 adding={addingDomain === r.domain}
+                watching={watchingDomain === r.domain}
               />
             ))}
           </div>
@@ -326,14 +352,16 @@ export default function AcquisitionAdvisorPage() {
 // ─── Domain card ──────────────────────────────────────────────────────────────
 
 function DomainCard({
-  result, expanded, onToggle, onChat, onAddToPortfolio, adding,
+  result, expanded, onToggle, onChat, onAddToPortfolio, onAddToWatchlist, adding, watching,
 }: {
   result: AcquisitionResult;
   expanded: boolean;
   onToggle: () => void;
   onChat: () => void;
   onAddToPortfolio: () => void;
+  onAddToWatchlist: () => void;
   adding: boolean;
+  watching: boolean;
 }) {
   const { domain, analysis: a, recommendation: r, rank } = result;
   const cfg = TIER_CONFIG[r.tier];
@@ -377,6 +405,14 @@ function DomainCard({
         <div className="flex items-center gap-1.5 shrink-0">
           <button onClick={onChat} title="Ask AI investor" className="h-8 w-8 rounded-lg border border-violet-400/30 bg-violet-500/10 text-violet-300 hover:text-violet-200 flex items-center justify-center">
             <MessageSquare className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onAddToWatchlist}
+            disabled={watching}
+            title="Add to watchlist"
+            className="h-8 w-8 rounded-lg border border-amber-400/30 bg-amber-500/10 text-amber-300 hover:text-amber-200 flex items-center justify-center"
+          >
+            {watching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className="h-3.5 w-3.5" />}
           </button>
           <button
             onClick={onAddToPortfolio}

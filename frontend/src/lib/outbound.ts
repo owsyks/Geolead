@@ -501,6 +501,68 @@ export interface AcquisitionResult {
   rank: number;
 }
 
+// ─── Watchlist types ──────────────────────────────────────────────────────────
+export type WatchPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type WatchStatus = 'WATCHING' | 'INTERESTED' | 'HIGH_PRIORITY' | 'AVAILABLE' | 'PURCHASED' | 'IN_PORTFOLIO';
+export type DnsStatus = 'dns_registered' | 'dns_available' | 'dns_unknown';
+export type AiReco = 'BUY_NOW' | 'WAIT' | 'MONITOR' | 'AVOID';
+
+export interface WatchlistReminder {
+  id: string;
+  type: 'DAYS' | 'STATUS_CHANGE' | 'AVAILABLE';
+  label?: string | null;
+  triggerAt?: string | null;
+  triggered: boolean;
+  notifyVia: string;
+  createdAt: string;
+}
+
+export interface WatchedDomainEvent {
+  id: string;
+  type: string;
+  details?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface WatchedDomain {
+  id: string;
+  userId: string;
+  domainName: string;
+  priority: WatchPriority;
+  status: WatchStatus;
+  notes?: string | null;
+  brandScore: number;
+  marketScore: number;
+  acquisitionScore: number;
+  estimatedValue?: number | null;
+  aiRecommendation?: AiReco | null;
+  aiReasoning?: string | null;
+  registrationStatus?: DnsStatus | null;
+  registrar?: string | null;
+  expirationDate?: string | null;
+  lastCheckedAt?: string | null;
+  addedFrom?: string | null;
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reminders: WatchlistReminder[];
+  events: WatchedDomainEvent[];
+}
+
+export interface WatchlistNotification {
+  id: string;
+  userId: string;
+  watchedDomainId?: string | null;
+  domainName: string;
+  type: 'AVAILABLE' | 'STATUS_CHANGE' | 'REMINDER' | 'EXPIRING';
+  title: string;
+  body: string;
+  priority: 'URGENT' | 'HIGH' | 'NORMAL';
+  read: boolean;
+  readAt?: string | null;
+  createdAt: string;
+}
+
 export interface BulkScanResult {
   results: AcquisitionResult[];
   summary: {

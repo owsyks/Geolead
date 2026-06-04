@@ -105,6 +105,7 @@ model User {
   integrations  Integration[]
   userSettings  UserSettings?
   notificationPreference NotificationPreference?
+  watchedDomains WatchedDomain[]
 }
 
 model Session {
@@ -746,4 +747,83 @@ model DomainReputation {
 
   @@index([bounceRate])
   @@index([lastUpdatedAt])
+}
+
+// ─── Domain Watchlist ─────────────────────────────────────────────────────────
+
+model WatchedDomain {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainName          String
+  priority            String   @default("MEDIUM")   // CRITICAL HIGH MEDIUM LOW
+  status              String   @default("WATCHING")  // WATCHING INTERESTED HIGH_PRIORITY AVAILABLE PURCHASED IN_PORTFOLIO
+  notes               String?  @db.Text
+  brandScore          Int      @default(0)
+  marketScore         Int      @default(0)
+  acquisitionScore    Int      @default(0)
+  estimatedValue      Float?
+  aiRecommendation    String?  // BUY_NOW WAIT MONITOR AVOID
+  aiReasoning         String?  @db.Text
+  registrationStatus  String?  // dns_registered dns_available dns_unknown
+  registrar           String?
+  expirationDate      DateTime?
+  lastCheckedAt       DateTime?
+  addedFrom           String?  // acquisition_advisor search manual portfolio
+  isFavorite          Boolean  @default(true)
+  metadata            Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  events              WatchedDomainEvent[]
+  reminders           WatchlistReminder[]
+
+  @@unique([userId, domainName])
+  @@index([userId])
+  @@index([registrationStatus])
+  @@index([status])
+}
+
+model WatchedDomainEvent {
+  id              String        @id @default(uuid())
+  watchedDomainId String
+  watchedDomain   WatchedDomain @relation(fields: [watchedDomainId], references: [id], onDelete: Cascade)
+  type            String        // DNS_CHANGE STATUS_CHANGE CHECKED REMINDER_SENT
+  details         Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([watchedDomainId])
+}
+
+model WatchlistReminder {
+  id              String        @id @default(uuid())
+  watchedDomainId String
+  watchedDomain   WatchedDomain @relation(fields: [watchedDomainId], references: [id], onDelete: Cascade)
+  userId          String
+  type            String        // DAYS STATUS_CHANGE AVAILABLE
+  label           String?
+  triggerAt       DateTime?
+  triggered       Boolean       @default(false)
+  triggeredAt     DateTime?
+  notifyVia       String        @default("IN_APP")  // IN_APP EMAIL BOTH
+  createdAt       DateTime      @default(now())
+
+  @@index([userId])
+  @@index([triggered, triggerAt])
+}
+
+model WatchlistNotification {
+  id              String   @id @default(uuid())
+  userId          String
+  watchedDomainId String?
+  domainName      String
+  type            String   // AVAILABLE STATUS_CHANGE REMINDER EXPIRING
+  title           String
+  body            String   @db.Text
+  priority        String   @default("NORMAL")  // URGENT HIGH NORMAL
+  read            Boolean  @default(false)
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
