@@ -322,7 +322,7 @@ async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, me
   // from a known address being misread as a campaign reply (and stopping a
   // sequence). A QUEUED/unsent email never counts.
   if (fromAddr) {
-    const tolerance = 60_000; // allow a minute of clock skew
+    const tolerance = 30 * 60_000; // 30-minute tolerance for clock skew / timezone drift
     const log = await prisma.emailLog.findFirst({
       where: {
         toEmail: { equals: fromAddr, mode: 'insensitive' },
