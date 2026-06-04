@@ -18,6 +18,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  ShoppingCart,
   Sun,
   UserCircle,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/portfolio", label: "Portfolio", icon: Globe2 },
   { href: "/portfolio/kanban", label: "Sales Kanban", icon: Kanban },
+  { href: "/acquisition", label: "Acquisition Advisor", icon: ShoppingCart },
   { href: "/dashboard", label: "Lead Explorer", icon: Search },
   { href: "/campaigns", label: "Campaigns", icon: LayoutDashboard },
   { href: "/quick-send", label: "Quick Send", icon: Mail },

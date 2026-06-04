@@ -472,6 +472,49 @@ export interface DomainAnalysis {
   analyzedAt: string;
 }
 
+// Chat message type shared across investor chat features
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+// Acquisition advisor types
+export type AcquisitionTier = 'STRONG_BUY' | 'BUY' | 'WATCHLIST' | 'SPECULATIVE' | 'AVOID';
+
+export interface AcquisitionRecommendation {
+  tier: AcquisitionTier;
+  confidence: number;
+  reasoning: string;
+  attractors: string[];
+  risks: string[];
+  targetBuyers: string[];
+  suggestedBuyMax: number;
+  targetSalePrice: number;
+  estimatedHold: string;
+  roiPotential: string;
+}
+
+export interface AcquisitionResult {
+  domain: string;
+  analysis: DomainAnalysis;
+  recommendation: AcquisitionRecommendation;
+  rank: number;
+}
+
+export interface BulkScanResult {
+  results: AcquisitionResult[];
+  summary: {
+    total: number;
+    strongBuy: number;
+    buy: number;
+    watchlist: number;
+    speculative: number;
+    avoid: number;
+    topOpportunities: AcquisitionResult[];
+  };
+  scannedAt: string;
+}
+
 export interface DomainBuyer {
   id: string;
   domainId: string;

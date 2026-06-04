@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
+  Bot,
   Briefcase,
   CheckCircle2,
   ChevronRight,
   DollarSign,
   Globe2,
+  Loader2,
   Plus,
   RefreshCcw,
+  Send,
   Sparkles,
   Trash2,
   TrendingUp,
@@ -27,6 +30,7 @@ import {
   DOMAIN_STATUSES,
   fetchOutbound,
   type BuyerDiscoveryParams,
+  type ChatMessage,
   type DomainAnalysis,
   type DomainBuyer,
   type DomainDetail,
@@ -330,6 +334,8 @@ function OverviewTab({
           )}
         </div>
       </div>
+
+      <InvestorChatSection domainId={id} domainName={domain.name} metadata={domain.metadata as DomainAnalysis | null | undefined} />
 
       <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/35 p-5">
         <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Linked campaigns</h2>
@@ -807,6 +813,127 @@ function SaleModal({ domainId, defaultPrice, onClose, onSaved }: { domainId: str
         <button onClick={() => void submit()} className="h-10 px-3 rounded-lg border border-emerald-400/30 bg-emerald-500/15 text-sm text-emerald-200">Save sale</button>
       </div>
     </Modal>
+  );
+}
+
+// ─── Investor chat section ────────────────────────────────────────────────────
+
+const QUICK_QUESTIONS = [
+  "Should I hold or sell now?",
+  "What price should I ask?",
+  "Who are the best buyers?",
+  "How long should I hold?",
+  "What are the main risks?",
+];
+
+function InvestorChatSection({
+  domainId, domainName, metadata,
+}: {
+  domainId: string;
+  domainName: string;
+  metadata?: DomainAnalysis | null;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  const send = async (text: string) => {
+    if (!text.trim() || loading) return;
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const newHistory = [...messages, userMsg];
+    setMessages(newHistory);
+    setInput("");
+    setLoading(true);
+    try {
+      const res = await fetchOutbound<{ reply: string }>(`/api/domains/${domainId}/investor-chat`, {
+        method: "POST",
+        body: JSON.stringify({ message: text, history: messages.slice(-8) }),
+      });
+      setMessages([...newHistory, { role: "assistant", content: res.reply }]);
+    } catch {
+      setMessages([...newHistory, { role: "assistant", content: "Could not reach AI right now." }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-violet-400/20 bg-violet-500/5 p-5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <Bot className="h-4 w-4 text-violet-400" />
+          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Ask AI About This Domain</h2>
+          {messages.length > 0 && <span className="text-xs text-violet-400">{messages.length} messages</span>}
+        </div>
+        <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="mt-4 space-y-4">
+          {/* Quick questions */}
+          {messages.length === 0 && (
+            <div className="flex flex-wrap gap-2">
+              {QUICK_QUESTIONS.map(q => (
+                <button key={q} onClick={() => void send(q)} className="h-7 px-3 rounded-full border border-violet-400/30 bg-violet-500/10 text-xs text-violet-300 hover:text-violet-200 transition">
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Messages */}
+          <div className="space-y-3 max-h-72 overflow-y-auto">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-indigo-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
+                }`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={endRef} />
+          </div>
+
+          {/* Input */}
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }}
+              placeholder={`Ask about ${domainName}…`}
+              className="flex-1 h-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+            />
+            <button
+              onClick={() => void send(input)}
+              disabled={!input.trim() || loading}
+              className="h-10 w-10 rounded-lg border border-violet-400/30 bg-violet-500/15 text-violet-300 flex items-center justify-center disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

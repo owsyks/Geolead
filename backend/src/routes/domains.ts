@@ -24,6 +24,7 @@ import {
   updateOffer,
   DOMAIN_STATUSES,
 } from '../services/domains.js';
+import { runBulkAcquisitionScan, investorChat } from '../services/acquisitionAdvisor.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -134,6 +135,43 @@ router.post('/:id/restore', wrap(async (req, res) => {
 
 router.post('/:id/analyze', wrap(async (req, res) => {
   res.json(await reanalyzeDomain(req.params.id, req.userId!));
+}));
+
+// Bulk AI acquisition scan — accepts raw domain list, no DB write required.
+router.post('/acquisition-scan', wrap(async (req, res) => {
+  const domains = asStringArray(req.body.domains);
+  if (!domains.length) return res.status(400).json({ error: 'domains array is required.' });
+  if (domains.length > 100) return res.status(400).json({ error: 'Maximum 100 domains per scan.' });
+  res.json(await runBulkAcquisitionScan(domains, req.userId!));
+}));
+
+// AI investor chat using inline analysis data (no domain ID required).
+router.post('/acquisition-scan-chat', wrap(async (req, res) => {
+  const { domain, analysis, recommendation, message, history } = req.body;
+  if (!domain || !message?.trim()) return res.status(400).json({ error: 'domain and message are required.' });
+  const reply = await investorChat(
+    domain, analysis ?? null, recommendation ?? null,
+    message.trim(),
+    Array.isArray(history) ? history : [],
+    req.userId!
+  );
+  res.json({ reply });
+}));
+
+// AI investor chat for a domain already in the portfolio (uses stored metadata).
+router.post('/:id/investor-chat', wrap(async (req, res) => {
+  const domain = await getDomain(req.params.id, req.userId!);
+  if (!domain) return res.status(404).json({ error: 'Domain not found.' });
+  const { message, history } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'message is required.' });
+  const analysis = (domain.metadata as any) ?? null;
+  const reply = await investorChat(
+    domain.name, analysis, null,
+    message.trim(),
+    Array.isArray(history) ? history : [],
+    req.userId!
+  );
+  res.json({ reply });
 }));
 
 router.post('/:id/sale', wrap(async (req, res) => {
