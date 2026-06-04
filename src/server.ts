@@ -14,11 +14,13 @@ import domainsRouter from './routes/domains.js';
 import settingsRouter from './routes/settings.js';
 import inboxRouter from './routes/inbox.js';
 import authRouter from './routes/auth.js';
+import watchlistRouter from './routes/watchlist.js';
 import { requireAuth } from './middleware/auth.js';
 import { seedAdminAndClaim } from './services/auth.js';
 import { startInboxSyncWorker } from './services/inboxSync.js';
 import { attachOutboundWebSocket } from './services/outboundRealtime.js';
 import { ensureOutboundSeedData, startOutboundScheduler } from './services/outboundPlatform.js';
+import { startWatchlistScheduler } from './services/watchlistService.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +45,7 @@ app.use('/api/email', emailRouter);
 app.use('/api/domains', domainsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/inbox', inboxRouter);
+app.use('/api/watchlist', watchlistRouter);
 
 function rateLimit(key: string, limit: number, windowMs: number) {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -414,6 +417,7 @@ server.listen(Number(PORT), process.env.HOST || '0.0.0.0', async () => {
   console.log(`[Server] GeoLead AI Backend API listening on port ${PORT}`);
   startOutboundScheduler();
   startInboxSyncWorker();
+  startWatchlistScheduler();
   // Defer heavy startup tasks so the server is ready to accept requests first
   setTimeout(() => {
     void seedAdminAndClaim();
