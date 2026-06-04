@@ -159,6 +159,9 @@ export default function DashboardPage() {
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ valid: number; risky: number; invalid: number; total: number } | null>(null);
 
+  // WA validation panel state
+  const [showWaPanel, setShowWaPanel] = useState(false);
+
   // Solo-send composer state
   const [composer, setComposer] = useState<{ to: string; lead: Lead } | null>(null);
   const [senders, setSenders] = useState<Array<{ id: string; provider: string; fromEmail: string; fromName: string; status: string }>>([]);
@@ -1182,6 +1185,16 @@ export default function DashboardPage() {
                 {verifying ? 'Verifying...' : 'Verify Emails'}
               </button>
 
+              {/* Validate WhatsApp Button */}
+              <button
+                onClick={() => setShowWaPanel(true)}
+                disabled={leads.filter(l => l.phoneNumbers.length > 0).length === 0}
+                className="px-4 py-2 bg-[#25D366]/80 hover:bg-[#25D366] disabled:opacity-40 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Validate WA
+              </button>
+
               <div className="relative" ref={exportDropdownRef}>
                 <button
                   onClick={() => setExportOptionsOpen(true)}
@@ -1678,6 +1691,14 @@ export default function DashboardPage() {
         )}
       </main>
 
+      {/* WhatsApp Validation Panel */}
+      {showWaPanel && (
+        <WaValidationPanel
+          leads={leads}
+          onClose={() => setShowWaPanel(false)}
+        />
+      )}
+
       {/* Solo Send Composer Modal */}
       <ComposerModal
         open={!!composer}
@@ -1767,6 +1788,150 @@ export default function DashboardPage() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ─── WhatsApp Validation Panel ────────────────────────────────────────────────
+
+function waLink(phone: string): string {
+  const digits = phone.replace(/[^\d]/g, '');
+  // Prepend country code 1 for plain 10-digit US numbers
+  const normalized = digits.length === 10 ? `1${digits}` : digits;
+  return `https://wa.me/${normalized}`;
+}
+
+function WaValidationPanel({ leads, onClose }: { leads: Lead[]; onClose: () => void }) {
+  const withPhone = leads
+    .filter(l => l.phoneNumbers.length > 0)
+    .sort((a, b) => (b.whatsappScore ?? 0) - (a.whatsappScore ?? 0));
+
+  const high   = withPhone.filter(l => (l.whatsappScore ?? 0) >= 70).length;
+  const medium = withPhone.filter(l => { const s = l.whatsappScore ?? 0; return s >= 45 && s < 70; }).length;
+  const low    = withPhone.filter(l => (l.whatsappScore ?? 0) < 45).length;
+
+  const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const visible = withPhone.filter(l => {
+    const s = l.whatsappScore ?? 0;
+    if (filter === 'high')   return s >= 70;
+    if (filter === 'medium') return s >= 45 && s < 70;
+    if (filter === 'low')    return s < 45;
+    return true;
+  });
+
+  const confColor = (conf: string | null | undefined) =>
+    conf === 'HIGH'   ? 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30' :
+    conf === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-400/30' :
+                        'bg-slate-500/10 text-slate-400 border-slate-600';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-10 mb-10 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-[#25D366]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">WhatsApp Validation</h3>
+              <p className="text-[11px] text-slate-500">{withPhone.length} leads with phone numbers</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Summary row */}
+        <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-b border-slate-200 dark:border-slate-800">
+          {[
+            { label: 'HIGH likelihood', count: high, color: 'text-[#25D366]', filter: 'high' as const },
+            { label: 'MEDIUM likelihood', count: medium, color: 'text-amber-400', filter: 'medium' as const },
+            { label: 'LOW likelihood', count: low, color: 'text-slate-500', filter: 'low' as const },
+          ].map(item => (
+            <button
+              key={item.filter}
+              onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)}
+              className={`py-3 text-center transition-colors ${filter === item.filter ? 'bg-slate-50 dark:bg-slate-900/60' : 'hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+            >
+              <div className={`text-xl font-black ${item.color}`}>{item.count}</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">{item.label}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Note */}
+        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
+          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly — if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
+        </div>
+
+        {/* Lead list */}
+        <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[480px] overflow-y-auto">
+          {visible.length === 0 && (
+            <div className="py-12 text-center text-sm text-slate-500">No leads in this category.</div>
+          )}
+          {visible.map(lead => (
+            <div key={lead.id} className="px-6 py-4 flex items-start gap-4">
+              {/* Score badge */}
+              <div className={`shrink-0 h-10 w-10 rounded-xl border flex flex-col items-center justify-center ${confColor(lead.whatsappConfidence)}`}>
+                <span className="text-[13px] font-black leading-none">{lead.whatsappScore ?? '?'}</span>
+                <span className="text-[8px] font-bold leading-none mt-0.5 opacity-70">
+                  {lead.whatsappConfidence ?? 'N/A'}
+                </span>
+              </div>
+
+              {/* Business + phones */}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{lead.businessName}</div>
+                {lead.location && (
+                  <div className="text-[11px] text-slate-500 mt-0.5">{lead.location}</div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {lead.phoneNumbers.map((phone, i) => (
+                    <a
+                      key={i}
+                      href={waLink(phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 text-[11px] font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      {phone}
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Best channel hint */}
+              {lead.bestContactChannel && (
+                <div className="shrink-0 text-[10px] text-slate-500 text-right">
+                  <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-slate-400'}`}>
+                    {lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}
+                  </div>
+                  {lead.contactChannelScores && (
+                    <div className="mt-0.5 space-y-0.5">
+                      <div>Email {lead.contactChannelScores.email}</div>
+                      <div>Phone {lead.contactChannelScores.phone}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <span className="text-[11px] text-slate-500">
+            Showing {visible.length} of {withPhone.length} leads with phones
+          </span>
+          <button onClick={onClose} className="h-8 px-4 rounded-lg border border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
