@@ -374,7 +374,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
       tone: input.tone || 'professional',
       language: input.language || 'en',
       status: input.status || 'DRAFT',
-      dailyLimit: clamp(input.dailyLimit || 30, 1, 1000),
+      dailyLimit: clamp(input.dailyLimit || 30, 1, 100),
       // Allow 0 = instant send (no spacing between recipients).
       smartDelayMin: clamp(input.smartDelayMin ?? 5, 0, 1440),
       smartDelayMax: clamp(input.smartDelayMax ?? input.smartDelayMin ?? 30, 0, 1440),
@@ -993,7 +993,7 @@ export async function saveSenderAccount(input: SenderAccountInput, userId?: stri
       replyTo: input.replyTo,
       status: input.status || 'active',
       timezone: input.timezone || 'UTC',
-      dailyLimit: clamp(input.dailyLimit || 100, 1, 1000),
+      dailyLimit: clamp(input.dailyLimit || 100, 1, 100),
       hourlyLimit: clamp(input.hourlyLimit || 20, 1, 200),
       providerConfig: encryptedConfig as Prisma.InputJsonObject | undefined,
       dkimStatus: 'pending',
