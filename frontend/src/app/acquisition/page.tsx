@@ -54,6 +54,7 @@ export default function AcquisitionAdvisorPage() {
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [result, setResult] = useState<BulkScanResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [elapsed, setElapsed] = useState(0);
   const [tierFilter, setTierFilter] = useState<AcquisitionTier | "all">("all");
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [chatDomain, setChatDomain] = useState<AcquisitionResult | null>(null);
@@ -70,14 +71,38 @@ export default function AcquisitionAdvisorPage() {
     setScanState("scanning");
     setErrorMsg("");
     setResult(null);
+    setElapsed(0);
+
+    // Tick the elapsed counter every second
+    const startTime = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
+
     try {
-      const data = await fetchOutbound<BulkScanResult>("/api/domains/acquisition-scan", {
+      // Start background job — returns immediately with jobId
+      const { jobId } = await fetchOutbound<{ jobId: string }>("/api/domains/acquisition-scan", {
         method: "POST",
         body: JSON.stringify({ domains: domainList }),
       });
-      setResult(data);
-      setScanState("done");
+
+      // Poll every 3 seconds until done (max 4 minutes)
+      for (let attempt = 0; attempt < 80; attempt++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const poll = await fetchOutbound<{ status: string; result?: BulkScanResult; error?: string }>(
+          `/api/domains/acquisition-scan/status/${jobId}`
+        );
+        if (poll.status === "done" && poll.result) {
+          clearInterval(timer);
+          setResult(poll.result);
+          setScanState("done");
+          return;
+        }
+        if (poll.status === "error") {
+          throw new Error(poll.error || "Scan failed on server.");
+        }
+      }
+      throw new Error("Scan timed out after 4 minutes.");
     } catch (err: any) {
+      clearInterval(timer);
       setErrorMsg(err?.message || "Scan failed. Check your connection and API keys.");
       setScanState("error");
     }
@@ -194,9 +219,20 @@ export default function AcquisitionAdvisorPage() {
       {scanState === "scanning" && (
         <div className="mt-8 flex flex-col items-center gap-4 py-16">
           <Loader2 className="h-10 w-10 text-indigo-400 animate-spin" />
-          <div className="text-base font-bold text-slate-800 dark:text-slate-200">Analyzing {domainList.length} domains…</div>
+          <div className="text-base font-bold text-slate-800 dark:text-slate-200">
+            Analyzing {domainList.length} domains…
+            <span className="ml-2 text-sm font-normal text-slate-500">{elapsed}s</span>
+          </div>
+          <div className="w-64 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+              style={{ width: `${Math.min(95, (elapsed / 90) * 100)}%` }}
+            />
+          </div>
           <p className="text-sm text-slate-500 max-w-md text-center">
-            Running DNS TLD checks, scoring brand &amp; market signals, then passing full dossiers to AI for investment recommendations. This takes 20–60 seconds.
+            DNS checks · brand &amp; market scoring · AI investment analysis
+            <br />
+            <span className="text-xs">Typically 30–90 seconds depending on list size</span>
           </p>
           <div className="flex flex-wrap gap-2 mt-2 max-w-lg justify-center">
             {domainList.slice(0, 12).map(d => (

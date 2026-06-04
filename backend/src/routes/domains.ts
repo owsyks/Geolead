@@ -24,10 +24,28 @@ import {
   updateOffer,
   DOMAIN_STATUSES,
 } from '../services/domains.js';
-import { runBulkAcquisitionScan, investorChat } from '../services/acquisitionAdvisor.js';
+import { runBulkAcquisitionScan, investorChat, type BulkScanResult } from '../services/acquisitionAdvisor.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+// ─── In-memory job store (avoids Heroku's 30s router timeout) ────────────────
+// Jobs run in the background; clients poll /acquisition-scan/status/:jobId.
+type ScanJob = {
+  status: 'processing' | 'done' | 'error';
+  result?: BulkScanResult;
+  error?: string;
+  domains: string[];
+  startedAt: Date;
+};
+const scanJobs = new Map<string, ScanJob>();
+
+function pruneOldJobs() {
+  const cutoff = Date.now() - 30 * 60 * 1000; // keep 30 min
+  for (const [id, job] of scanJobs) {
+    if (job.startedAt.getTime() < cutoff) scanJobs.delete(id);
+  }
+}
 
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -40,6 +58,19 @@ router.use(requireAuth);
 router.get('/statuses', (_req, res) => {
   res.json({ statuses: DOMAIN_STATUSES });
 });
+
+// Poll background scan job status — must be before /:id routes.
+router.get('/acquisition-scan/status/:jobId', wrap(async (req, res) => {
+  const job = scanJobs.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found or expired.' });
+  res.json({
+    jobId: req.params.jobId,
+    status: job.status,
+    domainCount: job.domains.length,
+    result: job.result ?? null,
+    error: job.error ?? null,
+  });
+}));
 
 router.get('/dashboard', wrap(async (req, res) => {
   res.json(await getPortfolioDashboard(req.userId!));
@@ -137,12 +168,30 @@ router.post('/:id/analyze', wrap(async (req, res) => {
   res.json(await reanalyzeDomain(req.params.id, req.userId!));
 }));
 
-// Bulk AI acquisition scan — accepts raw domain list, no DB write required.
+// Bulk AI acquisition scan — starts background job to avoid Heroku 30s timeout.
+// Client polls GET /acquisition-scan/status/:jobId until status === 'done'.
 router.post('/acquisition-scan', wrap(async (req, res) => {
   const domains = asStringArray(req.body.domains);
   if (!domains.length) return res.status(400).json({ error: 'domains array is required.' });
   if (domains.length > 100) return res.status(400).json({ error: 'Maximum 100 domains per scan.' });
-  res.json(await runBulkAcquisitionScan(domains, req.userId!));
+
+  pruneOldJobs();
+  const jobId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  const userId = req.userId!;
+  scanJobs.set(jobId, { status: 'processing', domains, startedAt: new Date() });
+
+  // Fire-and-forget — response returns immediately.
+  void runBulkAcquisitionScan(domains, userId)
+    .then(result => {
+      const job = scanJobs.get(jobId);
+      if (job) { job.status = 'done'; job.result = result; }
+    })
+    .catch((err: unknown) => {
+      const job = scanJobs.get(jobId);
+      if (job) { job.status = 'error'; job.error = (err as any)?.message || 'Scan failed.'; }
+    });
+
+  res.json({ jobId, status: 'processing', domainCount: domains.length });
 }));
 
 // AI investor chat using inline analysis data (no domain ID required).
