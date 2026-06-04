@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Clock,
   Download,
   ExternalLink,
   Loader2,
@@ -61,6 +62,7 @@ export default function AcquisitionAdvisorPage() {
   const [chatDomain, setChatDomain] = useState<AcquisitionResult | null>(null);
   const [addingDomain, setAddingDomain] = useState<string | null>(null);
   const [watchingDomain, setWatchingDomain] = useState<string | null>(null);
+  const [archiveDomain, setArchiveDomain] = useState<string | null>(null);
 
   const domainList = input
     .split(/[\n,]+/)
@@ -330,6 +332,7 @@ export default function AcquisitionAdvisorPage() {
                 onChat={() => setChatDomain(r)}
                 onAddToPortfolio={() => void addToPortfolio(r.domain)}
                 onAddToWatchlist={() => void addToWatchlist(r)}
+                onCheckArchive={() => setArchiveDomain(r.domain)}
                 adding={addingDomain === r.domain}
                 watching={watchingDomain === r.domain}
               />
@@ -345,6 +348,14 @@ export default function AcquisitionAdvisorPage() {
           onClose={() => setChatDomain(null)}
         />
       )}
+
+      {/* Archive History Modal */}
+      {archiveDomain && (
+        <ArchiveHistoryModal
+          domain={archiveDomain}
+          onClose={() => setArchiveDomain(null)}
+        />
+      )}
     </OutboundShell>
   );
 }
@@ -352,7 +363,7 @@ export default function AcquisitionAdvisorPage() {
 // ─── Domain card ──────────────────────────────────────────────────────────────
 
 function DomainCard({
-  result, expanded, onToggle, onChat, onAddToPortfolio, onAddToWatchlist, adding, watching,
+  result, expanded, onToggle, onChat, onAddToPortfolio, onAddToWatchlist, onCheckArchive, adding, watching,
 }: {
   result: AcquisitionResult;
   expanded: boolean;
@@ -360,6 +371,7 @@ function DomainCard({
   onChat: () => void;
   onAddToPortfolio: () => void;
   onAddToWatchlist: () => void;
+  onCheckArchive: () => void;
   adding: boolean;
   watching: boolean;
 }) {
@@ -413,6 +425,13 @@ function DomainCard({
             className="h-8 w-8 rounded-lg border border-amber-400/30 bg-amber-500/10 text-amber-300 hover:text-amber-200 flex items-center justify-center"
           >
             {watching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Star className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={onCheckArchive}
+            title="Check Wayback Machine archive history"
+            className="h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 text-slate-500 hover:text-indigo-400 dark:hover:text-indigo-400 flex items-center justify-center transition"
+          >
+            <Clock className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={onAddToPortfolio}
@@ -536,6 +555,164 @@ function InfoBox({ label, value, sub }: { label: string; value: string; sub?: st
       <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-0.5 text-sm font-black text-slate-800 dark:text-slate-200">{value}</div>
       {sub && <div className="text-[11px] text-slate-500">{sub}</div>}
+    </div>
+  );
+}
+
+// ─── Archive history modal ────────────────────────────────────────────────────
+
+interface ArchiveSnapshot {
+  timestamp: string;
+  status: string;
+}
+
+function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () => void }) {
+  const [state, setState] = useState<"loading" | "done" | "empty" | "error">("loading");
+  const [snapshots, setSnapshots] = useState<ArchiveSnapshot[]>([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const url = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=20&fl=timestamp,statuscode&collapse=timestamp:6`;
+    fetch(url)
+      .then(r => r.json())
+      .then((rows: string[][]) => {
+        if (!Array.isArray(rows) || rows.length <= 1) {
+          setState("empty");
+          return;
+        }
+        setSnapshots(rows.slice(1).map(r => ({ timestamp: r[0], status: r[1] })));
+        setState("done");
+      })
+      .catch(() => {
+        setError("Could not reach the Wayback Machine. Check your internet connection.");
+        setState("error");
+      });
+  }, [domain]);
+
+  const fmt = (ts: string) => {
+    try {
+      return new Date(`${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    } catch { return ts.slice(0, 8); }
+  };
+
+  const active = snapshots.filter(s => s.status === "200");
+  const wasUsed = active.length > 0;
+  const first = snapshots[0];
+  const last = snapshots[snapshots.length - 1];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-lg rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-indigo-400" />
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100">Wayback Machine History</h3>
+            </div>
+            <div className="mt-0.5 text-xs font-mono text-slate-500">{domain}</div>
+          </div>
+          <button onClick={onClose} className="h-7 w-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5">
+          {state === "loading" && (
+            <div className="flex items-center justify-center gap-3 py-10 text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+              Checking archive…
+            </div>
+          )}
+
+          {state === "error" && (
+            <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-400">{error}</div>
+          )}
+
+          {state === "empty" && (
+            <div className="text-center py-8">
+              <div className="text-3xl mb-3">🆕</div>
+              <div className="text-base font-black text-slate-900 dark:text-slate-100">No archive records found</div>
+              <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
+                This domain has no history in the Wayback Machine — it was likely never registered or was never crawled. This is a <strong className="text-emerald-400">clean slate</strong>.
+              </p>
+              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300">
+                <ExternalLink className="h-3 w-3" /> Verify on Wayback Machine
+              </a>
+            </div>
+          )}
+
+          {state === "done" && (
+            <div className="space-y-4">
+              {/* Summary banner */}
+              <div className={`rounded-lg border p-4 ${wasUsed ? "border-amber-400/30 bg-amber-500/5" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30"}`}>
+                <div className={`text-sm font-bold ${wasUsed ? "text-amber-300" : "text-slate-600 dark:text-slate-400"}`}>
+                  {wasUsed
+                    ? `⚠️ This domain was previously used as an active website`
+                    : `ℹ️ Domain has archive records but no active pages detected`}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {wasUsed
+                    ? "Check the history below before purchasing — prior content may affect SEO reputation or brand perception."
+                    : "The domain may have had parking pages or redirect-only setups."}
+                </p>
+                <div className="grid grid-cols-3 gap-3 mt-3 text-center">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">First seen</div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{first ? fmt(first.timestamp) : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">Last seen</div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{last ? fmt(last.timestamp) : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">Active pages</div>
+                    <div className={`text-xs font-bold mt-0.5 ${wasUsed ? "text-amber-400" : "text-slate-500"}`}>{active.length}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Snapshot list */}
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">Snapshot history ({snapshots.length} shown)</div>
+                <div className="space-y-0.5 max-h-44 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-900">
+                  {snapshots.map((s, i) => (
+                    <a
+                      key={i}
+                      href={`https://web.archive.org/web/${s.timestamp}/${domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-900/60 group"
+                    >
+                      <span className="text-slate-600 dark:text-slate-400">{fmt(s.timestamp)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-mono font-bold text-[11px] ${
+                          s.status === "200" ? "text-emerald-500" :
+                          s.status === "301" || s.status === "302" ? "text-amber-400" :
+                          s.status === "404" ? "text-rose-400" : "text-slate-400"
+                        }`}>{s.status}</span>
+                        <ExternalLink className="h-3 w-3 text-slate-300 dark:text-slate-600 group-hover:text-indigo-400 transition" />
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  200 = active site · 301/302 = redirect · 404 = not found
+                </div>
+              </div>
+
+              <a
+                href={`https://web.archive.org/web/*/${domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-indigo-400/30 bg-indigo-500/10 text-sm text-indigo-300 hover:text-indigo-200 transition"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View full timeline on Wayback Machine
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
