@@ -4,6 +4,7 @@
 // user never re-types a domain name.
 import type { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
+import { runDomainAnalysis } from './domainAnalyzer.js';
 
 export const DOMAIN_STATUSES = [
   'Available',
@@ -462,6 +463,20 @@ export async function reanalyzeDomain(id: string, userId: string) {
   const domain = await prisma.domain.findFirst({ where: { id, userId } });
   if (!domain) throw new Error('Domain not found.');
   const intel = deriveDomainIntelligence(domain.name);
+
+  // Run full intelligence analysis in background; update scores + store rich data
+  const analysis = await runDomainAnalysis(domain.name, {
+    niche: intel.niche,
+    industry: intel.industry,
+    city: intel.city,
+    state: intel.state,
+    country: intel.country,
+    brandingScore: intel.brandingScore,
+    buyerDemandScore: intel.buyerDemandScore,
+    leadOpportunityScore: intel.leadOpportunityScore,
+    estimatedValue: intel.estimatedValue,
+  }, userId);
+
   return prisma.domain.update({
     where: { id },
     data: {
@@ -471,16 +486,17 @@ export async function reanalyzeDomain(id: string, userId: string) {
       city: intel.city,
       state: intel.state,
       country: intel.country,
-      brandingScore: intel.brandingScore,
+      brandingScore: analysis.brandBreakdown.overall,
       buyerDemandScore: intel.buyerDemandScore,
       leadOpportunityScore: intel.leadOpportunityScore,
-      estimatedValue: intel.estimatedValue,
-      recommendedPrice: intel.recommendedPrice,
+      estimatedValue: analysis.domainValue.expected,
+      recommendedPrice: Math.round(analysis.domainValue.expected * 1.4),
       saleProbability: intel.saleProbability,
       bestIndustries: intel.bestIndustries,
       bestCities: intel.bestCities,
       outreachStrategy: intel.outreachStrategy,
-      aiSummary: intel.aiSummary,
+      aiSummary: analysis.aiReport.executiveSummary,
+      metadata: analysis as unknown as Prisma.InputJsonValue,
       intelligenceUpdatedAt: new Date(),
     },
   });
