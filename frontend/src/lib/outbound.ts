@@ -440,10 +440,36 @@ export interface PortfolioDomain {
   archivedAt?: string | null;
   soldAt?: string | null;
   intelligenceUpdatedAt?: string | null;
+  metadata?: DomainAnalysis | null;
   createdAt: string;
   updatedAt: string;
   _count?: { campaigns: number; buyers: number; offers: number };
   sale?: DomainSale | null;
+}
+
+// Rich intelligence analysis stored in domain.metadata after running /analyze
+export interface DomainAnalysis {
+  parsed: {
+    sld: string; tld: string; tokens: string[];
+    geo: string; city: string; state: string;
+    industry: string; niche: string; keywords: string[];
+  };
+  buyerPool: { total: number; high: number; medium: number; low: number };
+  tldMatrix: Array<{ tld: string; domain: string; status: 'registered' | 'available' }>;
+  similarDomains: Array<{ domain: string; status: 'registered' | 'available'; similarity: number; reason: string }>;
+  businesses: Array<{ name: string; website?: string; address?: string; rating?: number; type?: string; buyerScore: number; priority: 'high' | 'medium' | 'low' }>;
+  brandBreakdown: { overall: number; memorability: number; keywordRelevance: number; commercialIntent: number; geoRelevance: number };
+  geoScore: number;
+  competitionScore: number;
+  domainValue: { conservative: number; expected: number; premium: number };
+  aiReport: {
+    executiveSummary: string;
+    recommendation: string;
+    recommendationLabel: string;
+    keyInsights: string[];
+    outreachPriority: 'high' | 'medium' | 'low';
+  };
+  analyzedAt: string;
 }
 
 export interface DomainBuyer {

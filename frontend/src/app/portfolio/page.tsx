@@ -27,15 +27,16 @@ import {
   type PortfolioStatus,
 } from "@/lib/outbound";
 
-type SortKey = "updatedAt" | "name" | "estimatedValue" | "brandingScore" | "buyerDemandScore" | "leadOpportunityScore";
+type SortKey = "updatedAt" | "name" | "estimatedValue" | "brandingScore" | "buyerDemandScore" | "leadOpportunityScore" | "saleProbability";
 
 const SORT_LABELS: Record<SortKey, string> = {
   updatedAt: "Recently updated",
   name: "Name",
-  estimatedValue: "Estimated value",
-  brandingScore: "Brandability",
-  buyerDemandScore: "Buyer demand",
-  leadOpportunityScore: "Lead opportunity",
+  estimatedValue: "Highest value",
+  brandingScore: "Best brand",
+  buyerDemandScore: "Most demand",
+  leadOpportunityScore: "Best opportunity",
+  saleProbability: "Most likely to sell",
 };
 
 const EMPTY_FORM = {
@@ -397,6 +398,11 @@ export default function PortfolioPage() {
                       <div className="text-[11px] text-slate-500">
                         {[domain.city, domain.state].filter(Boolean).join(", ") || "Geo unknown"}
                       </div>
+                      {domain.metadata?.buyerPool?.total ? (
+                        <div className="mt-1 text-[11px] text-indigo-400 font-bold">
+                          ~{(domain.metadata.buyerPool.total).toLocaleString()} buyers
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 align-top">
                       <StatusBadge value={domain.status} />
@@ -411,9 +417,9 @@ export default function PortfolioPage() {
                     </td>
                     <td className="px-4 py-3 align-top text-center">
                       <div className="inline-flex flex-col gap-1 text-[11px]">
-                        <span>Brand <strong className="text-slate-200">{domain.brandingScore}</strong></span>
-                        <span>Demand <strong className="text-slate-200">{domain.buyerDemandScore}</strong></span>
-                        <span>Lead <strong className="text-slate-200">{domain.leadOpportunityScore}</strong></span>
+                        <span className="text-slate-500">Brand <strong className="text-slate-800 dark:text-slate-200">{domain.brandingScore}</strong></span>
+                        <span className="text-slate-500">Demand <strong className="text-slate-800 dark:text-slate-200">{domain.buyerDemandScore}</strong></span>
+                        <span className="text-slate-500">Sale <strong className="text-slate-800 dark:text-slate-200">{domain.saleProbability}%</strong></span>
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
