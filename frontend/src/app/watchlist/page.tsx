@@ -511,14 +511,13 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=20&fl=timestamp,statuscode&collapse=timestamp:6`)
-      .then(r => r.json())
-      .then((rows: string[][]) => {
+    fetchOutbound<string[][]>(`/api/domains/archive-check?domain=${encodeURIComponent(domain)}`)
+      .then(rows => {
         if (!Array.isArray(rows) || rows.length <= 1) { setState("empty"); return; }
         setSnapshots(rows.slice(1).map(r => ({ timestamp: r[0], status: r[1] })));
         setState("done");
       })
-      .catch(() => { setErrorMsg("Could not reach the Wayback Machine."); setState("error"); });
+      .catch(() => { setErrorMsg("Could not reach the archive service. Try again in a moment."); setState("error"); });
   }, [domain]);
 
   const fmt = (ts: string) => {

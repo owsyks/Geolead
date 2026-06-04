@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Router } from 'express';
+import axios from 'axios';
 import {
   archiveDomain,
   bulkImportDomains,
@@ -58,6 +59,19 @@ router.use(requireAuth);
 router.get('/statuses', (_req, res) => {
   res.json({ statuses: DOMAIN_STATUSES });
 });
+
+// Proxy for Wayback Machine CDX API — avoids browser CORS/rate-limit blocks.
+router.get('/archive-check', wrap(async (req, res) => {
+  const domain = asString(req.query.domain as string);
+  if (!domain) return res.status(400).json({ error: 'domain is required.' });
+  try {
+    const url = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=20&fl=timestamp,statuscode&collapse=timestamp:6`;
+    const response = await axios.get(url, { timeout: 12000 });
+    res.json(Array.isArray(response.data) ? response.data : []);
+  } catch {
+    res.json([]); // empty = no records found, not an error
+  }
+}));
 
 // Poll background scan job status — must be before /:id routes.
 router.get('/acquisition-scan/status/:jobId', wrap(async (req, res) => {

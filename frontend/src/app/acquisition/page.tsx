@@ -572,19 +572,14 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const url = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&limit=20&fl=timestamp,statuscode&collapse=timestamp:6`;
-    fetch(url)
-      .then(r => r.json())
-      .then((rows: string[][]) => {
-        if (!Array.isArray(rows) || rows.length <= 1) {
-          setState("empty");
-          return;
-        }
+    fetchOutbound<string[][]>(`/api/domains/archive-check?domain=${encodeURIComponent(domain)}`)
+      .then(rows => {
+        if (!Array.isArray(rows) || rows.length <= 1) { setState("empty"); return; }
         setSnapshots(rows.slice(1).map(r => ({ timestamp: r[0], status: r[1] })));
         setState("done");
       })
       .catch(() => {
-        setError("Could not reach the Wayback Machine. Check your internet connection.");
+        setError("Could not reach the archive service. Try again in a moment.");
         setState("error");
       });
   }, [domain]);
