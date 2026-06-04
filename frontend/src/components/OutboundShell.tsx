@@ -138,7 +138,16 @@ export function OutboundShell({
                 <h1 className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50">{title}</h1>
                 <p className="mt-1 text-sm text-slate-400 max-w-3xl">{subtitle}</p>
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">{actions}</div>
+              <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">
+                {actions}
+                <button
+                  onClick={toggle}
+                  title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  className="h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="lg:hidden px-4 pb-3 flex gap-2 overflow-x-auto">
