@@ -182,7 +182,7 @@ const INDUSTRY_BASE_COUNTS: Record<string, number> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function stripDomainName(domain: string): { baseSld: string; tld: string } {
+export function stripDomainName(domain: string): { baseSld: string; tld: string } {
   const cleaned = domain.toLowerCase()
     .replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
   const parts = cleaned.split('.');
@@ -581,12 +581,18 @@ Return ONLY valid JSON (no prose, no code fences):
   }
 }
 
-// ─── Public entry point ───────────────────────────────────────────────────────
+// ─── Public entry points ──────────────────────────────────────────────────────
+
+export interface DomainAnalysisOptions {
+  skipBusinessDiscovery?: boolean;
+  skipAiReport?: boolean;
+}
 
 export async function runDomainAnalysis(
   domainName: string,
   intel: DomainIntelInput,
-  userId?: string | null
+  userId?: string | null,
+  options?: DomainAnalysisOptions
 ): Promise<DomainAnalysis> {
   const { baseSld, tld } = stripDomainName(domainName);
   const tokens = tokenizeStr(baseSld);
@@ -606,11 +612,11 @@ export async function runDomainAnalysis(
     keywords: tokens,
   };
 
-  // Run TLD check, similar domains, and business discovery in parallel
+  // Run TLD check, similar domains, and optionally business discovery in parallel
   const [tldMatrix, similarDomains, businesses] = await Promise.all([
     buildTldMatrix(baseSld, tld),
     checkSimilarDomains(baseSld, tokens, intel.city, intel.state),
-    discoverBusinesses(intel.niche, intel.city, intel.state, userId),
+    options?.skipBusinessDiscovery ? Promise.resolve([]) : discoverBusinesses(intel.niche, intel.city, intel.state, userId),
   ]);
 
   const brandBreakdown = buildBrandBreakdown(
@@ -627,10 +633,15 @@ export async function runDomainAnalysis(
     intel.estimatedValue, tldMatrix, buyerPool, intel.brandingScore
   );
 
-  const aiReport = await generateAiReport(
-    domainName, parsed, buyerPool, brandBreakdown, geoScore,
-    competitionScore, domainValue, businesses.length, userId
-  );
+  const aiReport = options?.skipAiReport
+    ? {
+        executiveSummary: `${domainName} targets ${parsed.niche || parsed.industry || 'businesses'} in ${parsed.geo || 'the US'}.`,
+        recommendation: 'hold' as const,
+        recommendationLabel: 'Hold',
+        keyInsights: [] as string[],
+        outreachPriority: 'medium' as const,
+      }
+    : await generateAiReport(domainName, parsed, buyerPool, brandBreakdown, geoScore, competitionScore, domainValue, businesses.length, userId);
 
   return {
     parsed,
