@@ -19,6 +19,7 @@ import {
   ChevronRight,
   TrendingUp,
   Mail,
+  MessageSquare,
   Phone,
   FileText,
   Save,
@@ -28,6 +29,7 @@ import {
   Plus,
   ShieldCheck,
   Send,
+  Zap,
   X
 } from "lucide-react";
 
@@ -75,6 +77,11 @@ interface Lead {
   summary?: string;
   createdAt: string;
   emails: LeadEmail[];
+  // Contact intelligence
+  whatsappScore?: number | null;
+  whatsappConfidence?: 'HIGH' | 'MEDIUM' | 'LOW' | null;
+  bestContactChannel?: 'EMAIL' | 'WHATSAPP' | 'PHONE' | 'WEBSITE_FORM' | null;
+  contactChannelScores?: { email: number; whatsapp: number; phone: number; websiteForm: number } | null;
 }
 
 interface SearchTask {
@@ -136,6 +143,7 @@ export default function DashboardPage() {
   const [searchFilter, setSearchFilter] = useState("");
   const [minScore, setMinScore] = useState(0);
   const [hasEmailsOnly, setHasEmailsOnly] = useState(false);
+  const [channelFilter, setChannelFilter] = useState<'all' | 'whatsapp_high' | 'email_available' | 'phone_available' | 'multi_channel'>('all');
   const [sortField] = useState("domainMatchScore");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -1305,8 +1313,24 @@ export default function DashboardPage() {
                         : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-800 dark:text-slate-200"
                     }`}
                   >
-                    <Mail className="w-3.5 h-3.5" /> Has Email Contacts
+                    <Mail className="w-3.5 h-3.5" /> Has Email
                   </button>
+
+                  {/* Channel filter */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
+                    <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
+                    <select
+                      value={channelFilter}
+                      onChange={e => setChannelFilter(e.target.value as typeof channelFilter)}
+                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
+                    >
+                      <option value="all">All Channels</option>
+                      <option value="whatsapp_high">WhatsApp High (≥70)</option>
+                      <option value="email_available">Email Available</option>
+                      <option value="phone_available">Phone Available</option>
+                      <option value="multi_channel">Multi-Channel</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1334,7 +1358,19 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-900/80">
-                      {leads.map((lead) => (
+                      {leads.filter(lead => {
+                        if (channelFilter === 'whatsapp_high') return (lead.whatsappScore ?? 0) >= 70;
+                        if (channelFilter === 'email_available') return lead.emails.length > 0;
+                        if (channelFilter === 'phone_available') return lead.phoneNumbers.length > 0;
+                        if (channelFilter === 'multi_channel') {
+                          let c = 0;
+                          if (lead.emails.length > 0) c++;
+                          if (lead.phoneNumbers.length > 0) c++;
+                          if ((lead.whatsappScore ?? 0) >= 50) c++;
+                          return c >= 2;
+                        }
+                        return true;
+                      }).map((lead) => (
                         <tr key={lead.id} className="hover:bg-slate-50 dark:bg-slate-900/10 transition-colors align-top">
                           
                           {/* Business Info Column */}
@@ -1426,7 +1462,51 @@ export default function DashboardPage() {
                           {/* Contact Info Column */}
                           <td className="py-5 px-4 max-w-xs">
                             <div className="flex flex-col gap-3">
-                              
+
+                              {/* ── Contact Intelligence ── */}
+                              {lead.bestContactChannel && (
+                                <div className="flex flex-col gap-1.5">
+                                  {/* Best channel badge */}
+                                  <div className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-black w-fit ${
+                                    lead.bestContactChannel === 'WHATSAPP' ? 'bg-emerald-500/10 border border-emerald-400/30 text-emerald-400' :
+                                    lead.bestContactChannel === 'EMAIL' ? 'bg-indigo-500/10 border border-indigo-400/30 text-indigo-300' :
+                                    lead.bestContactChannel === 'PHONE' ? 'bg-violet-500/10 border border-violet-400/30 text-violet-300' :
+                                    'bg-slate-500/10 border border-slate-600 text-slate-400'
+                                  }`}>
+                                    <Zap className="w-2.5 h-2.5" />
+                                    {lead.bestContactChannel === 'WHATSAPP' ? 'WhatsApp First' :
+                                     lead.bestContactChannel === 'EMAIL' ? 'Email First' :
+                                     lead.bestContactChannel === 'PHONE' ? 'Call First' : 'Web Form'}
+                                  </div>
+
+                                  {/* Channel score row */}
+                                  <div className="flex flex-wrap gap-2 text-[10px]">
+                                    {lead.emails.length > 0 && (
+                                      <span className="flex items-center gap-0.5 text-indigo-400">
+                                        <Mail className="w-2.5 h-2.5" />
+                                        Email {lead.contactChannelScores?.email ?? '—'}
+                                      </span>
+                                    )}
+                                    {lead.whatsappScore != null && lead.whatsappScore > 0 && (
+                                      <span className={`flex items-center gap-0.5 ${
+                                        lead.whatsappConfidence === 'HIGH' ? 'text-emerald-400' :
+                                        lead.whatsappConfidence === 'MEDIUM' ? 'text-amber-400' : 'text-slate-500'
+                                      }`}>
+                                        <MessageSquare className="w-2.5 h-2.5" />
+                                        WA {lead.whatsappScore}
+                                        <span className="text-[9px] opacity-70">({lead.whatsappConfidence})</span>
+                                      </span>
+                                    )}
+                                    {lead.phoneNumbers.length > 0 && (
+                                      <span className="flex items-center gap-0.5 text-violet-400">
+                                        <Phone className="w-2.5 h-2.5" />
+                                        Phone {lead.contactChannelScores?.phone ?? '—'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Emails List */}
                               {lead.emails.length === 0 ? (
                                 <span className="text-[11px] text-slate-600 italic">No validated email found</span>
@@ -1481,7 +1561,7 @@ export default function DashboardPage() {
 
                           {/* Match Score Column */}
                           <td className="py-5 px-4 text-center">
-                            <div className="inline-flex flex-col items-center gap-1">
+                            <div className="inline-flex flex-col items-center gap-1.5">
                               <span className={`text-base font-extrabold px-2.5 py-1 rounded-lg ${
                                 lead.domainMatchScore >= 85
                                   ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500/20"
@@ -1491,7 +1571,18 @@ export default function DashboardPage() {
                               }`}>
                                 {lead.domainMatchScore}%
                               </span>
-                              
+
+                              {/* WhatsApp reachability score */}
+                              {lead.whatsappScore != null && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                                  lead.whatsappConfidence === 'HIGH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                  lead.whatsappConfidence === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                  'bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-700'
+                                }`}>
+                                  <MessageSquare className="w-2.5 h-2.5" /> {lead.whatsappScore}
+                                </span>
+                              )}
+
                               {/* Match explanation tooltip helper */}
                               {lead.scoreExplanation && (
                                 <div className="relative group cursor-help">
