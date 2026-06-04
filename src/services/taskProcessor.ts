@@ -6,6 +6,7 @@ import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
 import { calculateMatchScore } from './aiScoring.js';
 import { type EmailCandidate, extractEmailCandidates, extractPhoneCandidates, normalizePhoneList } from './contactUtils.js';
+import { scoreContactIntelligence } from './contactIntelligence.js';
 
 interface DiscoveredBiz {
   name: string;
@@ -341,6 +342,18 @@ export async function processSearchTask(taskId: string) {
           biz.location || undefined
         );
 
+        const contactIntel = scoreContactIntelligence({
+          businessName,
+          website: biz.website,
+          location: biz.location,
+          googleMapsLink: biz.googleMapsLink,
+          category: biz.category,
+          phoneNumbers,
+          socialLinks: crawlData.socials,
+          hasValidEmail: validatedEmails.some(e => e.status === 'VALID'),
+          hasAnyEmail: validatedEmails.length > 0,
+        });
+
         const createdLead = await prisma.lead.create({
           data: {
             taskId,
@@ -359,6 +372,10 @@ export async function processSearchTask(taskId: string) {
             companySize: crawlData.companySize,
             summary: `${businessName} is a local business categorized as a ${biz.category || 'general service provider'}. AI evaluation scored this business ${scoreData.score}% relevant to the domain "${task.domainIdea}".`,
             notes: crawlData.notes,
+            whatsappScore: contactIntel.whatsappScore,
+            whatsappConfidence: contactIntel.whatsappConfidence,
+            bestContactChannel: contactIntel.bestContactChannel,
+            contactChannelScores: contactIntel.channelScores as any,
           },
         });
 

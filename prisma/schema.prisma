@@ -58,6 +58,10 @@ model Lead {
   openCount          Int         @default(0)
   clickCount         Int         @default(0)
   unsubscribed       Boolean     @default(false)
+  whatsappScore         Int?
+  whatsappConfidence    String?  // LOW MEDIUM HIGH
+  bestContactChannel    String?  // EMAIL WHATSAPP PHONE WEBSITE_FORM
+  contactChannelScores  Json?
   doNotContact       Boolean     @default(false)
   companySize        String?     // "Small", "Medium", "Large", "Unknown"
   summary            String?     @db.Text
