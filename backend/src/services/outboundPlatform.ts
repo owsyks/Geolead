@@ -687,6 +687,9 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
 
 export async function processOutboundQueueTick() {
   const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
   const dueLogs = await prisma.emailLog.findMany({
     where: { status: 'QUEUED', scheduledAt: { lte: now } },
     take: 20,
@@ -699,8 +702,31 @@ export async function processOutboundQueueTick() {
     },
   });
 
+  // Preload per-campaign sent counts for today to enforce campaign dailyLimit
+  const campaignIds = [...new Set(dueLogs.map((l) => l.campaignId).filter(Boolean))] as string[];
+  const campaignDailyCounts: Record<string, number> = {};
+  if (campaignIds.length > 0) {
+    const rows = await prisma.emailLog.groupBy({
+      by: ['campaignId'],
+      where: {
+        campaignId: { in: campaignIds },
+        sentAt: { gte: startOfDay },
+        status: { in: ['SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'REPLIED', 'SIMULATED'] },
+      },
+      _count: { id: true },
+    });
+    for (const row of rows) {
+      if (row.campaignId) campaignDailyCounts[row.campaignId] = row._count.id;
+    }
+  }
+
   for (const log of dueLogs) {
     if (log.campaign.status !== 'ACTIVE') continue;
+
+    // Enforce campaign-level daily send cap
+    const campaignSentToday = campaignDailyCounts[log.campaignId!] ?? 0;
+    if (campaignSentToday >= log.campaign.dailyLimit) continue;
+    campaignDailyCounts[log.campaignId!] = campaignSentToday + 1;
     if (log.campaignLead?.status && ['REPLIED', 'INTERESTED', 'UNSUBSCRIBED', 'SUPPRESSED', 'COMPLETED'].includes(log.campaignLead.status)) {
       await prisma.emailLog.update({
         where: { id: log.id },
