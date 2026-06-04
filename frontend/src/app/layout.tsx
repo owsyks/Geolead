@@ -16,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GeoLead AI - Outbound Command Center",
+  title: "GeoLead AI - Find. Connect. Close.",
   description: "AI-powered geo-domain outreach, campaign automation, inbox triage, analytics, sender management, and lead discovery.",
+  icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
 // Bitdefender's browser extension (and similar trackers/blockers) injects

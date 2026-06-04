@@ -84,12 +84,10 @@ export function OutboundShell({
       <div className="flex min-h-screen">
         <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/90 sticky top-0 h-screen overflow-y-auto">
           <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-200 dark:border-slate-900">
-            <div className="h-9 w-9 rounded-lg bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-200 font-black">
-              GL
-            </div>
+            <img src="/logo.png" alt="GeoLead AI" className="h-9 w-9 rounded-lg object-cover" />
             <div>
               <div className="text-sm font-black tracking-wide">GeoLead AI</div>
-              <div className="text-[11px] text-slate-500">Outbound Command Center</div>
+              <div className="text-[11px] text-slate-500">Find. Connect. Close.</div>
             </div>
           </div>
 
