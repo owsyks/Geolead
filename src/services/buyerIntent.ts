@@ -1,5 +1,9 @@
+import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+
 const AD_KEYWORDS = /\b(sponsored|ad|advertisement|promoted|google\s*ads)\b/i;
 const WEAK_BRANDING = /\b(services?|solutions?|llc|inc|co\b|ltd|corporation|group|consulting|consultants?|pros?)\b/i;
+
+const AI_INTENT_CACHE = new Map<string, number>();
 
 export interface BuyerIntentInput {
   businessName: string;
@@ -9,6 +13,53 @@ export interface BuyerIntentInput {
   location: string | null;
   websiteText: string;
   domainMatchScore: number;
+}
+
+export async function analyzeBuyerIntentWithAi(
+  input: BuyerIntentInput,
+  userId?: string | null,
+): Promise<number | null> {
+  const cacheKey = `${input.businessName}|${input.targetDomain}`;
+  const cached = AI_INTENT_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const key = await getNvidiaKey(userId);
+  if (!key) return null;
+
+  const text = input.websiteText.slice(0, 3000);
+  const prompt = `Business: ${input.businessName}
+Current domain: ${input.currentDomain || 'none'}
+Target domain: ${input.targetDomain}
+Location: ${input.location || 'unknown'}
+Category: ${input.category || 'unknown'}
+
+Website content:
+${text}
+
+Rate how likely this business is to purchase "${input.targetDomain}" as a domain upgrade.
+
+Consider:
+- Does their current domain look unprofessional or weak?
+- Is the website modern, well-maintained (sign of investment)?
+- Do they mention growth, expansion, or marketing?
+- Is the business actively competing in a local market?
+- Would "${input.targetDomain}" be a clear brand upgrade?
+
+Return ONLY a JSON object: {"score": <0-100>, "reason": "<1 sentence>"}`;
+
+  try {
+    const raw = await nvidiaChat(
+      [{ role: 'user', content: prompt }],
+      { maxTokens: 200, temperature: 0.1, timeoutMs: 15000, userId }
+    );
+    const parsed = extractJson<{ score: number; reason: string }>(raw);
+    if (parsed && typeof parsed.score === 'number') {
+      const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
+      AI_INTENT_CACHE.set(cacheKey, score);
+      return score;
+    }
+  } catch { /* AI intent analysis is optional */ }
+  return null;
 }
 
 export function analyzeBuyerIntent(input: BuyerIntentInput): number {

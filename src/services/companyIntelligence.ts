@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
 
 const HTTP_TIMEOUT_MS = 6000;
 const USER_AGENT = 'Mozilla/5.0 (compatible; GeoLeadAI-Verifier/1.0)';
@@ -178,6 +179,48 @@ function collectPersonNames(node: any, names: Set<string>) {
     if (Array.isArray(val)) val.forEach((v) => collectPersonNames(v, names));
     else if (typeof val === 'object') collectPersonNames(val, names);
   }
+}
+
+const AI_INTEL_CACHE = new Map<string, { description: string; industry: string; painPoints: string }>();
+
+export async function enrichWithAi(
+  businessName: string,
+  bodyText: string,
+  userId?: string | null,
+): Promise<{ description: string; industry: string; painPoints: string } | null> {
+  const key = `${businessName}|${userId || ''}`;
+  const cached = AI_INTEL_CACHE.get(key);
+  if (cached) return cached;
+
+  const nvidiaKey = await getNvidiaKey(userId);
+  if (!nvidiaKey) return null;
+
+  const text = bodyText.slice(0, 6000);
+
+  const prompt = `Analyze this business website content for "${businessName}":
+
+${text}
+
+Extract structured info. Return ONLY valid JSON:
+{
+  "description": "2-3 sentence company description focusing on what they do",
+  "industry": "Primary industry (e.g. Roofing, Dental, Car Dealership, Real Estate)",
+  "painPoints": "Key customer problems or needs they solve"
+}`;
+
+  try {
+    const raw = await nvidiaChat(
+      [{ role: 'user', content: prompt }],
+      { maxTokens: 300, temperature: 0.1, timeoutMs: 15000, userId }
+    );
+    const parsed = extractJson<{ description: string; industry: string; painPoints: string }>(raw);
+    if (parsed?.description) {
+      AI_INTEL_CACHE.set(key, parsed);
+      return parsed;
+    }
+  } catch { /* AI enrichment is optional */ }
+
+  return null;
 }
 
 export function scoreBusinessQuality(
