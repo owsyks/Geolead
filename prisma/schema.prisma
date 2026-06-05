@@ -65,10 +65,20 @@ model Lead {
   doNotContact       Boolean     @default(false)
   companySize        String?     // "Small", "Medium", "Large", "Unknown"
   summary            String?     @db.Text
-  companyDescription String?     @db.Text
-  painPoints         String?     @db.Text
-  timezone           String?
-  prospectLanguage   String      @default("en")
+  companyDescription    String?     @db.Text
+  painPoints            String?     @db.Text
+  timezone              String?
+  prospectLanguage      String      @default("en")
+  decisionMakerName     String?
+  decisionMakerRole     String?
+  decisionMakerScore    Int?
+  decisionMakerEmail    String?
+  buyerIntentScore      Int?
+  domainUpgradeScore    Int?
+  businessQualityScore  Int?
+  priorityScore         Int?
+  buyerInsights         Json?
+  contactStrategy       String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   emails             LeadEmail[]
@@ -76,6 +86,11 @@ model Lead {
   outboundReplies    Reply[]
   emailLogs          EmailLog[]
   statusHistory      LeadStatusHistory[]
+
+  @@index([priorityScore])
+  @@index([buyerIntentScore])
+  @@index([decisionMakerRole])
+  @@index([decisionMakerScore])
 }
 
 model User {

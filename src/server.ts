@@ -176,7 +176,11 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
     minScore,
     hasEmails,
     domain,
-    sortField = 'domainMatchScore',
+    role,
+    minBuyerIntent,
+    minPriority,
+    minDecisionMaker,
+    sortField = 'priorityScore',
     sortOrder = 'desc',
     page = '1',
     limit = '10',
@@ -194,9 +198,6 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
       whereClause.taskId = taskId as string;
     }
 
-    // Filter to leads scraped for a specific domain (matches the search task's
-    // domainIdea). Also matches the SLD so "TexasCarVendor.com" finds tasks
-    // stored as "texascarvendor" or with a different TLD.
     if (domain) {
       const raw = (domain as string).trim();
       const sld = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
@@ -227,6 +228,40 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
       whereClause.emails = { some: { status: { in: ['VALID', 'RISKY'] } } };
     }
 
+    // Decision maker role filter
+    if (role) {
+      const roleStr = (role as string).toLowerCase();
+      if (roleStr === 'ceo') {
+        whereClause.decisionMakerRole = { in: ['CEO', 'Founder', 'Owner', 'President', 'Co-Founder'] };
+      } else if (roleStr === 'founder') {
+        whereClause.decisionMakerRole = { in: ['Founder', 'Co-Founder'] };
+      } else if (roleStr === 'director') {
+        whereClause.decisionMakerRole = { in: ['CMO', 'Marketing Director', 'Head of Sales', 'Managing Director', 'Director'] };
+      } else if (roleStr === 'manager') {
+        whereClause.decisionMakerRole = { not: null };
+      }
+    }
+
+    if (minBuyerIntent) {
+      whereClause.buyerIntentScore = { gte: parseInt(minBuyerIntent as string, 10) };
+    }
+
+    if (minPriority) {
+      whereClause.priorityScore = { gte: parseInt(minPriority as string, 10) };
+    }
+
+    if (minDecisionMaker) {
+      whereClause.decisionMakerScore = { gte: parseInt(minDecisionMaker as string, 10) };
+    }
+
+    // Validate sortField to prevent injection
+    const allowedSortFields = [
+      'domainMatchScore', 'priorityScore', 'buyerIntentScore',
+      'domainUpgradeScore', 'businessQualityScore', 'decisionMakerScore',
+      'businessName', 'location', 'createdAt',
+    ];
+    const safeSortField = allowedSortFields.includes(sortField as string) ? sortField as string : 'priorityScore';
+
     // Get matching leads
     const [leads, totalCount] = await prisma.$transaction([
       prisma.lead.findMany({
@@ -238,7 +273,7 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
           },
         },
         orderBy: {
-          [sortField as string]: sortOrder as 'asc' | 'desc',
+          [safeSortField]: sortOrder as 'asc' | 'desc',
         },
         skip: offset,
         take: limitNum,
