@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Router } from 'express';
 import prisma from '../config/db.js';
@@ -18,6 +19,29 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 const MAX_INLINE_BULK = 50;
+
+interface ProgressEntry {
+  email: string;
+  status: string;
+  confidenceScore: number;
+}
+interface ProgressSlot {
+  results: ProgressEntry[];
+  total: number;
+  done: number;
+  complete: boolean;
+}
+const progressStore = new Map<string, ProgressSlot>();
+// Cleanup stale progress entries every 5 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000;
+  for (const [key, slot] of progressStore) {
+    if (slot.complete && slot.results.length >= slot.total) {
+      const elapsed = Date.now() - parseInt(key.slice(-13), 36) || 0;
+      if (elapsed > cutoff) progressStore.delete(key);
+    }
+  }
+}, 300_000).unref();
 
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -46,9 +70,22 @@ router.post(
     if (emails.length === 0) return res.status(400).json({ error: 'emails array is required' });
     if (emails.length > 100_000) return res.status(400).json({ error: 'Maximum 100,000 emails per request' });
 
+    // Inline: stream per-email progress via token
     if (emails.length <= MAX_INLINE_BULK) {
-      const results = await verifyEmailsBulk(emails, 10);
-      return res.json({ mode: 'inline', total: emails.length, results, summary: summarize(results) });
+      const token = randomBytes(12).toString('hex');
+      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false };
+      progressStore.set(token, slot);
+
+      verifyEmailsBulk(emails, 10, undefined, (email, result, done) => {
+        slot.results.push({ email, status: result.status, confidenceScore: result.confidenceScore });
+        slot.done = done;
+      }).then(() => {
+        slot.complete = true;
+      }).catch(() => {
+        slot.complete = true;
+      });
+
+      return res.json({ mode: 'stream', progressToken: token, total: emails.length });
     }
 
     const job = await prisma.emailVerificationJob.create({
@@ -64,20 +101,44 @@ router.post(
       return res.status(202).json({ mode: 'queued', jobId: job.id, total: emails.length });
     } catch (err: any) {
       console.warn('[email] Queue enqueue failed; running inline:', err?.message);
-      const results = await verifyEmailsBulk(emails, 10);
-      const summary = summarize(results);
-      await prisma.emailVerificationJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'COMPLETED',
-          processedEmails: emails.length,
-          validEmails: summary.valid,
-          riskyEmails: summary.risky,
-          invalidEmails: summary.invalid,
-        },
-      });
-      return res.json({ mode: 'inline-fallback', jobId: job.id, total: emails.length, results, summary });
+      const token = randomBytes(12).toString('hex');
+      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false };
+      progressStore.set(token, slot);
+
+      verifyEmailsBulk(emails, 10, undefined, (email, result, done) => {
+        slot.results.push({ email, status: result.status, confidenceScore: result.confidenceScore });
+        slot.done = done;
+      }).then(async () => {
+        slot.complete = true;
+        const summary = summarize(slot.results.map(r => ({ status: r.status } as any)));
+        await prisma.emailVerificationJob.update({
+          where: { id: job.id },
+          data: {
+            status: 'COMPLETED', processedEmails: emails.length,
+            validEmails: summary.valid, riskyEmails: summary.risky, invalidEmails: summary.invalid,
+          },
+        }).catch(() => undefined);
+      }).catch(() => { slot.complete = true; });
+
+      return res.json({ mode: 'stream', progressToken: token, total: emails.length, jobId: job.id });
     }
+  })
+);
+
+// Per-email streaming progress
+router.get(
+  '/verify-bulk/progress/:token',
+  wrap(async (req, res) => {
+    const slot = progressStore.get(req.params.token);
+    if (!slot) return res.status(404).json({ error: 'Progress token not found or expired' });
+    const offset = Number(req.query.offset) || 0;
+    res.json({
+      done: slot.done,
+      total: slot.total,
+      complete: slot.complete,
+      results: slot.results.slice(offset),
+      nextOffset: slot.results.length,
+    });
   })
 );
 

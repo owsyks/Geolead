@@ -544,10 +544,18 @@ async function verifyMailboxViaSmtp(
   return result;
 }
 
+export type OnEmailVerified = (
+  email: string,
+  result: EmailVerificationResult,
+  done: number,
+  total: number
+) => void;
+
 export async function verifyEmailsBulk(
   emails: string[],
   concurrency = 10,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
+  onEmailVerified?: OnEmailVerified
 ): Promise<EmailVerificationResult[]> {
   const results: EmailVerificationResult[] = new Array(emails.length);
   let cursor = 0;
@@ -575,6 +583,7 @@ export async function verifyEmailsBulk(
       }
       done++;
       if (onProgress) onProgress(done, emails.length);
+      if (onEmailVerified) onEmailVerified(emails[idx], results[idx], done, emails.length);
     }
   }
 
