@@ -136,7 +136,7 @@ export default function DashboardPage() {
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx' | 'json'>('csv');
   const [exportEmailsOnly, setExportEmailsOnly] = useState(false);
-  const [exportIncludeRisky, setExportIncludeRisky] = useState(true);
+  const [exportIncludeRisky, setExportIncludeRisky] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
   // Pagination & Filtering & Sorting States
@@ -1812,7 +1812,7 @@ export default function DashboardPage() {
                     onChange={(e) => setExportIncludeRisky(e.target.checked)}
                     className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky emails</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky (catch-all / unverified) emails</span>
                 </label>
               </div>
             </div>
