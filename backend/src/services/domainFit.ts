@@ -1,3 +1,7 @@
+import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+
+const AI_FIT_CACHE = new Map<string, number>();
+
 export interface DomainFitInput {
   businessName: string;
   currentDomain: string | null;
@@ -77,6 +81,49 @@ export function scoreDomainFit(input: DomainFitInput): number {
   }
 
   return Math.min(100, Math.max(0, score));
+}
+
+export async function scoreDomainFitWithAi(
+  input: DomainFitInput,
+  userId?: string | null,
+): Promise<number | null> {
+  const cacheKey = `${input.businessName}|${input.targetDomain}`;
+  const cached = AI_FIT_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const key = await getNvidiaKey(userId);
+  if (!key) return null;
+
+  const prompt = `Business: ${input.businessName}
+Current domain: ${input.currentDomain || 'none'}
+Target domain: ${input.targetDomain}
+Location: ${input.location || 'unknown'}
+Category: ${input.category || 'unknown'}
+
+Evaluate how well "${input.targetDomain}" fits as a domain upgrade for this business.
+
+Consider:
+1. Does the target domain match the business name or brand keywords?
+2. Does it include geographic relevance to their location?
+3. Is it shorter and more memorable than their current domain?
+4. Is it a .com (premium)?
+5. Would it improve their brand perception?
+
+Return ONLY a JSON object: {"score": <0-100>, "reason": "<1 sentence>"}`;
+
+  try {
+    const raw = await nvidiaChat(
+      [{ role: 'user', content: prompt }],
+      { maxTokens: 200, temperature: 0.1, timeoutMs: 15000, userId }
+    );
+    const parsed = extractJson<{ score: number; reason: string }>(raw);
+    if (parsed && typeof parsed.score === 'number') {
+      const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
+      AI_FIT_CACHE.set(cacheKey, score);
+      return score;
+    }
+  } catch { /* AI fit scoring is optional */ }
+  return null;
 }
 
 export function getDomainFitLabel(score: number): string {

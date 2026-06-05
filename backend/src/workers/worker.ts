@@ -10,10 +10,11 @@ import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
 import axios from 'axios';
 import { calculateMatchScore } from '../services/aiScoring.js';
-import { getCompanyIntel, scoreBusinessQuality } from '../services/companyIntelligence.js';
+import { getCompanyIntel, scoreBusinessQuality, enrichWithAi } from '../services/companyIntelligence.js';
 import { discoverDecisionMaker } from '../services/decisionMaker.js';
-import { analyzeBuyerIntent } from '../services/buyerIntent.js';
-import { scoreDomainFit } from '../services/domainFit.js';
+import { analyzeBuyerIntent, analyzeBuyerIntentWithAi } from '../services/buyerIntent.js';
+import { scoreDomainFit, scoreDomainFitWithAi } from '../services/domainFit.js';
+import { getNvidiaKey, nvidiaChat } from '../services/nvidiaAi.js';
 import { processOutboundQueueTick } from '../services/outboundPlatform.js';
 import { verifyEmailsBulk } from '../services/emailVerification.js';
 
@@ -223,8 +224,8 @@ const worker = new Worker<ScrapingJobData>(
           }
 
           // === Decision Maker & Buyer Intelligence Pipeline ===
+          const pipelineError = (msg: string) => console.warn(`[Worker] ${msg} for ${biz.name}`);
           try {
-            // Company intelligence (staff names, website health, social presence)
             let staffNames: string[] = [];
             let pageText = '';
             if (biz.website) {
@@ -233,7 +234,6 @@ const worker = new Worker<ScrapingJobData>(
                 const intel = await getCompanyIntel(domain);
                 staffNames = intel.staffNames;
 
-                // Fetch homepage text for analysis
                 const resp = await axios.get(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`, {
                   timeout: 5000,
                   headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GeoLeadAI/1.0)' },
@@ -243,75 +243,50 @@ const worker = new Worker<ScrapingJobData>(
                 $('script, style, noscript, svg, iframe, template').remove();
                 pageText = $('body').text().slice(0, 10000);
 
-                // Decision maker discovery
+                // Decision maker discovery (heuristic + AI in parallel)
                 const dm = await discoverDecisionMaker(
-                  biz.name,
-                  biz.website,
-                  [pageText, crawlData.notes || ''],
-                  staffNames,
-                  task.userId,
+                  biz.name, biz.website, [pageText, crawlData.notes || ''],
+                  staffNames, task.userId,
                 );
 
-                // Buyer intent analysis
-                const intentScore = analyzeBuyerIntent({
+                // Buyer intent (heuristic)
+                const intentInput = {
                   businessName: biz.name,
                   currentDomain: biz.website ? new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname : null,
-                  targetDomain: task.domainIdea,
-                  category: biz.category || null,
-                  location: biz.location || null,
-                  websiteText: pageText,
+                  targetDomain: task.domainIdea, category: biz.category || null,
+                  location: biz.location || null, websiteText: pageText,
                   domainMatchScore: scoreData.score,
-                });
+                };
+                const intentScore = analyzeBuyerIntent(intentInput);
 
-                // Domain upgrade fit
-                const fitScore = scoreDomainFit({
+                // Domain fit (heuristic)
+                const fitInput = {
                   businessName: biz.name,
                   currentDomain: biz.website ? new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname : null,
-                  targetDomain: task.domainIdea,
-                  location: biz.location || null,
+                  targetDomain: task.domainIdea, location: biz.location || null,
                   category: biz.category || null,
-                });
+                };
+                const fitScore = scoreDomainFit(fitInput);
 
                 // Business quality score
-                const qualityScore = scoreBusinessQuality(
-                  intel,
-                  biz.rating || null,
-                  biz.reviewsCount || null,
-                  biz.category || null,
-                  crawlData.companySize,
-                );
+                const qualityScore = scoreBusinessQuality(intel, biz.rating || null, biz.reviewsCount || null, biz.category || null, crawlData.companySize);
 
-                // Priority score — weighted combination
                 const dmScore = dm.score || 40;
-                const priorityScore = Math.round(
-                  dmScore * 0.35 +
-                  intentScore * 0.25 +
-                  qualityScore * 0.20 +
-                  fitScore * 0.20
-                );
+                const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
 
-                // Determine contact strategy
                 let contactStrategy = 'contact_form';
-                if (dmScore >= 85 && validatedEmails.length > 0) {
-                  contactStrategy = 'email_decision_maker';
-                } else if (validatedEmails.length > 0) {
-                  contactStrategy = 'email_general';
-                } else if (crawlData.phones.length > 0) {
-                  contactStrategy = 'call_business';
-                }
+                if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
+                else if (validatedEmails.length > 0) contactStrategy = 'email_general';
+                else if (crawlData.phones.length > 0) contactStrategy = 'call_business';
 
-                // Update lead with intelligence data
+                // Save heuristic scores immediately
                 await prisma.lead.update({
                   where: { id: createdLead.id },
                   data: {
-                    decisionMakerName: dm.name,
-                    decisionMakerRole: dm.role,
-                    decisionMakerScore: dmScore,
-                    decisionMakerEmail: dm.email,
-                    buyerIntentScore: intentScore,
-                    domainUpgradeScore: fitScore,
-                    businessQualityScore: qualityScore,
-                    priorityScore,
+                    decisionMakerName: dm.name, decisionMakerRole: dm.role,
+                    decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
+                    buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
+                    businessQualityScore: qualityScore, priorityScore,
                     contactStrategy,
                     buyerInsights: {
                       decisionMakerSource: dm.source,
@@ -322,8 +297,69 @@ const worker = new Worker<ScrapingJobData>(
                     },
                   },
                 });
+
+                // === AI ENRICHMENT (fire-and-forget, updates lead with AI-enhanced scores + insights) ===
+                (async () => {
+                  try {
+                    const [aiIntel, aiIntent, aiFit] = await Promise.all([
+                      enrichWithAi(biz.name, pageText, task.userId),
+                      analyzeBuyerIntentWithAi(intentInput, task.userId),
+                      scoreDomainFitWithAi(fitInput, task.userId),
+                    ]);
+
+                    const blendedIntent = aiIntent !== null ? Math.round((intentScore + aiIntent) / 2) : intentScore;
+                    const blendedFit = aiFit !== null ? Math.round((fitScore + aiFit) / 2) : fitScore;
+                    const blendedPriority = Math.round(dmScore * 0.35 + blendedIntent * 0.25 + qualityScore * 0.20 + blendedFit * 0.20);
+
+                    // Generate AI buyer insight narrative
+                    let aiInsight: string | null = null;
+                    if (aiIntel || aiIntent !== null || aiFit !== null) {
+                      const nvidiaKey = await getNvidiaKey(task.userId);
+                      if (nvidiaKey) {
+                        try {
+                          const insightPrompt = `Generate a 2-3 sentence buyer insight for ${biz.name}.
+Priority Score: ${blendedPriority}/100
+Decision Maker: ${dm.name || 'Unknown'} (${dm.role || 'Unknown role'})
+Buyer Intent: ${blendedIntent}/100
+Domain Fit: ${blendedFit}/100
+Business Quality: ${qualityScore}/100
+Target Domain: ${task.domainIdea}
+${aiIntel ? `Industry: ${aiIntel.industry}` : ''}
+${aiIntel ? `Description: ${aiIntel.description}` : ''}
+
+Write a concise insight explaining why this lead matters and how to approach them. Focus on the domain opportunity.`;
+                          const raw = await nvidiaChat(
+                            [{ role: 'user', content: insightPrompt }],
+                            { maxTokens: 200, temperature: 0.3, timeoutMs: 12000, userId: task.userId }
+                          );
+                          const cleaned = raw.replace(/^["']|["']$/g, '').trim();
+                          if (cleaned.length > 20) aiInsight = cleaned;
+                        } catch { /* insight non-critical */ }
+                      }
+                    }
+
+                    await prisma.lead.update({
+                      where: { id: createdLead.id },
+                      data: {
+                        buyerIntentScore: blendedIntent,
+                        domainUpgradeScore: blendedFit,
+                        priorityScore: blendedPriority,
+                        companyDescription: aiIntel?.description || undefined,
+                        painPoints: aiIntel?.painPoints || undefined,
+                        buyerInsights: {
+                          aiSummary: aiInsight,
+                          aiIndustry: aiIntel?.industry || null,
+                          aiEnriched: !!aiIntel,
+                          buyerIntentLabel: blendedIntent >= 65 ? 'high' : blendedIntent >= 45 ? 'moderate' : 'low',
+                          domainFitLabel: blendedFit >= 60 ? 'strong' : blendedFit >= 40 ? 'moderate' : 'weak',
+                        },
+                      },
+                    });
+                  } catch { /* AI enrichment non-critical */ }
+                })();
+
               } catch (innerErr: any) {
-                console.warn(`[Worker] Intelligence pipeline error for ${biz.name}: ${innerErr.message}`);
+                pipelineError(`Intelligence pipeline error: ${innerErr.message}`);
               }
             }
           } catch {

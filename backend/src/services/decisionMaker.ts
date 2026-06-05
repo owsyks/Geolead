@@ -173,62 +173,46 @@ export async function discoverDecisionMaker(
   staffNames: string[],
   userId?: string | null,
 ): Promise<DecisionMakerResult> {
-  // Step 1: From team/staff names already extracted (companyIntelligence)
-  if (staffNames.length > 0) {
-    const name = staffNames[0];
-    // Try to infer role from crawl texts
-    const pageText = crawlTexts.join('\n');
-    for (const staffName of staffNames) {
-      const nameLines = pageText.split('\n').filter(l => l.toLowerCase().includes(staffName.toLowerCase()));
-      for (const line of nameLines) {
-        const roleMatch = line.match(new RegExp(`${staffName}\\s*[-–—|,]+\\s*(.+)`, 'i'));
-        if (roleMatch) {
-          const role = roleMatch[1].trim();
-          return {
-            name: staffName,
-            role: normalizeRole(role),
-            score: scoreRole(role),
-            email: null,
-            source: 'team-page',
-          };
-        }
-      }
-    }
-    return {
-      name,
-      role: null,
-      score: null,
-      email: null,
-      source: 'team-page',
-    };
-  }
-
-  // Step 2: Pattern matching on crawl texts
   const fullText = crawlTexts.join('\n');
-  const found = discoverFromPageText(fullText);
-  if (found.name || found.role) {
-    return {
-      name: found.name,
-      role: found.role,
-      score: scoreRole(found.role),
-      email: found.email,
-      source: 'page-pattern',
-    };
-  }
 
-  // Step 3: AI fallback
-  if (crawlTexts.length > 0) {
-    const aiResult = await discoverWithAi(businessName, crawlTexts, userId);
-    if (aiResult.name || aiResult.role) {
-      return {
-        name: aiResult.name,
-        role: aiResult.role,
-        score: scoreRole(aiResult.role),
-        email: aiResult.email,
-        source: 'ai',
-      };
-    }
-  }
+  // Run heuristic + AI in parallel, pick best result
+  const [heuristicResult, aiResult] = await Promise.all([
+    (async (): Promise<DecisionMakerResult> => {
+      // From team/staff names already extracted
+      if (staffNames.length > 0) {
+        for (const staffName of staffNames) {
+          const nameLines = fullText.split('\n').filter(l => l.toLowerCase().includes(staffName.toLowerCase()));
+          for (const line of nameLines) {
+            const roleMatch = line.match(new RegExp(`${staffName}\\s*[-–—|,]+\\s*(.+)`, 'i'));
+            if (roleMatch) {
+              const role = roleMatch[1].trim();
+              return { name: staffName, role: normalizeRole(role), score: scoreRole(role), email: null, source: 'team-page' };
+            }
+          }
+        }
+        return { name: staffNames[0], role: null, score: null, email: null, source: 'team-page' };
+      }
 
+      // Pattern matching
+      const found = discoverFromPageText(fullText);
+      if (found.name || found.role) {
+        return { name: found.name, role: found.role, score: scoreRole(found.role), email: found.email, source: 'page-pattern' };
+      }
+      return { name: null, role: null, score: null, email: null, source: 'none' };
+    })(),
+    (async (): Promise<DecisionMakerResult> => {
+      if (crawlTexts.length === 0) return { name: null, role: null, score: null, email: null, source: 'none' };
+      const ai = await discoverWithAi(businessName, crawlTexts, userId);
+      if (ai.name || ai.role) {
+        return { name: ai.name, role: ai.role, score: scoreRole(ai.role), email: ai.email, source: 'ai' };
+      }
+      return { name: null, role: null, score: null, email: null, source: 'none' };
+    })(),
+  ]);
+
+  // Pick best: heuristic has a name AND a role → use it. Otherwise prefer AI if it found something.
+  if (heuristicResult.name && heuristicResult.role) return heuristicResult;
+  if (aiResult.name) return aiResult;
+  if (heuristicResult.name) return heuristicResult;
   return { name: null, role: null, score: null, email: null, source: 'none' };
 }
