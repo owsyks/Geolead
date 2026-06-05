@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { resolveMx } from 'node:dns/promises';
 import { resolveTxt } from 'node:dns/promises';
 import axios from 'axios';
 import type { Prisma } from '@prisma/client';
@@ -165,7 +166,7 @@ export async function ensureOutboundSeedData() {
 
   if ((await prisma.campaign.count()) === 0) {
     const leads = await prisma.lead.findMany({
-      where: { emails: { some: { status: { in: ['VALID', 'RISKY'] } } } },
+      where: { emails: { some: { status: 'VALID' } } },
       take: 5,
       orderBy: { domainMatchScore: 'desc' },
     });
@@ -249,7 +250,7 @@ export async function getOutboundOverview(userId: string) {
       take: 8,
       include: {
         emails: {
-          where: { status: { in: ['VALID', 'RISKY'] } },
+          where: { status: 'VALID' },
           orderBy: { confidenceScore: 'desc' },
         },
       },
@@ -317,7 +318,7 @@ export async function getCampaignDetail(id: string, userId: string) {
         include: {
           lead: {
             include: {
-              emails: { where: { status: { in: ['VALID', 'RISKY'] } }, orderBy: { confidenceScore: 'desc' } },
+              emails: { where: { status: 'VALID' }, orderBy: { confidenceScore: 'desc' } },
             },
           },
           emailLogs: true,
@@ -756,7 +757,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
     include: {
       campaignLeads: {
         include: {
-          lead: { include: { emails: { where: { status: { in: ['VALID', 'RISKY'] } }, orderBy: { confidenceScore: 'desc' } } } },
+          lead: { include: { emails: { where: { status: 'VALID' }, orderBy: { confidenceScore: 'desc' } } } },
           emailLogs: true,
         },
       },
@@ -917,6 +918,33 @@ export async function processOutboundQueueTick() {
       continue;
     }
 
+    // Pre-send freshness: re-check DNS if email was verified > 7 days ago
+    const staleThreshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const leadEmail = await prisma.leadEmail.findFirst({
+      where: { email: log.toEmail, leadId: log.leadId },
+      orderBy: { verifiedAt: 'desc' },
+    });
+    if (leadEmail && (!leadEmail.verifiedAt || leadEmail.verifiedAt < staleThreshold)) {
+      const domain = log.toEmail.split('@')[1];
+      if (domain) {
+        try {
+          const mxRecords = await Promise.race([
+            resolveMx(domain),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          ]);
+          if (!mxRecords || mxRecords.length === 0) {
+            await prisma.emailLog.update({
+              where: { id: log.id },
+              data: { status: 'CANCELLED', errorMessage: 'Domain no longer has MX records (re-verified before send).' },
+            });
+            continue;
+          }
+        } catch {
+          // DNS check failed — proceed cautiously, don't block send
+        }
+      }
+    }
+
     const sender = log.senderAccount || (await getRotatedSender());
     if (!sender || !(await senderWithinLimits(sender.id, sender.hourlyLimit, sender.dailyLimit))) {
       continue;
@@ -974,7 +1002,7 @@ async function queueNextSequenceStep(emailLogId: string) {
       campaign: true,
       campaignLead: {
         include: {
-          lead: { include: { emails: { where: { status: { in: ['VALID', 'RISKY'] } }, orderBy: { confidenceScore: 'desc' } } } },
+          lead: { include: { emails: { where: { status: 'VALID' }, orderBy: { confidenceScore: 'desc' } } } },
           sequence: { include: { steps: { orderBy: { stepOrder: 'asc' } } } },
           replies: true,
         },
@@ -2059,6 +2087,11 @@ async function applyProviderEvent(log: any, eventType: string, payload: Record<s
       source: 'provider-webhook',
       stopMessage: 'Sequence stopped after provider bounce.',
     });
+    // Auto-downgrade the LeadEmail so future campaigns avoid it
+    await prisma.leadEmail.updateMany({
+      where: { email: log.toEmail, leadId: log.leadId },
+      data: { status: 'INVALID', confidenceScore: 0 },
+    }).catch(() => undefined);
     await recordEmailEvent(log.id, 'BOUNCED', payload);
     await recordCampaignOutcome(log.toEmail, 'BOUNCED').catch(() => undefined);
     return;

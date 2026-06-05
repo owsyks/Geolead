@@ -1,4 +1,5 @@
 import { resolve4, resolve6, resolveMx, resolveTxt } from 'node:dns/promises';
+import net from 'node:net';
 import {
   DISPOSABLE_DOMAINS,
   DISPOSABLE_PATTERNS,
@@ -34,6 +35,9 @@ export interface EmailVerificationResult {
     hasSPF: boolean;
     hasDMARC: boolean;
     hasWebsite: boolean;
+    smtpChecked: boolean;
+    smtpSuccess: boolean | null;
+    smtpCatchAll: boolean | null;
     durationMs: number;
     verifiedAt: string;
   };
@@ -43,9 +47,9 @@ const DNS_TIMEOUT_MS = 3000;
 const PLACEHOLDER_DOMAINS = new Set(['example.com', 'example.org', 'example.net', 'test.com', 'localhost', 'invalid', 'domain.com']);
 const RESERVED_TLDS = ['.test', '.invalid', '.localhost', '.example', '.local'];
 
-// 24h cache for DNS lookups — long enough to avoid re-resolving the same domain across
-// a batch, short enough that MX/SPF/DMARC changes are picked up within a day.
-const DNS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+// 1h cache for DNS lookups — avoids re-resolving during a batch but catches
+// MX/SPF/DMARC changes fast enough to reduce bounces from stale data.
+const DNS_CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface CacheEntry<T> { promise: Promise<T>; createdAt: number }
 const domainCache = new Map<string, CacheEntry<DomainCheck>>();
@@ -86,6 +90,26 @@ function isDnsMiss(err: any): boolean {
   return ['ENOTFOUND', 'ENODATA', 'ENONAME', 'NXDOMAIN'].includes(code);
 }
 
+function detectTypoDomain(domain: string): string | null {
+  const TYPO_MAP: Record<string, string[]> = {
+    'gmail.com': ['gmial.com', 'gmail.con', 'gmail.co', 'gmaill.com', 'gamil.com', 'gmai.com', 'gmal.com', 'gmil.com', 'gnail.com', 'gmeil.com'],
+    'yahoo.com': ['yaho.com', 'yahooo.com', 'yahho.com', 'yhoo.com', 'yahoo.co'],
+    'hotmail.com': ['hotmial.com', 'hotmai.com', 'hotmaill.com', 'hotmil.com', 'hotmal.com', 'hotmail.con', 'hotnail.com'],
+    'outlook.com': ['outlok.com', 'outllok.com', 'outook.com', 'outloook.com', 'outlook.co'],
+    'aol.com': ['aol.come', 'oal.com'],
+    'msn.com': ['msn.come', 'msm.com', 'mmn.com'],
+    'icloud.com': ['icloud.come', 'icoud.com', 'iclud.com'],
+    'protonmail.com': ['protonail.com', 'protomail.com'],
+    'zoho.com': ['zoho.come', 'zohoo.com'],
+    'live.com': ['live.come', 'lve.com'],
+  };
+  const lower = domain.toLowerCase();
+  for (const [correct, typos] of Object.entries(TYPO_MAP)) {
+    if (typos.includes(lower)) return correct;
+  }
+  return null;
+}
+
 export function normalizeEmail(input: string): string {
   return String(input || '').trim().toLowerCase();
 }
@@ -111,6 +135,7 @@ export async function verifyEmail(rawEmail: string): Promise<EmailVerificationRe
     verificationMetadata: {
       syntaxValid: false, domainValid: false, mxRecords: [],
       hasSPF: false, hasDMARC: false, hasWebsite: false,
+      smtpChecked: false, smtpSuccess: null, smtpCatchAll: null,
       durationMs: 0, verifiedAt: new Date().toISOString(),
     },
   };
@@ -182,6 +207,23 @@ export async function verifyEmail(rawEmail: string): Promise<EmailVerificationRe
     hasSPF, hasDMARC, roleAccount: result.roleAccount, freeProvider: result.freeProvider,
   });
 
+  // Step 9: SMTP RCPT TO mailbox check
+  if (mx.primary) {
+    const smtpResult = await verifyMailboxViaSmtp(email, domain, mx.primary);
+    result.verificationMetadata.smtpChecked = smtpResult.checked;
+    result.verificationMetadata.smtpSuccess = smtpResult.mailboxExists;
+    result.verificationMetadata.smtpCatchAll = smtpResult.catchAll;
+
+    if (smtpResult.mailboxExists === false) {
+      result.reputationScore = Math.min(result.reputationScore, 15);
+      result.catchAllRisk = 'low';
+    } else if (smtpResult.mailboxExists === true) {
+      result.reputationScore = Math.max(result.reputationScore, smtpResult.catchAll ? 60 : 80);
+      if (smtpResult.catchAll) result.catchAllRisk = 'high';
+      else result.catchAllRisk = 'low';
+    }
+  }
+
   const final = finalize(result);
   result.confidenceScore = final.confidenceScore;
   result.status = final.status;
@@ -211,6 +253,8 @@ function validateSyntax(email: string): { valid: boolean; reason: string } {
   if (!re.test(email)) return { valid: false, reason: 'Email does not match RFC 5322 syntax' };
   const tld = domain.split('.').pop() || '';
   if (tld.length < 2 || /^\d+$/.test(tld)) return { valid: false, reason: 'Invalid TLD' };
+  const typo = detectTypoDomain(domain);
+  if (typo) return { valid: false, reason: `Possible typo: domain "${domain}" looks like "${typo}"` };
   return { valid: true, reason: '' };
 }
 
@@ -386,6 +430,120 @@ function finalize(r: EmailVerificationResult): FinalDecision {
   return { status, confidenceScore: score, riskLevel, recommendation };
 }
 
+interface SmtpCheckResult {
+  checked: boolean;
+  mailboxExists: boolean | null; // true, false, or null if unknown
+  catchAll: boolean | null;
+}
+
+const SMTP_CONNECT_TIMEOUT_MS = 4000;
+const SMTP_CMD_TIMEOUT_MS = 3000;
+
+async function verifyMailboxViaSmtp(
+  email: string,
+  domain: string,
+  mxHost: string
+): Promise<SmtpCheckResult> {
+  const result: SmtpCheckResult = { checked: false, mailboxExists: null, catchAll: null };
+
+  try {
+    // Connect to MX server
+    const socket = new net.Socket();
+    socket.setTimeout(SMTP_CONNECT_TIMEOUT_MS);
+
+    await new Promise<void>((resolve, reject) => {
+      socket.connect(25, mxHost, () => { socket.removeListener('error', reject); resolve(); });
+      socket.once('error', reject);
+      socket.once('timeout', () => reject(new Error('SMTP connect timeout')));
+    });
+
+    const readLine = (): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        let buffer = '';
+        const onData = (chunk: Buffer) => {
+          buffer += chunk.toString();
+          const idx = buffer.indexOf('\n');
+          if (idx >= 0) {
+            cleanup();
+            resolve(buffer.slice(0, idx).replace(/\r$/, ''));
+          }
+        };
+        const onError = (err: Error) => { cleanup(); reject(err); };
+        const onTimeout = () => { cleanup(); reject(new Error('SMTP read timeout')); };
+        const cleanup = () => {
+          socket.removeListener('data', onData);
+          socket.removeListener('error', onError);
+          socket.removeListener('timeout', onTimeout);
+        };
+        socket.on('data', onData);
+        socket.on('error', onError);
+        socket.on('timeout', onTimeout);
+      });
+    };
+
+    const sendCmd = (cmd: string): Promise<string> => {
+      return new Promise<void>((resolve, reject) => {
+        socket.write(`${cmd}\r\n`, (err) => err ? reject(err) : resolve());
+      }).then(() => readLine());
+    };
+
+    const expectCode = (line: string, ok: number[]): number => {
+      const code = Number(line.slice(0, 3));
+      if (!ok.includes(code)) throw new Error(`SMTP ${code}: ${line}`);
+      return code;
+    };
+
+    // SMTP handshake
+    socket.setTimeout(SMTP_CMD_TIMEOUT_MS);
+    const greeting = await readLine();
+    expectCode(greeting, [220]);
+
+    const ehlo = await sendCmd('EHLO verify-domain-check');
+    expectCode(ehlo, [250]);
+
+    const mailFrom = await sendCmd('MAIL FROM:<>');
+    expectCode(mailFrom, [250, 251]);
+
+    // RCPT TO for real email
+    let realExists: boolean | null = null;
+    try {
+      const rcptReal = await sendCmd(`RCPT TO:<${email}>`);
+      const code = Number(rcptReal.slice(0, 3));
+      if (code === 250 || code === 251) realExists = true;
+      else realExists = false;
+    } catch {
+      realExists = false;
+    }
+
+    // Catch-all detection: try a fake address
+    let isCatchAll: boolean | null = null;
+    if (realExists) {
+      try {
+        const fakeEmail = `nonexistent-${Date.now().toString(36)}@${domain}`;
+        const rcptFake = await sendCmd(`RCPT TO:<${fakeEmail}>`);
+        const code = Number(rcptFake.slice(0, 3));
+        // If fake also gets 250, domain is catch-all
+        if (code === 250 || code === 251) isCatchAll = true;
+        else isCatchAll = false;
+      } catch {
+        isCatchAll = false;
+      }
+    }
+
+    result.checked = true;
+    result.mailboxExists = realExists;
+    result.catchAll = isCatchAll;
+
+    // QUIT
+    try { await sendCmd('QUIT'); } catch { /* ignore */ }
+    socket.destroy();
+  } catch {
+    // SMTP check failed (timeout, connection refused, etc.) — skip gracefully
+  }
+
+  return result;
+}
+
 export async function verifyEmailsBulk(
   emails: string[],
   concurrency = 10,
@@ -410,6 +568,7 @@ export async function verifyEmailsBulk(
           verificationMetadata: {
             syntaxValid: false, domainValid: false, mxRecords: [],
             hasSPF: false, hasDMARC: false, hasWebsite: false,
+            smtpChecked: false, smtpSuccess: null, smtpCatchAll: null,
             durationMs: 0, verifiedAt: new Date().toISOString(),
           },
         };

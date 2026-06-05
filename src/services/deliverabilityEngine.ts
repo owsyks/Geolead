@@ -455,6 +455,7 @@ export async function assessDeliverabilityBulk(
           verificationMetadata: {
             syntaxValid: false, domainValid: false, mxRecords: [],
             hasSPF: false, hasDMARC: false, hasWebsite: false,
+            smtpChecked: false, smtpSuccess: null, smtpCatchAll: null,
             durationMs: 0, verifiedAt: new Date().toISOString(),
           },
           signals: {

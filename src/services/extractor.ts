@@ -20,6 +20,27 @@ type MailCheckStatus = 'ACCEPTS_MAIL' | 'NO_MAIL_HOST' | 'UNKNOWN';
 
 const mailCheckCache = new Map<string, Promise<MailCheckStatus>>();
 
+const TYPO_MAP: Record<string, string[]> = {
+  'gmail.com': ['gmial.com', 'gmail.con', 'gmail.co', 'gmaill.com', 'gamil.com', 'gmai.com', 'gmal.com', 'gmil.com', 'gnail.com', 'gmeil.com'],
+  'yahoo.com': ['yaho.com', 'yahooo.com', 'yahho.com', 'yhoo.com', 'yahoo.co'],
+  'hotmail.com': ['hotmial.com', 'hotmai.com', 'hotmaill.com', 'hotmil.com', 'hotmal.com', 'hotmail.con', 'hotnail.com'],
+  'outlook.com': ['outlok.com', 'outllok.com', 'outook.com', 'outloook.com', 'outlook.co'],
+  'aol.com': ['aol.come', 'oal.com'],
+  'msn.com': ['msn.come', 'msm.com', 'mmn.com'],
+  'icloud.com': ['icloud.come', 'icoud.com', 'iclud.com'],
+  'protonmail.com': ['protonail.com', 'protomail.com'],
+  'zoho.com': ['zoho.come', 'zohoo.com'],
+  'live.com': ['live.come', 'lve.com'],
+};
+
+function detectTypoDomain(domain: string): string | null {
+  const lower = domain.toLowerCase();
+  for (const [correct, typos] of Object.entries(TYPO_MAP)) {
+    if (typos.includes(lower)) return correct;
+  }
+  return null;
+}
+
 /**
  * Validates and ranks an email address.
  */
@@ -81,6 +102,17 @@ export async function validateEmail(email: string, sourcePage?: string): Promise
       email: cleanedEmail,
       status: 'INVALID',
       confidenceScore: 0.1,
+      sourcePage
+    };
+  }
+
+  // 3b. Detect domain typos
+  const typo = detectTypoDomain(domain);
+  if (typo) {
+    return {
+      email: cleanedEmail,
+      status: 'INVALID',
+      confidenceScore: 0.0,
       sourcePage
     };
   }
