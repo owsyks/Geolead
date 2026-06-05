@@ -382,6 +382,7 @@ model EmailLog {
   toEmail          String
   fromEmail        String
   subject          String
+  variant          String?
   previewText      String?
   bodyText         String      @db.Text
   bodyHtml         String?     @db.Text

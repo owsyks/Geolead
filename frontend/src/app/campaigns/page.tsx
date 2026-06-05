@@ -1,7 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pause, Play, Plus, RefreshCcw, Send, Trash2, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  Eye,
+  Loader2,
+  Pause,
+  Play,
+  Plus,
+  RefreshCcw,
+  Send,
+  Sparkles,
+  Trash2,
+  TrendingUp,
+  Upload,
+  X,
+  XCircle,
+} from "lucide-react";
 import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
@@ -78,6 +93,8 @@ export default function CampaignsPage() {
   const [uploadedEmails, setUploadedEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [variantsFor, setVariantsFor] = useState<{ id: string; name: string } | null>(null);
+  const [opensFor, setOpensFor] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({
     name: "Geo-domain buyer outreach",
     geoDomain: "TexasCarVendor.com",
@@ -641,6 +658,22 @@ export default function CampaignsPage() {
                               Queue
                             </button>
                             <button
+                              onClick={() => setVariantsFor({ id: campaign.id, name: campaign.name })}
+                              title="AI variants"
+                              className="h-8 px-2 rounded border border-violet-400/25 bg-violet-500/10 text-xs font-bold text-violet-300 inline-flex items-center gap-1"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Variants
+                            </button>
+                            <button
+                              onClick={() => setOpensFor({ id: campaign.id, name: campaign.name })}
+                              title="Who opened"
+                              className="h-8 px-2 rounded border border-indigo-400/25 bg-indigo-500/10 text-xs font-bold text-indigo-300 inline-flex items-center gap-1"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Opens
+                            </button>
+                            <button
                               onClick={() => void deleteCampaign(campaign.id, campaign.name)}
                               title="Delete campaign"
                               className="h-8 px-2 rounded border border-rose-400/25 bg-rose-500/10 text-xs font-bold text-rose-300 inline-flex items-center gap-1 ml-auto"
@@ -658,6 +691,313 @@ export default function CampaignsPage() {
           </div>
         </section>
       </section>
+
+      {variantsFor ? (
+        <VariantsModal campaign={variantsFor} onClose={() => setVariantsFor(null)} />
+      ) : null}
+      {opensFor ? (
+        <OpensModal campaign={opensFor} onClose={() => setOpensFor(null)} />
+      ) : null}
     </OutboundShell>
+  );
+}
+
+// ─── Variant types ────────────────────────────────────────────────────────────
+
+interface VariantPerf { sent: number; opens: number; replies: number; clicks: number; openRate: number; replyRate: number; clickRate: number }
+interface CampaignVariant {
+  key: string;
+  style: string;
+  subject: string;
+  greeting: string;
+  body: string;
+  cta: string;
+  signature: string;
+  spamScore: number;
+  approved: boolean;
+  flags: string[];
+  performance: VariantPerf;
+}
+interface VariantsResponse {
+  generatedAt: string | null;
+  variants: CampaignVariant[];
+  best: {
+    subject: { key: string; subject: string; openRate: number } | null;
+    variant: { key: string; style: string; replyRate: number } | null;
+    cta: { key: string; cta: string; replyRate: number } | null;
+  };
+}
+
+const VARIANT_COLORS: Record<string, string> = {
+  A: "border-indigo-400/30 bg-indigo-500/5",
+  B: "border-emerald-400/30 bg-emerald-500/5",
+  C: "border-violet-400/30 bg-violet-500/5",
+  D: "border-amber-400/30 bg-amber-500/5",
+  E: "border-sky-400/30 bg-sky-500/5",
+};
+
+// ─── Variants modal ───────────────────────────────────────────────────────────
+
+function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: string }; onClose: () => void }) {
+  const [data, setData] = useState<VariantsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchOutbound<VariantsResponse>(`/api/outbound/campaigns/${campaign.id}/variants`);
+      setData(res);
+    } catch {
+      setError("Could not load variants.");
+    } finally {
+      setLoading(false);
+    }
+  }, [campaign.id]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const generate = async () => {
+    setGenerating(true);
+    setError("");
+    try {
+      await fetchOutbound(`/api/outbound/campaigns/${campaign.id}/variants/generate`, { method: "POST" });
+      await load();
+    } catch {
+      setError("Generation failed — check your NVIDIA key in Settings.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const hasVariants = (data?.variants?.length ?? 0) > 0;
+
+  return (
+    <Modal title={`AI Variants · ${campaign.name}`} onClose={onClose}>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <p className="text-xs text-slate-500">
+          5 distinct, professional variants. Each lead gets a rotated variant; high performers get sent more often.
+        </p>
+        <button
+          onClick={() => void generate()}
+          disabled={generating}
+          className="h-9 px-3 shrink-0 rounded-lg border border-violet-400/30 bg-violet-500/15 text-xs font-bold text-violet-200 inline-flex items-center gap-1.5 disabled:opacity-60"
+        >
+          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {hasVariants ? "Regenerate" : "Generate variants"}
+        </button>
+      </div>
+
+      {error ? <div className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{error}</div> : null}
+
+      {loading ? (
+        <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
+      ) : !hasVariants ? (
+        <div className="py-10 text-center">
+          <Sparkles className="h-9 w-9 mx-auto text-violet-400 mb-3" />
+          <div className="text-sm font-black text-slate-900 dark:text-slate-100">No variants generated yet</div>
+          <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">Generate 5 unique email styles (Direct, Consultative, Branding, SEO, Opportunity) that rotate across your leads.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Best performers */}
+          {(data!.best.subject || data!.best.variant) && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <BestCard label="Best subject" value={data!.best.subject ? `${data!.best.subject.key}: "${data!.best.subject.subject}"` : "—"} sub={data!.best.subject ? `${data!.best.subject.openRate}% open` : "no data yet"} />
+              <BestCard label="Best variant" value={data!.best.variant ? `${data!.best.variant.key} · ${data!.best.variant.style}` : "—"} sub={data!.best.variant ? `${data!.best.variant.replyRate}% reply` : "no data yet"} />
+              <BestCard label="Best CTA" value={data!.best.cta ? `${data!.best.cta.key}` : "—"} sub={data!.best.cta ? `${data!.best.cta.replyRate}% reply` : "no data yet"} />
+            </div>
+          )}
+
+          {/* Variant cards */}
+          {data!.variants.map((v) => (
+            <div key={v.key} className={`rounded-lg border p-4 ${VARIANT_COLORS[v.key] || "border-slate-200 dark:border-slate-800"}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-sm font-black text-slate-700 dark:text-slate-300">{v.key}</span>
+                  <div>
+                    <div className="text-sm font-black text-slate-900 dark:text-slate-100">{v.style}</div>
+                    <div className="text-[11px] text-slate-500">{v.subject}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {v.approved ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /> Approved</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400" title={v.flags.join("; ")}><XCircle className="h-3.5 w-3.5" /> Blocked</span>
+                  )}
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${v.spamScore <= 4 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`} title="Spam risk score (0-10)">
+                    Spam {v.spamScore}
+                  </span>
+                </div>
+              </div>
+
+              <pre className="mt-3 whitespace-pre-wrap font-sans text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-md p-3 max-h-44 overflow-y-auto">{v.body}</pre>
+
+              {v.flags.length > 0 && (
+                <div className="mt-2 text-[11px] text-rose-400">{v.flags.join(" · ")}</div>
+              )}
+
+              {/* Performance bar */}
+              <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
+                <Stat label="sent" value={v.performance.sent} />
+                <Stat label="opens" value={`${v.performance.openRate}%`} highlight={v.performance.openRate > 0} />
+                <Stat label="clicks" value={`${v.performance.clickRate}%`} />
+                <Stat label="replies" value={`${v.performance.replyRate}%`} highlight={v.performance.replyRate > 0} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function BestCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-lg border border-indigo-400/20 bg-indigo-500/5 p-3">
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-indigo-400"><TrendingUp className="h-3 w-3" /> {label}</div>
+      <div className="mt-1 text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={value}>{value}</div>
+      <div className="text-[10px] text-slate-500">{sub}</div>
+    </div>
+  );
+}
+
+function Stat({ label, value, highlight }: { label: string; value: string | number; highlight?: boolean }) {
+  return (
+    <div className="rounded bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-1.5">
+      <div className={`font-black ${highlight ? "text-emerald-400" : "text-slate-800 dark:text-slate-200"}`}>{value}</div>
+      <div className="text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+// ─── Opens (recipient detail) modal ──────────────────────────────────────────
+
+interface Recipient {
+  emailLogId: string;
+  leadId?: string;
+  businessName: string;
+  toEmail: string;
+  subject: string;
+  variant: string | null;
+  status: string;
+  sentAt: string | null;
+  openCount: number;
+  firstOpenedAt: string | null;
+  lastOpenedAt: string | null;
+  clicked: boolean;
+  replied: boolean;
+}
+
+function OpensModal({ campaign, onClose }: { campaign: { id: string; name: string }; onClose: () => void }) {
+  const [rows, setRows] = useState<Recipient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [onlyOpened, setOnlyOpened] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetchOutbound<Recipient[]>(`/api/outbound/campaigns/${campaign.id}/recipients`);
+        if (active) setRows(res);
+      } catch { /* ignore */ }
+      finally { if (active) setLoading(false); }
+    })();
+    return () => { active = false; };
+  }, [campaign.id]);
+
+  const visible = onlyOpened ? rows.filter((r) => r.openCount > 0) : rows;
+  const openedCount = rows.filter((r) => r.openCount > 0).length;
+  const sentCount = rows.filter((r) => r.sentAt).length;
+
+  return (
+    <Modal title={`Opens · ${campaign.name}`} onClose={onClose}>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="text-xs text-slate-500">
+          {sentCount} sent · <span className="text-emerald-400 font-bold">{openedCount} opened</span>
+          {sentCount > 0 ? ` (${Math.round((openedCount / sentCount) * 100)}%)` : ""}
+        </div>
+        <button
+          onClick={() => setOnlyOpened((v) => !v)}
+          className={`h-8 px-3 rounded-lg text-xs font-bold border ${onlyOpened ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300" : "border-slate-300 dark:border-slate-700 text-slate-500"}`}
+        >
+          Opened only
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
+      ) : visible.length === 0 ? (
+        <div className="py-10 text-center text-sm text-slate-500">No recipients{onlyOpened ? " have opened yet" : " yet — queue the campaign to start sending"}.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-xs">
+            <thead className="text-[10px] uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-2 py-2 text-left">Recipient</th>
+                <th className="px-2 py-2 text-center">Variant</th>
+                <th className="px-2 py-2 text-center">Status</th>
+                <th className="px-2 py-2 text-center">Opens</th>
+                <th className="px-2 py-2 text-left">Last opened</th>
+                <th className="px-2 py-2 text-center">Reply</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {visible.map((r) => (
+                <tr key={r.emailLogId} className={r.openCount > 0 ? "bg-emerald-500/[0.03]" : ""}>
+                  <td className="px-2 py-2">
+                    <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">{r.businessName}</div>
+                    <div className="text-[10px] text-slate-500 truncate max-w-[180px]">{r.toEmail}</div>
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {r.variant ? (
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black text-slate-700 dark:text-slate-300">{r.variant}</span>
+                    ) : <span className="text-slate-500">—</span>}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <span className="text-[10px] font-bold text-slate-500">{r.status}</span>
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {r.openCount > 0 ? (
+                      <span className={`inline-flex items-center gap-1 font-black ${r.openCount >= 3 ? "text-emerald-400" : "text-emerald-500/80"}`} title={r.firstOpenedAt ? `First: ${new Date(r.firstOpenedAt).toLocaleString()}` : ""}>
+                        <Eye className="h-3 w-3" /> {r.openCount}×
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 text-slate-500">
+                    {r.lastOpenedAt ? new Date(r.lastOpenedAt).toLocaleString() : "—"}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {r.replied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 inline" /> : <span className="text-slate-600">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ─── Shared modal shell ───────────────────────────────────────────────────────
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-10 mb-10 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+          <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate pr-4">{title}</h3>
+          <button onClick={onClose} className="h-8 w-8 shrink-0 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
   );
 }

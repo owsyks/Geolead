@@ -23,6 +23,9 @@ import {
   listTemplates,
   listAuditLogs,
   queueCampaignSends,
+  generateAndStoreVariants,
+  getCampaignVariants,
+  getCampaignRecipients,
   deleteCampaign,
   recordClick,
   recordOpen,
@@ -137,6 +140,29 @@ router.post(
     res.json(result);
   })
 );
+
+// ── Campaign Variant Engine ──────────────────────────────────────────────────
+
+// Generate (or regenerate) the 5 AI variants and store them on the campaign.
+router.post(
+  '/campaigns/:id/variants/generate',
+  rateLimit({ key: 'campaign-variants', limit: 20, windowMs: 10 * 60 * 1000 }),
+  requireRoles('ADMIN', 'MANAGER'),
+  wrap(async (req, res) => {
+    const bundle = await generateAndStoreVariants(req.params.id, req.userId!);
+    res.json(bundle);
+  })
+);
+
+// Stored variants + live per-variant performance + best subject/variant/CTA.
+router.get('/campaigns/:id/variants', wrap(async (req, res) => {
+  res.json(await getCampaignVariants(req.params.id, req.userId!));
+}));
+
+// Per-recipient open detail: who opened, which variant, how many times.
+router.get('/campaigns/:id/recipients', wrap(async (req, res) => {
+  res.json(await getCampaignRecipients(req.params.id, req.userId!));
+}));
 
 router.delete(
   '/campaigns/:id',
