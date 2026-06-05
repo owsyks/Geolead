@@ -83,6 +83,17 @@ interface Lead {
   whatsappConfidence?: 'HIGH' | 'MEDIUM' | 'LOW' | null;
   bestContactChannel?: 'EMAIL' | 'WHATSAPP' | 'PHONE' | 'WEBSITE_FORM' | null;
   contactChannelScores?: { email: number; whatsapp: number; phone: number; websiteForm: number } | null;
+  // Decision maker & buyer intelligence
+  decisionMakerName?: string | null;
+  decisionMakerRole?: string | null;
+  decisionMakerScore?: number | null;
+  decisionMakerEmail?: string | null;
+  buyerIntentScore?: number | null;
+  domainUpgradeScore?: number | null;
+  businessQualityScore?: number | null;
+  priorityScore?: number | null;
+  buyerInsights?: Record<string, any> | null;
+  contactStrategy?: string | null;
 }
 
 interface SearchTask {
@@ -145,6 +156,9 @@ export default function DashboardPage() {
   const [minScore, setMinScore] = useState(0);
   const [hasEmailsOnly, setHasEmailsOnly] = useState(false);
   const [channelFilter, setChannelFilter] = useState<'all' | 'whatsapp_high' | 'email_available' | 'phone_available' | 'multi_channel'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [minBuyerIntent, setMinBuyerIntent] = useState<number>(0);
+  const [minPriority, setMinPriority] = useState<number>(0);
   const [sortField] = useState("domainMatchScore");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -413,16 +427,19 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const activePage = forcePage !== undefined ? forcePage : page;
-      const queryParams = new URLSearchParams({
-        taskId,
-        search: searchFilter,
-        minScore: minScore.toString(),
-        hasEmails: hasEmailsOnly ? "true" : "false",
-        sortField,
-        sortOrder,
-        page: activePage.toString(),
-        limit: limit.toString()
-      });
+    const queryParams = new URLSearchParams({
+      taskId,
+      search: searchFilter,
+      minScore: minScore.toString(),
+      hasEmails: hasEmailsOnly ? "true" : "false",
+      sortField,
+      sortOrder,
+      page: activePage.toString(),
+      limit: limit.toString()
+    });
+    if (roleFilter !== 'all') queryParams.set('role', roleFilter);
+    if (minBuyerIntent > 0) queryParams.set('minBuyerIntent', minBuyerIntent.toString());
+    if (minPriority > 0) queryParams.set('minPriority', minPriority.toString());
 
       const response = await authFetch(`${BACKEND_URL}/api/leads?${queryParams}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1386,6 +1403,49 @@ export default function DashboardPage() {
                       <option value="multi_channel">Multi-Channel</option>
                     </select>
                   </div>
+
+                  {/* Role filter */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
+                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Role</span>
+                    <select
+                      value={roleFilter}
+                      onChange={e => setRoleFilter(e.target.value)}
+                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
+                    >
+                      <option value="all">All</option>
+                      <option value="ceo">CEOs & Founders</option>
+                      <option value="founder">Founders Only</option>
+                      <option value="director">Directors</option>
+                    </select>
+                  </div>
+
+                  {/* Min Buyer Intent */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
+                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Intent</span>
+                    <select
+                      value={minBuyerIntent}
+                      onChange={e => setMinBuyerIntent(Number(e.target.value))}
+                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
+                    >
+                      <option value={0}>Any</option>
+                      <option value={65}>High (≥65)</option>
+                      <option value={45}>Moderate (≥45)</option>
+                    </select>
+                  </div>
+
+                  {/* Min Priority */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
+                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Priority</span>
+                    <select
+                      value={minPriority}
+                      onChange={e => setMinPriority(Number(e.target.value))}
+                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
+                    >
+                      <option value={0}>All</option>
+                      <option value={75}>High (≥75)</option>
+                      <option value={50}>Medium (≥50)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1614,18 +1674,81 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          {/* Match Score Column */}
+                          {/* Score Column — Domain Match, Priority, Decision Maker */}
                           <td className="py-5 px-4 text-center">
-                            <div className="inline-flex flex-col items-center gap-1.5">
-                              <span className={`text-base font-extrabold px-2.5 py-1 rounded-lg ${
+                            <div className="inline-flex flex-col items-center gap-1.5 min-w-[80px]">
+                              {/* Priority Score (primary) */}
+                              {lead.priorityScore != null && (
+                                <span className={`text-lg font-extrabold px-3 py-1 rounded-lg ${
+                                  lead.priorityScore >= 85
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    : lead.priorityScore >= 65
+                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                    : "bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-800"
+                                }`}>
+                                  {lead.priorityScore}
+                                </span>
+                              )}
+
+                              {/* Domain Match Score */}
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                                 lead.domainMatchScore >= 85
-                                  ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500/20"
+                                  ? "bg-emerald-950/20 text-emerald-400"
                                   : lead.domainMatchScore >= 65
-                                  ? "bg-indigo-950/20 text-indigo-400 border border-indigo-500/20"
-                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-800"
+                                  ? "bg-indigo-950/20 text-indigo-400"
+                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500"
                               }`}>
-                                {lead.domainMatchScore}%
+                                Match {lead.domainMatchScore}%
                               </span>
+
+                              {/* Decision Maker */}
+                              {lead.decisionMakerName && (
+                                <div className="flex flex-col items-center border-t border-slate-800/50 pt-1.5 mt-0.5 w-full">
+                                  <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[90px]">
+                                    {lead.decisionMakerName}
+                                  </span>
+                                  <span className="text-[9px] text-slate-500 uppercase tracking-wider">{lead.decisionMakerRole}</span>
+                                  {lead.decisionMakerScore != null && (
+                                    <span className={`text-[10px] font-bold ${
+                                      lead.decisionMakerScore >= 85 ? 'text-amber-400' :
+                                      lead.decisionMakerScore >= 70 ? 'text-indigo-400' : 'text-slate-500'
+                                    }`}>
+                                      DM {lead.decisionMakerScore}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Buyer Intent + Domain Fit badges */}
+                              <div className="flex items-center gap-1">
+                                {lead.buyerIntentScore != null && (
+                                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                                    lead.buyerIntentScore >= 65 ? 'bg-rose-500/10 text-rose-400' :
+                                    lead.buyerIntentScore >= 45 ? 'bg-amber-500/10 text-amber-400' :
+                                    'bg-slate-100 dark:bg-slate-900 text-slate-500'
+                                  }`}>
+                                    BI {lead.buyerIntentScore}
+                                  </span>
+                                )}
+                                {lead.domainUpgradeScore != null && (
+                                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                                    lead.domainUpgradeScore >= 60 ? 'bg-cyan-500/10 text-cyan-400' :
+                                    lead.domainUpgradeScore >= 40 ? 'bg-indigo-500/10 text-indigo-400' :
+                                    'bg-slate-100 dark:bg-slate-900 text-slate-500'
+                                  }`}>
+                                    DF {lead.domainUpgradeScore}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Contact strategy badge */}
+                              {lead.contactStrategy && (
+                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 uppercase tracking-wider">
+                                  {lead.contactStrategy === 'email_decision_maker' ? '📧 DM' :
+                                   lead.contactStrategy === 'email_general' ? '📧 Gen' :
+                                   lead.contactStrategy === 'call_business' ? '📞 Call' : '🌐 Form'}
+                                </span>
+                              )}
 
                               {/* WhatsApp reachability score */}
                               {lead.whatsappScore != null && (

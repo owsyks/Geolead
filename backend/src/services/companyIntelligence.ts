@@ -180,6 +180,58 @@ function collectPersonNames(node: any, names: Set<string>) {
   }
 }
 
+export function scoreBusinessQuality(
+  intel: CompanyIntelResult,
+  rating: number | null,
+  reviewsCount: number | null,
+  category: string | null,
+  companySize: string | null,
+): number {
+  let score = 30;
+
+  // Website quality signals
+  if (intel.websiteReachable) score += 15;
+  if (intel.hasTitle) score += 5;
+  if (intel.hasFavicon) score += 3;
+  if (intel.hasContactPage) score += 5;
+  if (intel.hasAboutPage) score += 5;
+  if (intel.socialLinkCount >= 3) score += 8;
+  else if (intel.socialLinkCount >= 1) score += 4;
+  if (intel.staffNames.length > 0) score += 5;
+
+  // Content quality
+  if (intel.pageWordCount >= 500) score += 5;
+  if (intel.pageWordCount >= 100) score += 3;
+
+  // Age/activity
+  if (intel.ageActivitySignal === 'active') score += 10;
+  else if (intel.ageActivitySignal === 'stale') score -= 5;
+
+  // Negative signals
+  if (intel.parkedDomain) score -= 20;
+  if (intel.underConstruction) score -= 10;
+
+  // Google rating
+  if (rating != null) {
+    if (rating >= 4.5) score += 10;
+    else if (rating >= 4.0) score += 7;
+    else if (rating >= 3.5) score += 3;
+  }
+
+  // Reviews count
+  if (reviewsCount != null) {
+    if (reviewsCount >= 100) score += 8;
+    else if (reviewsCount >= 20) score += 5;
+    else if (reviewsCount >= 5) score += 2;
+  }
+
+  // Company size
+  if (companySize === 'Large') score += 8;
+  else if (companySize === 'Medium') score += 5;
+
+  return Math.max(0, Math.min(100, score));
+}
+
 function looksLikePersonName(s: string): boolean {
   if (!s) return false;
   const trimmed = s.trim();

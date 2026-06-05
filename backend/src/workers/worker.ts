@@ -8,7 +8,12 @@ import { generateQueryVariations } from '../services/queryGenerator.js';
 import { searchGoogle, searchGooglePlaces } from '../services/serper.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
+import axios from 'axios';
 import { calculateMatchScore } from '../services/aiScoring.js';
+import { getCompanyIntel, scoreBusinessQuality } from '../services/companyIntelligence.js';
+import { discoverDecisionMaker } from '../services/decisionMaker.js';
+import { analyzeBuyerIntent } from '../services/buyerIntent.js';
+import { scoreDomainFit } from '../services/domainFit.js';
 import { processOutboundQueueTick } from '../services/outboundPlatform.js';
 import { verifyEmailsBulk } from '../services/emailVerification.js';
 
@@ -215,6 +220,114 @@ const worker = new Worker<ScrapingJobData>(
 
             const validCount = validatedEmails.filter(e => e.status !== 'INVALID').length;
             totalEmailsCount += validCount;
+          }
+
+          // === Decision Maker & Buyer Intelligence Pipeline ===
+          try {
+            // Company intelligence (staff names, website health, social presence)
+            let staffNames: string[] = [];
+            let pageText = '';
+            if (biz.website) {
+              try {
+                const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+                const intel = await getCompanyIntel(domain);
+                staffNames = intel.staffNames;
+
+                // Fetch homepage text for analysis
+                const resp = await axios.get(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`, {
+                  timeout: 5000,
+                  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GeoLeadAI/1.0)' },
+                  validateStatus: () => true,
+                });
+                const $ = (await import('cheerio')).load(resp.data);
+                $('script, style, noscript, svg, iframe, template').remove();
+                pageText = $('body').text().slice(0, 10000);
+
+                // Decision maker discovery
+                const dm = await discoverDecisionMaker(
+                  biz.name,
+                  biz.website,
+                  [pageText, crawlData.notes || ''],
+                  staffNames,
+                  task.userId,
+                );
+
+                // Buyer intent analysis
+                const intentScore = analyzeBuyerIntent({
+                  businessName: biz.name,
+                  currentDomain: biz.website ? new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname : null,
+                  targetDomain: task.domainIdea,
+                  category: biz.category || null,
+                  location: biz.location || null,
+                  websiteText: pageText,
+                  domainMatchScore: scoreData.score,
+                });
+
+                // Domain upgrade fit
+                const fitScore = scoreDomainFit({
+                  businessName: biz.name,
+                  currentDomain: biz.website ? new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname : null,
+                  targetDomain: task.domainIdea,
+                  location: biz.location || null,
+                  category: biz.category || null,
+                });
+
+                // Business quality score
+                const qualityScore = scoreBusinessQuality(
+                  intel,
+                  biz.rating || null,
+                  biz.reviewsCount || null,
+                  biz.category || null,
+                  crawlData.companySize,
+                );
+
+                // Priority score — weighted combination
+                const dmScore = dm.score || 40;
+                const priorityScore = Math.round(
+                  dmScore * 0.35 +
+                  intentScore * 0.25 +
+                  qualityScore * 0.20 +
+                  fitScore * 0.20
+                );
+
+                // Determine contact strategy
+                let contactStrategy = 'contact_form';
+                if (dmScore >= 85 && validatedEmails.length > 0) {
+                  contactStrategy = 'email_decision_maker';
+                } else if (validatedEmails.length > 0) {
+                  contactStrategy = 'email_general';
+                } else if (crawlData.phones.length > 0) {
+                  contactStrategy = 'call_business';
+                }
+
+                // Update lead with intelligence data
+                await prisma.lead.update({
+                  where: { id: createdLead.id },
+                  data: {
+                    decisionMakerName: dm.name,
+                    decisionMakerRole: dm.role,
+                    decisionMakerScore: dmScore,
+                    decisionMakerEmail: dm.email,
+                    buyerIntentScore: intentScore,
+                    domainUpgradeScore: fitScore,
+                    businessQualityScore: qualityScore,
+                    priorityScore,
+                    contactStrategy,
+                    buyerInsights: {
+                      decisionMakerSource: dm.source,
+                      buyerIntentLabel: intentScore >= 65 ? 'high' : intentScore >= 45 ? 'moderate' : 'low',
+                      domainFitLabel: fitScore >= 60 ? 'strong' : fitScore >= 40 ? 'moderate' : 'weak',
+                      hasStaffOnPage: staffNames.length > 0,
+                      qualityLabel: qualityScore >= 60 ? 'good' : qualityScore >= 40 ? 'average' : 'poor',
+                    },
+                  },
+                });
+              } catch (innerErr: any) {
+                console.warn(`[Worker] Intelligence pipeline error for ${biz.name}: ${innerErr.message}`);
+              }
+            }
+          } catch {
+            // Intelligence pipeline is non-critical — don't fail the lead
           }
 
           totalLeadsCount++;
