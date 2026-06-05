@@ -30,6 +30,7 @@ interface ProgressSlot {
   total: number;
   done: number;
   complete: boolean;
+  lastActivityAt: number;
 }
 const progressStore = new Map<string, ProgressSlot>();
 // Cleanup stale progress entries every 5 minutes
@@ -73,17 +74,33 @@ router.post(
     // Inline: stream per-email progress via token
     if (emails.length <= MAX_INLINE_BULK) {
       const token = randomBytes(12).toString('hex');
-      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false };
+      const now = Date.now();
+      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
       progressStore.set(token, slot);
+
+      let stalledTimer: NodeJS.Timeout | null = null;
+      const onActivity = () => { slot.lastActivityAt = Date.now(); };
 
       verifyEmailsBulk(emails, 10, undefined, (email, result, done) => {
         slot.results.push({ email, status: result.status, confidenceScore: result.confidenceScore });
         slot.done = done;
+        onActivity();
       }).then(() => {
         slot.complete = true;
+        if (stalledTimer) clearTimeout(stalledTimer);
       }).catch(() => {
         slot.complete = true;
+        if (stalledTimer) clearTimeout(stalledTimer);
       });
+
+      // Fallback: if no progress for 60s, auto-complete so frontend doesn't hang
+      stalledTimer = setTimeout(() => {
+        if (!slot.complete) {
+          console.warn(`[email] Verification stalled for token ${token} — auto-completing after 60s inactivity`);
+          slot.complete = true;
+        }
+      }, 60_000);
+      stalledTimer.unref();
 
       return res.json({ mode: 'stream', progressToken: token, total: emails.length });
     }
@@ -102,14 +119,20 @@ router.post(
     } catch (err: any) {
       console.warn('[email] Queue enqueue failed; running inline:', err?.message);
       const token = randomBytes(12).toString('hex');
-      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false };
+      const now = Date.now();
+      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
       progressStore.set(token, slot);
+
+      let stalledTimer: NodeJS.Timeout | null = null;
+      const onActivity = () => { slot.lastActivityAt = Date.now(); };
 
       verifyEmailsBulk(emails, 10, undefined, (email, result, done) => {
         slot.results.push({ email, status: result.status, confidenceScore: result.confidenceScore });
         slot.done = done;
+        onActivity();
       }).then(async () => {
         slot.complete = true;
+        if (stalledTimer) clearTimeout(stalledTimer);
         const summary = summarize(slot.results.map(r => ({ status: r.status } as any)));
         await prisma.emailVerificationJob.update({
           where: { id: job.id },
@@ -118,7 +141,15 @@ router.post(
             validEmails: summary.valid, riskyEmails: summary.risky, invalidEmails: summary.invalid,
           },
         }).catch(() => undefined);
-      }).catch(() => { slot.complete = true; });
+      }).catch(() => { slot.complete = true; if (stalledTimer) clearTimeout(stalledTimer); });
+
+      stalledTimer = setTimeout(() => {
+        if (!slot.complete) {
+          console.warn(`[email] Verification stalled for token ${token} — auto-completing after 60s inactivity`);
+          slot.complete = true;
+        }
+      }, 60_000);
+      stalledTimer.unref();
 
       return res.json({ mode: 'stream', progressToken: token, total: emails.length, jobId: job.id });
     }
@@ -131,6 +162,10 @@ router.get(
   wrap(async (req, res) => {
     const slot = progressStore.get(req.params.token);
     if (!slot) return res.status(404).json({ error: 'Progress token not found or expired' });
+    // Auto-complete if no activity for 60s (SMTP timeouts may silently stall workers)
+    if (!slot.complete && Date.now() - slot.lastActivityAt > 60_000) {
+      slot.complete = true;
+    }
     const offset = Number(req.query.offset) || 0;
     res.json({
       done: slot.done,

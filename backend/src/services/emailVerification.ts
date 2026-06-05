@@ -436,8 +436,8 @@ interface SmtpCheckResult {
   catchAll: boolean | null;
 }
 
-const SMTP_CONNECT_TIMEOUT_MS = 4000;
-const SMTP_CMD_TIMEOUT_MS = 3000;
+const SMTP_CONNECT_TIMEOUT_MS = 3000;
+const SMTP_CMD_TIMEOUT_MS = 2000;
 
 async function verifyMailboxViaSmtp(
   email: string,
@@ -447,15 +447,25 @@ async function verifyMailboxViaSmtp(
   const result: SmtpCheckResult = { checked: false, mailboxExists: null, catchAll: null };
 
   try {
-    // Connect to MX server
     const socket = new net.Socket();
-    socket.setTimeout(SMTP_CONNECT_TIMEOUT_MS);
+    // Prevent unhandled socket errors from crashing the worker when
+    // listeners are briefly detached between readLine cleanups.
+    socket.on('error', () => {});
+    let destroyed = false;
+    const safeDestroy = () => { if (!destroyed) { destroyed = true; socket.destroy(); } };
 
-    await new Promise<void>((resolve, reject) => {
-      socket.connect(25, mxHost, () => { socket.removeListener('error', reject); resolve(); });
-      socket.once('error', reject);
-      socket.once('timeout', () => reject(new Error('SMTP connect timeout')));
+    const connectPromise = new Promise<void>((resolve, reject) => {
+      const connectTimer = setTimeout(() => {
+        safeDestroy();
+        reject(new Error('SMTP connect timeout'));
+      }, SMTP_CONNECT_TIMEOUT_MS);
+      socket.connect(25, mxHost, () => {
+        clearTimeout(connectTimer);
+        resolve();
+      });
+      socket.once('error', (err) => { clearTimeout(connectTimer); reject(err); });
     });
+    await connectPromise;
 
     const readLine = (): Promise<string> => {
       return new Promise((resolve, reject) => {
@@ -493,7 +503,6 @@ async function verifyMailboxViaSmtp(
       return code;
     };
 
-    // SMTP handshake
     socket.setTimeout(SMTP_CMD_TIMEOUT_MS);
     const greeting = await readLine();
     expectCode(greeting, [220]);
@@ -504,27 +513,22 @@ async function verifyMailboxViaSmtp(
     const mailFrom = await sendCmd('MAIL FROM:<>');
     expectCode(mailFrom, [250, 251]);
 
-    // RCPT TO for real email
     let realExists: boolean | null = null;
     try {
       const rcptReal = await sendCmd(`RCPT TO:<${email}>`);
       const code = Number(rcptReal.slice(0, 3));
-      if (code === 250 || code === 251) realExists = true;
-      else realExists = false;
+      realExists = (code === 250 || code === 251);
     } catch {
       realExists = false;
     }
 
-    // Catch-all detection: try a fake address
     let isCatchAll: boolean | null = null;
     if (realExists) {
       try {
         const fakeEmail = `nonexistent-${Date.now().toString(36)}@${domain}`;
         const rcptFake = await sendCmd(`RCPT TO:<${fakeEmail}>`);
         const code = Number(rcptFake.slice(0, 3));
-        // If fake also gets 250, domain is catch-all
-        if (code === 250 || code === 251) isCatchAll = true;
-        else isCatchAll = false;
+        isCatchAll = (code === 250 || code === 251);
       } catch {
         isCatchAll = false;
       }
@@ -534,11 +538,10 @@ async function verifyMailboxViaSmtp(
     result.mailboxExists = realExists;
     result.catchAll = isCatchAll;
 
-    // QUIT
     try { await sendCmd('QUIT'); } catch { /* ignore */ }
-    socket.destroy();
+    safeDestroy();
   } catch {
-    // SMTP check failed (timeout, connection refused, etc.) — skip gracefully
+    // SMTP check failed gracefully — skip
   }
 
   return result;
