@@ -92,6 +92,8 @@ export default function CampaignsPage() {
   const [templates, setTemplates] = useState<Array<{ id: string; name: string; subject: string }>>([]);
   const [uploadedEmails, setUploadedEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leadsLoading, setLeadsLoading] = useState(false);
+  const [leadsScopedToDomain, setLeadsScopedToDomain] = useState(true);
   const [message, setMessage] = useState("");
   const [variantsFor, setVariantsFor] = useState<{ id: string; name: string } | null>(null);
   const [opensFor, setOpensFor] = useState<{ id: string; name: string } | null>(null);
@@ -145,6 +147,29 @@ export default function CampaignsPage() {
       setLoading(false);
     }
   }, []);
+
+  // Load valid scraped leads filtered by the campaign's geo-domain. When the
+  // domain scope is off, load the user's most recent valid leads instead.
+  const loadLeadsForDomain = useCallback(async (domain: string, scoped: boolean) => {
+    setLeadsLoading(true);
+    try {
+      const params = new URLSearchParams({ hasEmails: "true", limit: "50", page: "1" });
+      if (scoped && domain.trim()) params.set("domain", domain.trim());
+      const res = await fetchOutbound<{ leads: AvailableLead[] }>(`/api/leads?${params.toString()}`);
+      setLeads(res.leads);
+    } catch {
+      /* keep existing list on failure */
+    } finally {
+      setLeadsLoading(false);
+    }
+  }, []);
+
+  // Re-filter the lead list whenever the geo-domain (or scope toggle) changes.
+  useEffect(() => {
+    if (loading) return; // wait for initial bootstrap
+    const handle = setTimeout(() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain), 400);
+    return () => clearTimeout(handle);
+  }, [form.geoDomain, leadsScopedToDomain, loading, loadLeadsForDomain]);
 
   useEffect(() => {
     let active = true;
@@ -292,6 +317,19 @@ export default function CampaignsPage() {
 
   const toggleLead = (id: string) => {
     setSelectedLeadIds((current) => (current.includes(id) ? current.filter((leadId) => leadId !== id) : [...current, id]));
+  };
+
+  const allLeadsSelected = leads.length > 0 && leads.every((lead) => selectedLeadIds.includes(lead.id));
+  const toggleSelectAll = () => {
+    setSelectedLeadIds((current) => {
+      if (allLeadsSelected) {
+        const ids = new Set(leads.map((l) => l.id));
+        return current.filter((id) => !ids.has(id));
+      }
+      const merged = new Set(current);
+      leads.forEach((l) => merged.add(l.id));
+      return Array.from(merged);
+    });
   };
 
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -552,9 +590,51 @@ export default function CampaignsPage() {
               <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">Select leads</h3>
               <span className="text-xs text-slate-500">{selectedLeadIds.length} selected</span>
             </div>
+
+            {/* Domain scope controls */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLeadsScopedToDomain((v) => !v)}
+                className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1.5 ${
+                  leadsScopedToDomain
+                    ? "border-indigo-400/30 bg-indigo-500/10 text-indigo-300"
+                    : "border-slate-300 dark:border-slate-700 text-slate-500"
+                }`}
+                title="Show only valid leads scraped for this domain"
+              >
+                {leadsScopedToDomain ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                {leadsScopedToDomain ? `Scraped for ${form.geoDomain || "this domain"}` : "All my leads"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain)}
+                className="h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center justify-center"
+                title="Refresh leads"
+              >
+                {leadsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+              </button>
+              {leads.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="h-8 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 ml-auto"
+                >
+                  {allLeadsSelected ? "Clear all" : `Select all (${leads.length})`}
+                </button>
+              )}
+            </div>
+
             <div className="mt-3 max-h-72 overflow-y-auto space-y-2 pr-1">
-              {leads.length === 0 ? (
-                <EmptyState title="No verified leads loaded" body="Run the lead explorer first, or create the campaign without assigned leads." />
+              {leadsLoading ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading leads…</div>
+              ) : leads.length === 0 ? (
+                <EmptyState
+                  title={leadsScopedToDomain ? `No valid leads for ${form.geoDomain || "this domain"}` : "No verified leads loaded"}
+                  body={leadsScopedToDomain
+                    ? "Run the Lead Explorer for this domain first, or switch to All my leads."
+                    : "Run the lead explorer first, or create the campaign without assigned leads."}
+                />
               ) : (
                 leads.map((lead) => (
                   <label key={lead.id} className="flex gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-sm">
@@ -564,10 +644,11 @@ export default function CampaignsPage() {
                       onChange={() => toggleLead(lead.id)}
                       className="mt-1 h-4 w-4 accent-indigo-500"
                     />
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block font-bold text-slate-900 dark:text-slate-100 truncate">{lead.businessName}</span>
                       <span className="mt-1 block text-xs text-slate-500">
-                        {lead.location || lead.category || "Verified lead"} - {lead.domainMatchScore}% match
+                        {lead.location || lead.category || "Verified lead"} · {lead.domainMatchScore}% match
+                        {lead.emails.length > 0 ? ` · ${lead.emails.length} email${lead.emails.length > 1 ? "s" : ""}` : ""}
                       </span>
                     </span>
                   </label>

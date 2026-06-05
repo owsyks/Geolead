@@ -175,6 +175,7 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
     search,
     minScore,
     hasEmails,
+    domain,
     sortField = 'domainMatchScore',
     sortOrder = 'desc',
     page = '1',
@@ -191,6 +192,22 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
 
     if (taskId) {
       whereClause.taskId = taskId as string;
+    }
+
+    // Filter to leads scraped for a specific domain (matches the search task's
+    // domainIdea). Also matches the SLD so "TexasCarVendor.com" finds tasks
+    // stored as "texascarvendor" or with a different TLD.
+    if (domain) {
+      const raw = (domain as string).trim();
+      const sld = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
+      whereClause.task = {
+        is: {
+          OR: [
+            { domainIdea: { contains: raw, mode: 'insensitive' } },
+            ...(sld && sld !== raw ? [{ domainIdea: { contains: sld, mode: 'insensitive' } }] : []),
+          ],
+        },
+      };
     }
 
     if (search) {
