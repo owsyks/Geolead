@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import { outboundQueue } from '../queues/queues.js';
 import { generateOutboundEmail, generateFollowUpBody, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
+import { generateCampaignVariants, VARIANT_ORDER, type GeneratedVariant, type VariantBundle } from './campaignVariants.js';
 import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
@@ -587,6 +588,164 @@ export async function deleteCampaign(id: string, userId?: string) {
   return { deleted: true };
 }
 
+// Per-variant performance for a campaign (sent/opens/replies), used to weight
+// the variant rotation toward the best performers while still exploring others.
+export interface VariantStat { sent: number; opens: number; replies: number; clicks: number }
+
+export async function getVariantStats(campaignId: string): Promise<Record<string, VariantStat>> {
+  const [sent, opens, clicks, replies] = await Promise.all([
+    prisma.emailLog.groupBy({ by: ['variant'], where: { campaignId, variant: { not: null }, sentAt: { not: null } }, _count: { _all: true } }),
+    prisma.emailLog.groupBy({ by: ['variant'], where: { campaignId, variant: { not: null }, openedAt: { not: null } }, _count: { _all: true } }),
+    prisma.emailLog.groupBy({ by: ['variant'], where: { campaignId, variant: { not: null }, clickedAt: { not: null } }, _count: { _all: true } }),
+    prisma.emailLog.groupBy({ by: ['variant'], where: { campaignId, variant: { not: null }, repliedAt: { not: null } }, _count: { _all: true } }),
+  ]);
+  const stats: Record<string, VariantStat> = {};
+  const ensure = (k: string) => (stats[k] ??= { sent: 0, opens: 0, replies: 0, clicks: 0 });
+  for (const r of sent) if (r.variant) ensure(r.variant).sent = r._count._all;
+  for (const r of opens) if (r.variant) ensure(r.variant).opens = r._count._all;
+  for (const r of clicks) if (r.variant) ensure(r.variant).clicks = r._count._all;
+  for (const r of replies) if (r.variant) ensure(r.variant).replies = r._count._all;
+  return stats;
+}
+
+// Build a weighted variant picker. Seeds every approved variant at least once
+// (exploration), then biases selection toward variants with higher open/reply
+// rates (exploitation). Returns null when no approved variants exist.
+function buildVariantPicker(approved: GeneratedVariant[], stats: Record<string, VariantStat>) {
+  if (approved.length === 0) return null;
+  const weightFor = (v: GeneratedVariant) => {
+    const s = stats[v.key];
+    if (!s || s.sent < 3) return 1; // not enough data yet — neutral weight
+    const openRate = s.sent ? s.opens / s.sent : 0;
+    const replyRate = s.sent ? s.replies / s.sent : 0;
+    return 1 + openRate * 2 + replyRate * 6; // replies weighted heaviest
+  };
+  return (indexInThisRun: number): GeneratedVariant => {
+    // Seed phase: first N sends of this run go round-robin so each variant
+    // that has never been sent gets initial coverage.
+    const unseeded = approved.filter((v) => (stats[v.key]?.sent ?? 0) === 0);
+    if (unseeded.length > 0 && indexInThisRun < unseeded.length) {
+      return unseeded[indexInThisRun];
+    }
+    const weights = approved.map(weightFor);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < approved.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return approved[i];
+    }
+    return approved[indexInThisRun % approved.length];
+  };
+}
+
+// Generate the 5 AI variants for a campaign and persist them on the campaign's
+// metadata so the queue can rotate them. Returns the stored bundle.
+export async function generateAndStoreVariants(campaignId: string, userId?: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) } });
+  if (!campaign) throw new Error('Campaign not found.');
+
+  const sender = await resolveCampaignSender(campaign);
+  const bundle = await generateCampaignVariants({
+    geoDomain: campaign.geoDomain,
+    niche: campaign.niche,
+    cityState: campaign.cityState || undefined,
+    senderName: sender?.fromName || undefined,
+    objective: campaign.objective,
+    userId: campaign.userId,
+  });
+
+  await prisma.campaign.update({
+    where: { id: campaign.id },
+    data: { metadata: { ...(campaign.metadata as any), variants: bundle } as Prisma.InputJsonObject },
+  });
+  return bundle;
+}
+
+// Return the stored variants plus live performance, with best subject / variant
+// / CTA highlighted. Powers the Variants panel in the UI.
+export async function getCampaignVariants(campaignId: string, userId?: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) } });
+  if (!campaign) throw new Error('Campaign not found.');
+
+  const bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
+  const stats = await getVariantStats(campaign.id);
+
+  const variants = (bundle?.variants || []).map((v) => {
+    const s = stats[v.key] || { sent: 0, opens: 0, replies: 0, clicks: 0 };
+    const openRate = s.sent ? Math.round((s.opens / s.sent) * 100) : 0;
+    const replyRate = s.sent ? Math.round((s.replies / s.sent) * 100) : 0;
+    const clickRate = s.sent ? Math.round((s.clicks / s.sent) * 100) : 0;
+    return { ...v, performance: { ...s, openRate, replyRate, clickRate } };
+  });
+
+  // Best performers (require at least 1 send to qualify; fall back to first).
+  const withSends = variants.filter((v) => v.performance.sent > 0);
+  const bestByOpen = [...withSends].sort((a, b) => b.performance.openRate - a.performance.openRate)[0] || null;
+  const bestByReply = [...withSends].sort((a, b) => b.performance.replyRate - a.performance.replyRate)[0] || null;
+
+  return {
+    generatedAt: bundle?.generatedAt || null,
+    variants,
+    best: {
+      subject: bestByOpen ? { key: bestByOpen.key, subject: bestByOpen.subject, openRate: bestByOpen.performance.openRate } : null,
+      variant: bestByReply ? { key: bestByReply.key, style: bestByReply.style, replyRate: bestByReply.performance.replyRate } : null,
+      cta: bestByReply ? { key: bestByReply.key, cta: bestByReply.cta, replyRate: bestByReply.performance.replyRate } : null,
+    },
+  };
+}
+
+// Per-recipient open detail: who opened, which variant, how many times, and when.
+export async function getCampaignRecipients(campaignId: string, userId?: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) }, select: { id: true } });
+  if (!campaign) throw new Error('Campaign not found.');
+
+  const logs = await prisma.emailLog.findMany({
+    where: { campaignId: campaign.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      toEmail: true,
+      subject: true,
+      variant: true,
+      status: true,
+      sentAt: true,
+      openedAt: true,
+      clickedAt: true,
+      repliedAt: true,
+      lead: { select: { id: true, businessName: true } },
+      _count: { select: { events: true } },
+    },
+  });
+
+  // Count OPENED events per log (multiple opens = re-reads / forwards).
+  const opens = await prisma.emailEvent.groupBy({
+    by: ['emailLogId'],
+    where: { campaignId: campaign.id, type: 'OPENED' },
+    _count: { _all: true },
+    _max: { occurredAt: true },
+  });
+  const openByLog = new Map(opens.map((o) => [o.emailLogId, { count: o._count._all, last: o._max.occurredAt }]));
+
+  return logs.map((log) => {
+    const o = openByLog.get(log.id);
+    return {
+      emailLogId: log.id,
+      leadId: log.lead?.id,
+      businessName: log.lead?.businessName || log.toEmail,
+      toEmail: log.toEmail,
+      subject: log.subject,
+      variant: log.variant,
+      status: log.status,
+      sentAt: log.sentAt,
+      openCount: o?.count ?? 0,
+      firstOpenedAt: log.openedAt,
+      lastOpenedAt: o?.last ?? log.openedAt,
+      clicked: Boolean(log.clickedAt),
+      replied: Boolean(log.repliedAt),
+    };
+  });
+}
+
 export async function queueCampaignSends(campaignId: string, senderAccountIdOverride?: string, userId?: string) {
   if (userId) {
     const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
@@ -620,6 +779,14 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   const firstStep = campaign.sequences[0]?.steps[0];
   if (!sender || !firstStep) return { queued: 0 };
 
+  // Campaign Variant Engine: if approved variants are stored on the campaign,
+  // rotate them across recipients (weighted toward best performers). Otherwise
+  // fall back to the sequence's first-step template for everyone.
+  const bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
+  const approvedVariants = (bundle?.variants || []).filter((v) => v.approved);
+  const variantStats = approvedVariants.length ? await getVariantStats(campaign.id) : {};
+  const pickVariant = buildVariantPicker(approvedVariants, variantStats);
+
   const physicalAddress = await resolvePhysicalAddress(campaign.userId);
   let queued = 0;
   for (const recipient of campaign.campaignLeads) {
@@ -632,11 +799,17 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
     const scheduledAt = recipient.nextSendAt || nextSendTime(campaign, queued);
     const trackingToken = randomToken();
     const unsubscribeToken = recipient.unsubscribeToken || randomToken();
-    const bodyText = personalize(firstStep.body, campaign, recipient.lead, {
+
+    // Choose the source copy: a rotated variant, or the step template.
+    const chosen = pickVariant ? pickVariant(queued) : null;
+    const rawBody = chosen ? chosen.body : firstStep.body;
+    const rawSubject = chosen ? chosen.subject : firstStep.subject;
+
+    const bodyText = personalize(rawBody, campaign, recipient.lead, {
       trackingToken,
       unsubscribeToken,
     }, physicalAddress);
-    const subject = personalize(firstStep.subject, campaign, recipient.lead, {
+    const subject = personalize(rawSubject, campaign, recipient.lead, {
       trackingToken,
       unsubscribeToken,
     }, physicalAddress, { isSubject: true });
@@ -653,6 +826,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
         toEmail: email,
         fromEmail: sender.fromEmail,
         subject,
+        variant: chosen ? chosen.key : null,
         previewText: firstStep.previewText,
         bodyText,
         bodyHtml: textToTrackedHtml(bodyText, trackingToken),
@@ -663,6 +837,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
         metadata: {
           queueMode: process.env.OUTBOUND_QUEUE_MODE || 'database',
           compliance: defaultCompliancePolicy(),
+          ...(chosen ? { variant: chosen.key, variantStyle: chosen.style } : {}),
         },
       },
     });
