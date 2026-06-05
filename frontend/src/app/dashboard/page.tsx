@@ -3,6 +3,7 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ComposerModal } from "./ComposerModal";
+import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import { authFetch } from "@/lib/outbound";
@@ -155,9 +156,10 @@ export default function DashboardPage() {
   const [editingNotesLeadId, setEditingNotesLeadId] = useState<string | null>(null);
   const [notesText, setNotesText] = useState("");
 
-  // Email verification state
+  // Email verification state (modal-driven)
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ valid: number; risky: number; invalid: number; total: number } | null>(null);
+  const [verifyProgress, setVerifyProgress] = useState<{ results: EmailProgress[]; total: number; done: number; complete: boolean }>({ results: [], total: 0, done: 0, complete: false });
 
   // WA validation panel state
   const [showWaPanel, setShowWaPanel] = useState(false);
@@ -927,6 +929,8 @@ export default function DashboardPage() {
 
     setVerifying(true);
     setVerifyResult(null);
+    setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
+
     try {
       // Fetch ALL emails for the task (not just the current page)
       const emailRes = await authFetch(`${BACKEND_URL}/api/leads/emails?taskId=${selectedTask.id}`);
@@ -942,9 +946,49 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
+      if (data.mode === 'stream') {
+        // Streaming per-email progress
+        const token: string = data.progressToken;
+        const total = data.total;
+        setVerifyProgress((prev) => ({ ...prev, total }));
+        if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
+        verifyPollInterval.current = setInterval(async () => {
+          try {
+            const progressRes = await authFetch(`${BACKEND_URL}/api/email/verify-bulk/progress/${token}?offset=0`);
+            if (!progressRes.ok) return;
+            const progress = await progressRes.json();
+            if (!mounted.current) {
+              if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
+              return;
+            }
+            setVerifyProgress((prev) => ({
+              results: progress.results as EmailProgress[],
+              total: progress.total,
+              done: progress.done,
+              complete: progress.complete,
+            }));
+            if (progress.complete) {
+              if (verifyPollInterval.current) { clearInterval(verifyPollInterval.current); verifyPollInterval.current = null; }
+              setVerifying(false);
+              if (selectedTask) fetchTaskLeads(selectedTask.id);
+            }
+          } catch {
+            if (verifyPollInterval.current) { clearInterval(verifyPollInterval.current); verifyPollInterval.current = null; }
+            setVerifying(false);
+          }
+        }, 300);
+        return;
+      }
+
       if (data.mode === 'inline' || data.mode === 'inline-fallback') {
         const summary = data.summary as { valid: number; risky: number; invalid: number };
-        setVerifyResult({ ...summary, total: data.total });
+        setVerifyProgress({
+          results: data.results?.map((r: any) => ({ email: r.email, status: r.status, confidenceScore: r.confidenceScore })) || [],
+          total: data.total,
+          done: data.total,
+          complete: true,
+        });
+        setVerifying(false);
         if (selectedTask) fetchTaskLeads(selectedTask.id);
       } else {
         // Queued — poll until done
@@ -959,9 +1003,10 @@ export default function DashboardPage() {
               if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
               return;
             }
+            setVerifyProgress((prev) => ({ ...prev, total: job.totalEmails, done: job.processedEmails || 0 }));
             if (job.status === 'COMPLETED') {
               if (verifyPollInterval.current) { clearInterval(verifyPollInterval.current); verifyPollInterval.current = null; }
-              setVerifyResult({ valid: job.validEmails, risky: job.riskyEmails, invalid: job.invalidEmails, total: job.totalEmails });
+              setVerifyProgress((prev) => ({ ...prev, done: job.processedEmails, complete: true }));
               setVerifying(false);
               if (selectedTask) fetchTaskLeads(selectedTask.id);
             } else if (job.status === 'FAILED') {
@@ -977,8 +1022,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Verify emails error:', err);
+      setVerifying(false);
     }
-    setVerifying(false);
   };
 
   return (
@@ -1125,21 +1170,18 @@ export default function DashboardPage() {
       {/* Main Panel */}
       <main className="flex-1 bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden">
         
-        {/* Email Verification Result Banner */}
-        {verifyResult && (
-          <div className="bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-300 px-6 py-2.5 text-xs font-medium flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>
-                Verification complete — {verifyResult.total} emails checked:
-                <span className="text-emerald-400 font-bold ml-1">{verifyResult.valid} valid</span>,
-                <span className="text-amber-400 font-bold ml-1">{verifyResult.risky} risky</span>,
-                <span className="text-rose-400 font-bold ml-1">{verifyResult.invalid} invalid</span>
-              </span>
-            </div>
-            <button onClick={() => setVerifyResult(null)} className="text-emerald-500 hover:text-emerald-300 text-lg leading-none">&times;</button>
-          </div>
-        )}
+        {/* Email Verification Modal */}
+        <VerificationModal
+          open={verifying || verifyProgress.results.length > 0}
+          results={verifyProgress.results}
+          total={verifyProgress.total}
+          done={verifyProgress.done}
+          complete={verifyProgress.complete}
+          onClose={() => {
+            setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
+            setVerifyResult(null);
+          }}
+        />
 
         {/* Offline Demo Banner */}
         {isDemoMode && (
