@@ -129,23 +129,30 @@ export default function CampaignsPage() {
   }, [overview]);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const [campaignData, overviewData, leadData, templateData] = await Promise.all([
+      const [campaignData, overviewData, templateData] = await Promise.all([
         fetchOutbound<OutboundCampaignSummary[]>("/api/outbound/campaigns"),
         fetchOutbound<OutboundOverview>("/api/outbound/overview"),
-        fetchOutbound<{ leads: AvailableLead[] }>("/api/leads?hasEmails=true&limit=12&page=1"),
         fetchOutbound<Array<{ id: string; name: string; subject: string }>>("/api/outbound/templates"),
       ]);
       setCampaigns(campaignData);
       setOverview(overviewData);
-      setLeads(leadData.leads);
       setTemplates(templateData);
+      setMessage("");
     } catch {
       setCampaigns(demoCampaigns);
       setMessage("Backend offline. Showing demo campaign data.");
-    } finally {
       setLoading(false);
+      return;
     }
+    try {
+      const leadData = await fetchOutbound<{ leads: AvailableLead[] }>("/api/leads?hasEmails=true&limit=12&page=1");
+      setLeads(leadData.leads);
+    } catch {
+      setLeads([]);
+    }
+    setLoading(false);
   }, []);
 
   // Load valid scraped leads filtered by the campaign's geo-domain. When the
