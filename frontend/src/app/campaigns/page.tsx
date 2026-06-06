@@ -143,17 +143,20 @@ export default function CampaignsPage() {
     } catch {
       setCampaigns(demoCampaigns);
       setMessage("Backend offline. Showing demo campaign data.");
+    } finally {
       setLoading(false);
-      return;
     }
-    try {
-      const leadData = await fetchOutbound<{ leads: AvailableLead[] }>("/api/leads?hasEmails=true&limit=12&page=1");
-      setLeads(leadData.leads);
-    } catch {
-      setLeads([]);
-    }
-    setLoading(false);
   }, []);
+
+  const loadLeadsOnce = useCallback(async () => {
+    if (leads.length > 0) return;
+    setLeadsLoading(true);
+    try {
+      const leadData = await fetchOutbound<{ leads: AvailableLead[] }>("/api/leads?hasEmails=true&limit=50&page=1");
+      setLeads(leadData.leads);
+    } catch { setLeads([]); }
+    setLeadsLoading(false);
+  }, [leads.length]);
 
   // Load valid scraped leads filtered by the campaign's geo-domain. When the
   // domain scope is off, load the user's most recent valid leads instead.
