@@ -1058,7 +1058,21 @@ async function queueNextSequenceStep(emailLogId: string) {
 
   const trackingToken = randomToken();
   const unsubscribeToken = campaignLead.unsubscribeToken || log.unsubscribeToken || randomToken();
-  const scheduledAt = nextSequenceSendTime(nextStep.delayHours, log.sentAt || new Date(), log.campaign);
+
+  // Smart follow-up timing: adjust delay based on engagement
+  let adjustedDelayHours = nextStep.delayHours;
+  const openCount = campaignLead.lead.openCount || 0;
+  const lastOpenedAt = log.openedAt || campaignLead.openedAt;
+  if (nextStep.stepType === 'FOLLOW_UP') {
+    if (openCount >= 3 && lastOpenedAt) {
+      // Engaged lead — follow up sooner (24-48h)
+      adjustedDelayHours = 24;
+    } else if (openCount === 0) {
+      // Never opened — wait longer before following up
+      adjustedDelayHours = Math.max(nextStep.delayHours, 120);
+    }
+  }
+  const scheduledAt = nextSequenceSendTime(adjustedDelayHours, log.sentAt || new Date(), log.campaign);
   const physicalAddress = await resolvePhysicalAddress(log.campaign?.userId);
 
   let stepBody = nextStep.body;

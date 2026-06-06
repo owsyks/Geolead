@@ -277,6 +277,10 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
       whereClause.emails = { some: { status: { in: ['VALID', 'RISKY'] } } };
     }
 
+    if (req.query.notContacted === 'true') {
+      whereClause.lastContactedAt = null;
+    }
+
     // Decision maker role filter
     if (role) {
       const roleStr = (role as string).toLowerCase();
@@ -344,6 +348,45 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async
   } catch (error) {
     console.error('[Server] Fetch leads error:', error);
     return res.status(500).json({ error: 'Failed to retrieve leads.' });
+  }
+});
+
+/**
+ * PATCH /api/leads/bulk
+ * Bulk update leads: change pipeline stage, add tags, mark contacted.
+ */
+app.patch('/api/leads/bulk', requireAuth, async (req, res) => {
+  const { leadIds, pipelineStage, addTags, markContacted } = req.body;
+  if (!Array.isArray(leadIds) || leadIds.length === 0) {
+    return res.status(400).json({ error: 'leadIds array is required' });
+  }
+
+  try {
+    const data: Record<string, any> = {};
+    if (pipelineStage) data.pipelineStage = pipelineStage;
+    if (addTags && Array.isArray(addTags)) {
+      // Prisma doesn't support push for arrays in updateMany
+      const leads = await prisma.lead.findMany({
+        where: { id: { in: leadIds }, ownerId: req.userId! },
+        select: { id: true, tags: true },
+      });
+      for (const lead of leads) {
+        const merged = Array.from(new Set([...(lead.tags || []), ...addTags]));
+        await prisma.lead.update({ where: { id: lead.id }, data: { tags: merged } });
+      }
+    }
+    if (markContacted) {
+      data.lastContactedAt = new Date();
+      data.leadStatus = 'Contacted';
+      if (!data.pipelineStage) data.pipelineStage = 'Contacted';
+    }
+    if (Object.keys(data).length > 0) {
+      await prisma.lead.updateMany({ where: { id: { in: leadIds }, ownerId: req.userId! }, data });
+    }
+    res.json({ updated: leadIds.length });
+  } catch (error) {
+    console.error('[Server] Bulk lead update error:', error);
+    return res.status(500).json({ error: 'Failed to update leads.' });
   }
 });
 

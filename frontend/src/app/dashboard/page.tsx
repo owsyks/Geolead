@@ -159,6 +159,7 @@ export default function DashboardPage() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [minBuyerIntent, setMinBuyerIntent] = useState<number>(0);
   const [minPriority, setMinPriority] = useState<number>(0);
+  const [notContactedOnly, setNotContactedOnly] = useState(false);
   const [sortField] = useState("domainMatchScore");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -230,6 +231,20 @@ export default function DashboardPage() {
   const [campaignName, setCampaignName] = useState("");
   const [campaignThrottle, setCampaignThrottle] = useState(5);
   const [campaignCreating, setCampaignCreating] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
+  const doBulkAction = async (action: { pipelineStage?: string; markContacted?: boolean; addTags?: string[] }) => {
+    try {
+      await authFetch(`${BACKEND_URL}/api/leads/bulk`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadIds: Array.from(selectedLeadIds), ...action }),
+      });
+      setShowBulkActions(false);
+      setSelectedLeadIds(new Set());
+      if (selectedTask) fetchTaskLeads(selectedTask.id);
+    } catch { /* ignore */ }
+  };
 
   const toggleLeadSelection = (leadId: string) => {
     setSelectedLeadIds(prev => {
@@ -530,6 +545,7 @@ export default function DashboardPage() {
     if (roleFilter !== 'all') queryParams.set('role', roleFilter);
     if (minBuyerIntent > 0) queryParams.set('minBuyerIntent', minBuyerIntent.toString());
     if (minPriority > 0) queryParams.set('minPriority', minPriority.toString());
+    if (notContactedOnly) queryParams.set('notContacted', 'true');
 
       const response = await authFetch(`${BACKEND_URL}/api/leads?${queryParams}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1417,8 +1433,56 @@ export default function DashboardPage() {
                     <div>
                       <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Crawl & Extraction Pipeline</h4>
                       <p className="text-[10px] text-slate-500 mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
-                    </div>
+                  {/* Not Contacted toggle */}
+                  <button
+                    onClick={() => { setNotContactedOnly(!notContactedOnly); }}
+                    className={`h-9 rounded-lg px-2.5 text-[10px] font-bold uppercase tracking-wider border transition-colors cursor-pointer ${
+                      notContactedOnly ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-500'
+                    }`}
+                  >
+                    Not Contacted
+                  </button>
+                </div>
+
+                {/* Bulk Actions */}
+                {selectedLeadIds.size > 1 && (
+                  <div className="flex items-center gap-2 ml-2">
+                    <button
+                      onClick={() => setShowBulkActions(!showBulkActions)}
+                      className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      Bulk ({selectedLeadIds.size})
+                    </button>
+                    {showBulkActions && (
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          onChange={async (e) => {
+                            const stage = e.target.value;
+                            if (!stage) return;
+                            await doBulkAction({ pipelineStage: stage });
+                            e.target.value = '';
+                          }}
+                          className="h-9 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-700 dark:text-slate-300"
+                        >
+                          <option value="">Set Stage...</option>
+                          <option value="New">New</option>
+                          <option value="Contacted">Contacted</option>
+                          <option value="Replied">Replied</option>
+                          <option value="Interested">Interested</option>
+                          <option value="Not Interested">Not Interested</option>
+                        </select>
+                        <button
+                          onClick={() => doBulkAction({ markContacted: true })}
+                          className="h-9 px-2.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-xs font-bold text-white transition-colors cursor-pointer"
+                        >
+                          Mark Contacted
+                        </button>
+                      </div>
+                    )}
                   </div>
+                )}
+              </div>
                   <span className="text-sm font-black text-indigo-400">{selectedTask.progress}%</span>
                 </div>
                 <div className="w-full bg-white dark:bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-slate-900">
