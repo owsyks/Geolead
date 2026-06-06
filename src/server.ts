@@ -148,6 +148,39 @@ app.get('/api/tasks/:id', requireAuth, async (req, res) => {
 });
 
 /**
+ * PATCH /api/tasks/:id/status
+ * Pause or stop a running search task.
+ */
+app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!['PAUSED', 'CANCELLED'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be PAUSED or CANCELLED.' });
+  }
+
+  try {
+    const task = await prisma.searchTask.findFirst({
+      where: { id, userId: req.userId! },
+    });
+    if (!task) return res.status(404).json({ error: 'Search task not found.' });
+    if (!['PENDING', 'PROCESSING'].includes(task.status)) {
+      return res.status(400).json({ error: `Cannot ${status} a ${task.status} task.` });
+    }
+
+    const updated = await prisma.searchTask.update({
+      where: { id },
+      data: { status, progress: status === 'CANCELLED' ? 100 : task.progress },
+    });
+    console.log(`[Server] SearchTask ${id} ${status} by user ${req.userId}`);
+    res.json(updated);
+  } catch (error) {
+    console.error('[Server] Update task status error:', error);
+    return res.status(500).json({ error: 'Failed to update task status.' });
+  }
+});
+
+/**
  * GET /api/history
  * Fetches previous searches history.
  */

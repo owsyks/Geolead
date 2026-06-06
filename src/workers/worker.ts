@@ -162,8 +162,24 @@ const worker = new Worker<ScrapingJobData>(
       let totalLeadsCount = 0;
       let totalEmailsCount = 0;
 
+      const checkTaskStatus = async () => {
+        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+        return current?.status;
+      };
+
       for (const biz of businessList) {
         processedCount++;
+
+        // Check if task was paused or cancelled
+        const taskStatus = await checkTaskStatus();
+        if (taskStatus === 'PAUSED') {
+          console.log(`[Worker] SearchTask ${taskId} paused — stopping crawl loop.`);
+          break;
+        }
+        if (taskStatus === 'CANCELLED') {
+          console.log(`[Worker] SearchTask ${taskId} cancelled — stopping crawl loop.`);
+          break;
+        }
         console.log(`[Worker] [${processedCount}/${businessList.length}] Crawling site: ${biz.website}`);
 
         try {

@@ -309,8 +309,24 @@ export async function processSearchTask(taskId: string) {
     let failedBusinesses = 0;
     const failureReasons: string[] = [];
 
+    const checkTaskStatus = async () => {
+      const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+      return current?.status;
+    };
+
     for (const biz of businessList) {
       processedCount++;
+
+      const taskStatus = await checkTaskStatus();
+      if (taskStatus === 'PAUSED') {
+        console.log(`[Processor] SearchTask ${taskId} paused — stopping crawl loop.`);
+        break;
+      }
+      if (taskStatus === 'CANCELLED') {
+        console.log(`[Processor] SearchTask ${taskId} cancelled — stopping crawl loop.`);
+        break;
+      }
+
       console.log(`[Processor] [${processedCount}/${businessList.length}] Crawling site: ${biz.website}`);
 
       try {
