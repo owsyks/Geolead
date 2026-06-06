@@ -131,33 +131,89 @@ const STATE_NAMES_BY_ABBREV = Object.entries(STATE_ABBREVIATIONS).reduce<Record<
 );
 
 const runningTasks = new Set<string>();
+const queuedTaskIds: string[] = [];
+// Each search runs a heavy per-business pipeline (crawl + multiple AI calls)
+// inline on the web dyno. Running many at once saturates the single-threaded
+// event loop and trips NVIDIA/Serper rate limits, which makes every search
+// appear frozen. Cap how many run concurrently; the rest wait their turn.
+const MAX_CONCURRENT_SEARCHES = Number(process.env.MAX_CONCURRENT_SEARCHES || 2);
+
+// Hard cap on per-business enrichment (email verify + intelligence). Inner calls
+// have their own timeouts; this guarantees the crawl loop keeps advancing even if
+// something downstream stalls.
+const PER_BUSINESS_ENRICH_TIMEOUT_MS = Number(process.env.PER_BUSINESS_ENRICH_TIMEOUT_MS || 45000);
+
+// Resolve (never reject) when `promise` settles or the timeout elapses, so the
+// caller can move on. Any in-flight inner work simply finishes in the background.
+function runWithTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T | void> {
+  return Promise.race([
+    promise,
+    new Promise<void>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[Processor] Enrichment timed out after ${ms}ms for "${label}" — moving on.`);
+        resolve();
+      }, ms),
+    ),
+  ]);
+}
 
 export function startSearchTaskProcessing(taskId: string) {
-  if (runningTasks.has(taskId)) {
-    console.log(`[Processor] SearchTask ${taskId} is already running.`);
+  if (runningTasks.has(taskId) || queuedTaskIds.includes(taskId)) {
+    console.log(`[Processor] SearchTask ${taskId} is already running or queued.`);
     return;
   }
 
+  if (runningTasks.size >= MAX_CONCURRENT_SEARCHES) {
+    queuedTaskIds.push(taskId);
+    console.log(`[Processor] SearchTask ${taskId} queued (${runningTasks.size} running, ${queuedTaskIds.length} waiting).`);
+    return;
+  }
+
+  launchSearchTask(taskId);
+}
+
+function launchSearchTask(taskId: string) {
   runningTasks.add(taskId);
-  void processSearchTask(taskId).finally(() => {
-    runningTasks.delete(taskId);
-  });
+  void processSearchTask(taskId)
+    .catch((err) => console.error(`[Processor] SearchTask ${taskId} failed:`, err?.message || err))
+    .finally(() => {
+      runningTasks.delete(taskId);
+      drainSearchQueue();
+    });
+}
+
+function drainSearchQueue() {
+  while (runningTasks.size < MAX_CONCURRENT_SEARCHES && queuedTaskIds.length > 0) {
+    const next = queuedTaskIds.shift()!;
+    launchSearchTask(next);
+  }
 }
 
 export async function resumePendingSearchTasks() {
   try {
+    // Tasks left in PROCESSING were interrupted by a dyno restart. We cannot
+    // safely resume them: processSearchTask restarts from scratch and would
+    // re-create every lead (duplicates), and a too-slow task would stay
+    // PROCESSING and get relaunched on every restart — a load spiral that locks
+    // the dyno. Mark them FAILED so they're visible and the user can retry.
+    const stale = await prisma.searchTask.updateMany({
+      where: { status: 'PROCESSING' },
+      data: { status: 'FAILED' },
+    });
+    if (stale.count > 0) {
+      console.log(`[Processor] Marked ${stale.count} interrupted PROCESSING task(s) as FAILED.`);
+    }
+
     const tasks = await prisma.searchTask.findMany({
-      where: {
-        status: { in: ['PENDING', 'PROCESSING'] },
-      },
+      where: { status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
-      take: 5,
+      take: 10,
     });
 
     tasks.forEach((task) => startSearchTaskProcessing(task.id));
 
     if (tasks.length > 0) {
-      console.log(`[Processor] Resumed ${tasks.length} pending search task(s).`);
+      console.log(`[Processor] Resumed ${tasks.length} pending search task(s) (max ${MAX_CONCURRENT_SEARCHES} concurrent).`);
     }
   } catch (error) {
     console.error('[Processor] Failed to resume pending tasks:', error);
@@ -399,7 +455,13 @@ export async function processSearchTask(taskId: string) {
           },
         });
 
-        if (validatedEmails.length > 0) {
+        // Email verification and the decision-maker/intelligence pipeline are
+        // independent (both only need createdLead.id), so run them concurrently
+        // instead of back-to-back. The whole enrichment is bounded by an overall
+        // timeout so one slow site or rate-limited AI call can't stall the loop
+        // (the inner work has its own timeouts; this is a final safety net).
+        const verifyEmailsTask = async () => {
+          if (validatedEmails.length === 0) return;
           const verifications = await verifyEmailsBulk(
             validatedEmails.map((ve) => ve.email),
             5
@@ -431,56 +493,61 @@ export async function processSearchTask(taskId: string) {
           });
 
           totalEmailsCount += validatedEmails.length;
-        }
+        };
 
         // === Decision Maker & Buyer Intelligence Pipeline ===
-        try {
-          if (biz.website) {
-            const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
-            const intel = await getCompanyIntel(domain);
-            const staffNames = intel.staffNames;
-            const pageText = crawlData.notes || '';
+        const intelligenceTask = async () => {
+          if (!biz.website) return;
+          const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+          const intel = await getCompanyIntel(domain);
+          const staffNames = intel.staffNames;
+          const pageText = crawlData.notes || '';
 
-            const dm = await discoverDecisionMaker(
-              businessName, biz.website, [pageText, crawlData.notes || ''],
-              staffNames, task.userId,
-            );
+          const dm = await discoverDecisionMaker(
+            businessName, biz.website, [pageText, crawlData.notes || ''],
+            staffNames, task.userId,
+          );
 
-            const intentScore = analyzeBuyerIntent({
-              businessName, currentDomain: domain, targetDomain: task.domainIdea,
-              category: biz.category || null, location: biz.location || null,
-              websiteText: pageText, domainMatchScore: scoreData.score,
-            });
+          const intentScore = analyzeBuyerIntent({
+            businessName, currentDomain: domain, targetDomain: task.domainIdea,
+            category: biz.category || null, location: biz.location || null,
+            websiteText: pageText, domainMatchScore: scoreData.score,
+          });
 
-            const fitScore = scoreDomainFit({
-              businessName, currentDomain: domain, targetDomain: task.domainIdea,
-              location: biz.location || null, category: biz.category || null,
-            });
+          const fitScore = scoreDomainFit({
+            businessName, currentDomain: domain, targetDomain: task.domainIdea,
+            location: biz.location || null, category: biz.category || null,
+          });
 
-            const qualityScore = scoreBusinessQuality(
-              intel, biz.rating || null, biz.reviewsCount || null,
-              biz.category || null, crawlData.companySize,
-            );
+          const qualityScore = scoreBusinessQuality(
+            intel, biz.rating || null, biz.reviewsCount || null,
+            biz.category || null, crawlData.companySize,
+          );
 
-            const dmScore = dm.score || 40;
-            const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
+          const dmScore = dm.score || 40;
+          const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
 
-            let contactStrategy = 'contact_form';
-            if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
-            else if (validatedEmails.length > 0) contactStrategy = 'email_general';
-            else if (phoneNumbers.length > 0) contactStrategy = 'call_business';
+          let contactStrategy = 'contact_form';
+          if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
+          else if (validatedEmails.length > 0) contactStrategy = 'email_general';
+          else if (phoneNumbers.length > 0) contactStrategy = 'call_business';
 
-            await prisma.lead.update({
-              where: { id: createdLead.id },
-              data: {
-                decisionMakerName: dm.name, decisionMakerRole: dm.role,
-                decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
-                buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
-                businessQualityScore: qualityScore, priorityScore, contactStrategy,
-              },
-            });
-          }
-        } catch { /* Intelligence pipeline non-critical */ }
+          await prisma.lead.update({
+            where: { id: createdLead.id },
+            data: {
+              decisionMakerName: dm.name, decisionMakerRole: dm.role,
+              decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
+              buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
+              businessQualityScore: qualityScore, priorityScore, contactStrategy,
+            },
+          });
+        };
+
+        await runWithTimeout(
+          Promise.allSettled([verifyEmailsTask(), intelligenceTask()]),
+          PER_BUSINESS_ENRICH_TIMEOUT_MS,
+          biz.name,
+        );
 
         totalLeadsCount++;
       } catch (bizError: any) {
