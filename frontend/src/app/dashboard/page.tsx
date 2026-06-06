@@ -187,6 +187,31 @@ export default function DashboardPage() {
   const [composerSending, setComposerSending] = useState(false);
   const [composerResult, setComposerResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Pause/Stop handlers
+  const handlePauseTask = async (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await authFetch(`${BACKEND_URL}/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PAUSED' }),
+      });
+      fetchHistory();
+    } catch { /* ignore */ }
+  };
+
+  const handleStopTask = async (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await authFetch(`${BACKEND_URL}/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+      fetchHistory();
+    } catch { /* ignore */ }
+  };
+
   // Polling Reference
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
   const demoInterval = useRef<NodeJS.Timeout | null>(null);
@@ -1175,6 +1200,22 @@ export default function DashboardPage() {
                   {task.status === "PROCESSING" && (
                     <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1 mt-1 overflow-hidden">
                       <div className="bg-indigo-500 h-1 transition-all duration-300" style={{ width: `${task.progress}%` }} />
+                    </div>
+                  )}
+                  {(task.status === "PENDING" || task.status === "PROCESSING") && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <button
+                        onClick={(e) => handlePauseTask(task.id, e)}
+                        className="flex-1 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Pause
+                      </button>
+                      <button
+                        onClick={(e) => handleStopTask(task.id, e)}
+                        className="flex-1 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Stop
+                      </button>
                     </div>
                   )}
                 </button>
