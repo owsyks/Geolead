@@ -103,7 +103,7 @@ interface SearchTask {
   country?: string;
   cityState?: string;
   searchDepth: number;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED';
   progress: number;
   totalLeads: number;
   validEmails: number;
@@ -187,7 +187,7 @@ export default function DashboardPage() {
   const [composerSending, setComposerSending] = useState(false);
   const [composerResult, setComposerResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  // Pause/Stop handlers
+  // Pause/Stop/Resume handlers
   const handlePauseTask = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -195,6 +195,18 @@ export default function DashboardPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PAUSED' }),
+      });
+      fetchHistory();
+    } catch { /* ignore */ }
+  };
+
+  const handleResumeTask = async (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await authFetch(`${BACKEND_URL}/api/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PENDING' }),
       });
       fetchHistory();
     } catch { /* ignore */ }
@@ -1244,6 +1256,10 @@ export default function DashboardPage() {
                         ? "bg-emerald-500/10 text-emerald-400"
                         : task.status === "FAILED"
                         ? "bg-rose-500/10 text-rose-400"
+                        : task.status === "PAUSED"
+                        ? "bg-amber-500/10 text-amber-400"
+                        : task.status === "CANCELLED"
+                        ? "bg-slate-500/10 text-slate-400"
                         : "bg-amber-500/10 text-amber-400 animate-pulse"
                     }`}>
                       {task.status}
@@ -1262,6 +1278,22 @@ export default function DashboardPage() {
                         className="flex-1 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Pause
+                      </button>
+                      <button
+                        onClick={(e) => handleStopTask(task.id, e)}
+                        className="flex-1 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Stop
+                      </button>
+                    </div>
+                  )}
+                  {task.status === "PAUSED" && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <button
+                        onClick={(e) => handleResumeTask(task.id, e)}
+                        className="flex-1 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Resume
                       </button>
                       <button
                         onClick={(e) => handleStopTask(task.id, e)}
@@ -1310,9 +1342,10 @@ export default function DashboardPage() {
         {/* Main Dashboard Top Header */}
         <header className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/40 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="md:hidden p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200">
+            <Link href="/" className="p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200">
               <ArrowLeft className="w-4 h-4" />
             </Link>
+            <span className="p-1.5 bg-indigo-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
             <div>
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 {selectedTask ? `Campaign: ${selectedTask.domainIdea}` : "Select a Search Campaign"}
@@ -1325,8 +1358,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Export Controls */}
-          {selectedTask && selectedTask.status === "COMPLETED" && (
+          {/* Export Controls — show for COMPLETED, PAUSED, CANCELLED */}
+          {selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
             <div className="flex items-center gap-2">
               {/* Verify Emails Button */}
               <button
@@ -1412,7 +1445,7 @@ export default function DashboardPage() {
             )}
 
             {/* Campaign Analytics Stats Overview */}
-            {selectedTask.status === "COMPLETED" && (
+            {["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Total Prospects</span>
