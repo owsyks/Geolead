@@ -149,14 +149,14 @@ app.get('/api/tasks/:id', requireAuth, async (req, res) => {
 
 /**
  * PATCH /api/tasks/:id/status
- * Pause or stop a running search task.
+ * Pause, stop, or resume a search task.
  */
 app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!['PAUSED', 'CANCELLED'].includes(status)) {
-    return res.status(400).json({ error: 'Status must be PAUSED or CANCELLED.' });
+  if (!['PAUSED', 'CANCELLED', 'PENDING'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be PAUSED, CANCELLED, or PENDING.' });
   }
 
   try {
@@ -164,6 +164,22 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
       where: { id, userId: req.userId! },
     });
     if (!task) return res.status(404).json({ error: 'Search task not found.' });
+
+    // Resume from PAUSED → back to PENDING
+    if (status === 'PENDING') {
+      if (task.status !== 'PAUSED') {
+        return res.status(400).json({ error: 'Only PAUSED tasks can be resumed.' });
+      }
+      const updated = await prisma.searchTask.update({
+        where: { id },
+        data: { status: 'PENDING' },
+      });
+      startSearchTaskProcessing(id);
+      console.log(`[Server] SearchTask ${id} resumed by user ${req.userId}`);
+      return res.json(updated);
+    }
+
+    // Pause or cancel
     if (!['PENDING', 'PROCESSING'].includes(task.status)) {
       return res.status(400).json({ error: `Cannot ${status} a ${task.status} task.` });
     }
