@@ -160,6 +160,7 @@ export interface OutboundCampaignSummary {
   bounceRate: number;
   unsubscribeRate: number;
   engagementScore: number;
+  nextFollowUpAt?: string | null;
 }
 
 export interface OutboundSenderSummary {

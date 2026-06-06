@@ -1063,7 +1063,10 @@ async function queueNextSequenceStep(emailLogId: string) {
 
   let stepBody = nextStep.body;
   let stepSubject = nextStep.subject;
+  let fuVariant: string | null = null;
   if (nextStep.useAI && nextStep.stepType !== 'INITIAL') {
+    // If the initial email used a variant, pass its style to the follow-up AI
+    const prevVariant = (log.metadata as any)?.variant;
     const aiResult = await generateFollowUpBody({
       businessName: campaignLead.lead.businessName,
       senderName: sender.fromName,
@@ -1074,10 +1077,13 @@ async function queueNextSequenceStep(emailLogId: string) {
       stepOrder: nextStep.stepOrder,
       stepType: nextStep.stepType,
       userId: log.campaign?.userId,
+      decisionMakerName: campaignLead.lead.decisionMakerName ?? undefined,
+      decisionMakerRole: campaignLead.lead.decisionMakerRole ?? undefined,
     }).catch(() => null);
     if (aiResult) {
       stepBody = aiResult.body;
       stepSubject = aiResult.subject;
+      fuVariant = prevVariant || null;
     }
   }
 
@@ -1107,6 +1113,7 @@ async function queueNextSequenceStep(emailLogId: string) {
         queueMode: process.env.OUTBOUND_QUEUE_MODE || 'database',
         compliance: defaultCompliancePolicy(),
         sequenceStep: nextStep.stepOrder,
+        ...(fuVariant ? { variant: fuVariant } : {}),
       },
     },
   });
@@ -2793,6 +2800,14 @@ function summarizeCampaign(campaign: any) {
     bounceRate: rate(bounces, sent),
     unsubscribeRate: rate(unsubscribes, sent),
     engagementScore: clamp(opens * 4 + clicks * 8 + positiveReplies * 20 - bounces * 10 - unsubscribes * 12, 0, 100),
+    nextFollowUpAt: (() => {
+      const queuedFollowUps = logs.filter((l: any) =>
+        l.status === 'QUEUED' && l.scheduledAt && l.sequenceStepId
+      );
+      if (queuedFollowUps.length === 0) return null;
+      queuedFollowUps.sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+      return queuedFollowUps[0].scheduledAt;
+    })(),
   };
 }
 

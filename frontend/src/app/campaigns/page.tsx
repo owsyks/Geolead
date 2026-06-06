@@ -713,6 +713,22 @@ export default function CampaignsPage() {
                           <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                             <div className="h-full rounded-full bg-indigo-400" style={{ width: `${Math.min(campaign.engagementScore, 100)}%` }} />
                           </div>
+                          {campaign.nextFollowUpAt && (
+                            <div className="mt-2 text-center text-[10px] font-bold">
+                              {(() => {
+                                const diff = new Date(campaign.nextFollowUpAt).getTime() - Date.now();
+                                if (diff <= 0) return <span className="text-emerald-400">Next follow-up: now</span>;
+                                const hours = Math.floor(diff / 3600000);
+                                const days = Math.floor(hours / 24);
+                                const remainHours = hours % 24;
+                                return (
+                                  <span className={days <= 1 ? 'text-amber-400' : 'text-slate-400'}>
+                                    Next follow-up: {days > 0 ? `${days}d ` : ''}{remainHours}h
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          )}
                           <div className="mt-3 flex flex-wrap gap-2">
                             {campaign.status === "ACTIVE" ? (
                               <button
