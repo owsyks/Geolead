@@ -20,10 +20,12 @@ import { processOutboundQueueTick } from '../services/outboundPlatform.js';
 import { verifyEmailsBulk } from '../services/emailVerification.js';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const isRedisTls = redisUrl.startsWith('rediss://');
 
 console.log(`[Worker] Connecting to Redis at ${redisUrl}...`);
 const redisConnection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
+  ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {}),
 });
 
 interface ScrapingJobData {

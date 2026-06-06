@@ -2,12 +2,14 @@ import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const isTls = redisUrl.startsWith('rediss://');
 
 export const redisConnection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
   lazyConnect: true,
   enableOfflineQueue: false,
   retryStrategy: (times) => (times > 3 ? null : Math.min(times * 500, 2000)),
+  ...(isTls ? { tls: { rejectUnauthorized: false } } : {}),
 });
 
 redisConnection.on('error', (err) => {
