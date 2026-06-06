@@ -14,6 +14,7 @@ import { getCompanyIntel, scoreBusinessQuality, enrichWithAi } from '../services
 import { discoverDecisionMaker } from '../services/decisionMaker.js';
 import { analyzeBuyerIntent, analyzeBuyerIntentWithAi } from '../services/buyerIntent.js';
 import { scoreDomainFit, scoreDomainFitWithAi } from '../services/domainFit.js';
+import { verifyDecisionMakerViaLinkedIn, wasLinkedInVerified } from '../services/linkedinVerification.js';
 import { getNvidiaKey, nvidiaChat } from '../services/nvidiaAi.js';
 import { processOutboundQueueTick } from '../services/outboundPlatform.js';
 import { verifyEmailsBulk } from '../services/emailVerification.js';
@@ -373,6 +374,30 @@ Write a concise insight explaining why this lead matters and how to approach the
                     });
                   } catch { /* AI enrichment non-critical */ }
                 })();
+
+                // LinkedIn verification — fire and forget after DM discovered
+                if (dm.name && dm.role) {
+                  (async () => {
+                    try {
+                      const li = await verifyDecisionMakerViaLinkedIn(biz.name, dm.name, dm.role);
+                      if (wasLinkedInVerified(li)) {
+                        const dmConfidence = li.confidence === 'high' ? 'high' : 'medium';
+                        await prisma.lead.update({
+                          where: { id: createdLead.id },
+                          data: {
+                            decisionMakerScore: dm.score ? Math.min(100, dm.score + 5) : dm.score,
+                            buyerInsights: {
+                              linkedinUrl: li.profileUrl,
+                              linkedinVerified: true,
+                              linkedinConfidence: dmConfidence,
+                              linkedinTitle: li.verifiedTitle,
+                            },
+                          },
+                        }).catch(() => undefined);
+                      }
+                    } catch { /* LinkedIn non-critical */ }
+                  })();
+                }
 
               } catch (innerErr: any) {
                 pipelineError(`Intelligence pipeline error: ${innerErr.message}`);
