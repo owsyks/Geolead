@@ -5,6 +5,10 @@ import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
 import { calculateMatchScore } from './aiScoring.js';
+import { getCompanyIntel, scoreBusinessQuality } from './companyIntelligence.js';
+import { discoverDecisionMaker } from './decisionMaker.js';
+import { analyzeBuyerIntent } from './buyerIntent.js';
+import { scoreDomainFit } from './domainFit.js';
 import { type EmailCandidate, extractEmailCandidates, extractPhoneCandidates, normalizePhoneList } from './contactUtils.js';
 import { scoreContactIntelligence } from './contactIntelligence.js';
 
@@ -428,6 +432,55 @@ export async function processSearchTask(taskId: string) {
 
           totalEmailsCount += validatedEmails.length;
         }
+
+        // === Decision Maker & Buyer Intelligence Pipeline ===
+        try {
+          if (biz.website) {
+            const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+            const intel = await getCompanyIntel(domain);
+            const staffNames = intel.staffNames;
+            const pageText = crawlData.notes || '';
+
+            const dm = await discoverDecisionMaker(
+              businessName, biz.website, [pageText, crawlData.notes || ''],
+              staffNames, task.userId,
+            );
+
+            const intentScore = analyzeBuyerIntent({
+              businessName, currentDomain: domain, targetDomain: task.domainIdea,
+              category: biz.category || null, location: biz.location || null,
+              websiteText: pageText, domainMatchScore: scoreData.score,
+            });
+
+            const fitScore = scoreDomainFit({
+              businessName, currentDomain: domain, targetDomain: task.domainIdea,
+              location: biz.location || null, category: biz.category || null,
+            });
+
+            const qualityScore = scoreBusinessQuality(
+              intel, biz.rating || null, biz.reviewsCount || null,
+              biz.category || null, crawlData.companySize,
+            );
+
+            const dmScore = dm.score || 40;
+            const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
+
+            let contactStrategy = 'contact_form';
+            if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
+            else if (validatedEmails.length > 0) contactStrategy = 'email_general';
+            else if (phoneNumbers.length > 0) contactStrategy = 'call_business';
+
+            await prisma.lead.update({
+              where: { id: createdLead.id },
+              data: {
+                decisionMakerName: dm.name, decisionMakerRole: dm.role,
+                decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
+                buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
+                businessQualityScore: qualityScore, priorityScore, contactStrategy,
+              },
+            });
+          }
+        } catch { /* Intelligence pipeline non-critical */ }
 
         totalLeadsCount++;
       } catch (bizError: any) {

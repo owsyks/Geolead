@@ -14,22 +14,23 @@ export interface EmailGenerationInput {
   tone?: string;
   language?: string;
   variant?: 'cold' | 'follow_up' | 'short' | 'long' | 'persuasive' | 'friendly';
-  userId?: string | null; // resolve the requesting user's NVIDIA key/model
+  userId?: string | null;
+  decisionMakerName?: string | null;
+  decisionMakerRole?: string | null;
 }
 
 // Post-process generated copy:
-//  - remove the {{businessName}} recipient token entirely (generic greeting),
-//  - remove the {{unsubscribeLine}} token (and any blank lines around it),
-//  - replace {{senderName}} with the provided sender name when supplied.
+//  - {{decisionMakerName}} → kept as merge token (resolved at send time)
+//  - {{decisionMakerRole}} → kept as merge token
+//  - {{businessName}} → kept as merge token
+//  - {{senderName}} → replaced with provided sender name when supplied
+//  - {{unsubscribeLine}} → stripped
 function finalizeTokens(text: string, senderName?: string): string {
   let out = text
-    .replace(/\{\{\s*businessName\s*\}\}\s*team/gi, 'there')
-    .replace(/\{\{\s*businessName\s*\}\}/gi, 'there')
-    // Drop the unsubscribe token plus the whitespace/newlines leading into it.
+    .replace(/\{\{\s*businessName\s*\}\}\s*team/gi, '{{businessName}}')
+    .replace(/\{\{\s*businessName\s*\}\}/gi, '{{businessName}}')
     .replace(/\n*\s*\{\{\s*unsubscribeLine\s*\}\}\s*/gi, '\n')
-    // Drop any literal opt-out/unsubscribe line the model emits on its own.
     .replace(/^.*\b(opt[\s-]?out|unsubscribe)\b.*$/gim, '')
-    // Collapse the blank lines left behind.
     .replace(/\n{3,}/g, '\n\n');
   if (senderName && senderName.trim()) {
     out = out.replace(/\{\{\s*senderName\s*\}\}/gi, senderName.trim());
@@ -85,10 +86,13 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
     deliverabilityScore,
     websiteIntel,
     variables: [
+      '{{businessName}}',
       '{{geoDomain}}',
       '{{cityState}}',
       '{{niche}}',
       '{{website}}',
+      '{{decisionMakerName}}',
+      '{{decisionMakerRole}}',
       ...(sender && sender.trim() ? [] : ['{{senderName}}']),
     ],
     complianceNotes: [
@@ -110,6 +114,8 @@ export interface FollowUpInput {
   stepOrder: number;
   stepType?: string; // 'FOLLOW_UP' | 'BREAKUP'
   userId?: string | null;
+  decisionMakerName?: string | null;
+  decisionMakerRole?: string | null;
 }
 
 export async function generateFollowUpBody(
@@ -123,7 +129,12 @@ export async function generateFollowUpBody(
   const niche = input.niche || 'your niche';
   const city = input.cityState || 'your market';
   const sender = input.senderName?.trim() || '{{senderName}}';
-  const greeting = input.businessName?.trim() ? `Hi ${input.businessName} team,` : 'Hi there,';
+  const dmName = input.decisionMakerName?.trim();
+  const greeting = dmName
+    ? `Hi ${dmName},`
+    : input.businessName?.trim()
+    ? `Hi {{businessName}} team,`
+    : 'Hi there,';
 
   const prompt = isBreakup
     ? [
@@ -230,9 +241,13 @@ export function scoreSpamRisk(content: string): number {
 }
 
 function localGenerate(input: EmailGenerationInput, intel: WebsiteIntel) {
-  // Generic greeting — no recipient business-name token. The sender name is
-  // baked in later by finalizeTokens (keeps {{senderName}} if none provided).
-  const greeting = input.businessName && input.businessName.trim() ? `${input.businessName.trim()} team` : 'there';
+  // Greeting — use decision maker name if available, else business name token.
+  const dmName = input.decisionMakerName?.trim();
+  const greeting = dmName
+    ? dmName
+    : input.businessName && input.businessName.trim()
+    ? '{{businessName}} team'
+    : 'there';
   const geoDomain = input.geoDomain || '{{geoDomain}}';
   const cityState = input.cityState || '{{cityState}}';
   const niche = input.niche || input.category || intel.detectedNiche || 'your local market';
@@ -285,6 +300,9 @@ async function generateWithNvidia(input: EmailGenerationInput, intel: WebsiteInt
     hasBusiness
       ? `Business name: ${input.businessName}`
       : `Business name: UNKNOWN. Open with a generic greeting such as "Hi there," — do NOT use any placeholder/merge token and do NOT invent a business name.`,
+    input.decisionMakerName
+      ? `Key decision maker: ${input.decisionMakerName}${input.decisionMakerRole ? `, ${input.decisionMakerRole}` : ''}. Address them by name in the greeting.`
+      : `Decision maker: Unknown. Use "{{businessName}} team" or "Hi there," as the greeting.`,
     `Website intel: ${websiteSummary}`,
     input.painPoints ? `Pain points: ${input.painPoints}` : '',
     ``,

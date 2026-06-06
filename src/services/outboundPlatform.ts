@@ -2863,6 +2863,8 @@ function personalize(
   const unsubscribeUrl = `${OUTBOUND_BASE_URL}/api/outbound/unsubscribe/${tokens.unsubscribeToken}`;
   const resolved = template
     .replaceAll('{{businessName}}', lead.businessName || '')
+    .replaceAll('{{decisionMakerName}}', lead.decisionMakerName || lead.businessName || 'there')
+    .replaceAll('{{decisionMakerRole}}', lead.decisionMakerRole || '')
     .replaceAll('{{geoDomain}}', campaign.geoDomain || '')
     .replaceAll('{{cityState}}', cityState)
     .replaceAll('{{niche}}', campaign.niche || lead.category || '')
