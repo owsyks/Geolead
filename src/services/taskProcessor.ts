@@ -449,24 +449,30 @@ export async function processSearchTask(taskId: string) {
       });
     }
 
-    await prisma.searchTask.update({
-      where: { id: taskId },
-      data: {
-        status: 'COMPLETED',
-        progress: 100,
-        totalLeads: totalLeadsCount,
-        validEmails: totalEmailsCount,
-        failedBusinesses,
-        metadata: failedBusinesses > 0
-          ? { failureReasons } as any
-          : undefined,
-      },
-    });
-
-    if (failedBusinesses > 0) {
-      console.warn(`[Processor] SearchTask ${taskId}: ${totalLeadsCount} leads saved, ${failedBusinesses} businesses failed (${Math.round((failedBusinesses / businessList.length) * 100)}% failure rate).`);
+    const finalStatus = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+    if (finalStatus?.status !== 'PAUSED' && finalStatus?.status !== 'CANCELLED') {
+      await prisma.searchTask.update({
+        where: { id: taskId },
+        data: {
+          status: 'COMPLETED',
+          progress: 100,
+          totalLeads: totalLeadsCount,
+          validEmails: totalEmailsCount,
+          failedBusinesses,
+          metadata: failedBusinesses > 0 ? { failureReasons } as any : undefined,
+        },
+      });
+      if (failedBusinesses > 0) {
+        console.warn(`[Processor] SearchTask ${taskId}: ${totalLeadsCount} leads saved, ${failedBusinesses} failed.`);
+      }
+      console.log(`[Processor] Finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, ${totalEmailsCount} emails.`);
+    } else {
+      console.log(`[Processor] SearchTask ${taskId} is ${finalStatus.status} — ${totalLeadsCount} leads collected so far.`);
+      await prisma.searchTask.update({
+        where: { id: taskId },
+        data: { totalLeads: totalLeadsCount, validEmails: totalEmailsCount },
+      });
     }
-    console.log(`[Processor] Finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, with ${totalEmailsCount} valid emails.`);
   } catch (taskError) {
     console.error(`[Processor] Critical error processing SearchTask ${taskId}:`, taskError);
 

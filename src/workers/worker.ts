@@ -399,18 +399,27 @@ Write a concise insight explaining why this lead matters and how to approach the
         });
       }
 
-      // 5. Finalize Task
-      await prisma.searchTask.update({
-        where: { id: taskId },
-        data: {
-          status: 'COMPLETED',
-          progress: 100,
-          totalLeads: totalLeadsCount,
-          validEmails: totalEmailsCount
-        },
-      });
-
-      console.log(`[Worker] Successfully finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, with ${totalEmailsCount} valid emails.`);
+      // 5. Finalize Task (don't overwrite PAUSED/CANCELLED)
+      const finalStatus = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+      if (finalStatus?.status !== 'PAUSED' && finalStatus?.status !== 'CANCELLED') {
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            totalLeads: totalLeadsCount,
+            validEmails: totalEmailsCount,
+          },
+        });
+        console.log(`[Worker] Successfully finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, with ${totalEmailsCount} valid emails.`);
+      } else {
+        console.log(`[Worker] SearchTask ${taskId} is ${finalStatus.status} — saving ${totalLeadsCount} leads collected so far.`);
+        // Still update progress/counts so the frontend shows what was collected
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: { totalLeads: totalLeadsCount, validEmails: totalEmailsCount },
+        });
+      }
 
     } catch (taskError: any) {
       console.error(`[Worker] Critical error processing SearchTask ${taskId}:`, taskError);
