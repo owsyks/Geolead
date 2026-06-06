@@ -42,6 +42,8 @@ export interface VariantInput {
   senderName?: string;
   objective?: string;
   userId?: string | null;
+  decisionMakerName?: string | null;
+  decisionMakerRole?: string | null;
 }
 
 export interface GeneratedVariant {

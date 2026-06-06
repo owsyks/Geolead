@@ -6,7 +6,7 @@ import { ComposerModal } from "./ComposerModal";
 import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
-import { authFetch } from "@/lib/outbound";
+import { authFetch, fetchOutbound } from "@/lib/outbound";
 import {
   Search,
   MapPin,
@@ -212,7 +212,60 @@ export default function DashboardPage() {
     } catch { /* ignore */ }
   };
 
-  // Polling Reference
+  // Campaign creation modal state
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignThrottle, setCampaignThrottle] = useState(5);
+  const [campaignCreating, setCampaignCreating] = useState(false);
+
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeadIds(prev => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId); else next.add(leadId);
+      return next;
+    });
+  };
+
+  const selectAllLeads = () => {
+    if (selectedLeadIds.size >= leads.length) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const handleCreateCampaign = async () => {
+    if (!selectedTask || selectedLeadIds.size === 0) return;
+    setCampaignCreating(true);
+    try {
+      const leadIds = Array.from(selectedLeadIds);
+      await fetchOutbound(`/api/outbound/campaigns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: campaignName || `Auto: ${selectedTask.domainIdea}`,
+          geoDomain: selectedTask.domainIdea,
+          niche: selectedTask.keyword,
+          cityState: selectedTask.cityState || '',
+          objective: 'Convert verified geo-domain leads into interested buyers',
+          tone: 'professional',
+          language: 'en',
+          dailyLimit: campaignThrottle,
+          smartDelayMin: 1,
+          smartDelayMax: 10,
+          leadIds,
+          status: 'DRAFT',
+        }),
+      });
+      setShowCampaignModal(false);
+      setSelectedLeadIds(new Set());
+      setCampaignName('');
+    } catch (err) {
+      console.error('Create campaign error:', err);
+    }
+    setCampaignCreating(false);
+  };
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
   const demoInterval = useRef<NodeJS.Timeout | null>(null);
   const verifyPollInterval = useRef<NodeJS.Timeout | null>(null);
@@ -1305,6 +1358,15 @@ export default function DashboardPage() {
                   {exporting ? `Exporting ${exporting.toUpperCase()}...` : "Export Data"}
                 </button>
               </div>
+              {/* Create Campaign from Selected */}
+              <button
+                onClick={() => { setCampaignName(''); setShowCampaignModal(true); }}
+                disabled={selectedLeadIds.size === 0}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900 disabled:opacity-50 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                Create Campaign ({selectedLeadIds.size})
+              </button>
             </div>
           )}
         </header>
@@ -1507,6 +1569,14 @@ export default function DashboardPage() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-900/10 text-slate-400 font-medium">
+                        <th className="py-4 px-2 w-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeadIds.size >= leads.length && leads.length > 0}
+                            onChange={selectAllLeads}
+                            className="w-3.5 h-3.5 rounded border-slate-600 cursor-pointer"
+                          />
+                        </th>
                         <th className="py-4 px-6">Business Details</th>
                         <th className="py-4 px-4">Contact Info</th>
                         <th className="py-4 px-4 text-center">Score</th>
@@ -1529,6 +1599,16 @@ export default function DashboardPage() {
                       }).map((lead) => (
                         <tr key={lead.id} className="hover:bg-slate-50 dark:bg-slate-900/10 transition-colors align-top">
                           
+                          {/* Multi-select checkbox */}
+                          <td className="py-5 px-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedLeadIds.has(lead.id)}
+                              onChange={() => toggleLeadSelection(lead.id)}
+                              className="w-3.5 h-3.5 rounded border-slate-600 cursor-pointer"
+                            />
+                          </td>
+
                           {/* Business Info Column */}
                           <td className="py-5 px-6 max-w-sm">
                             <div className="flex flex-col gap-1.5">
@@ -1947,6 +2027,56 @@ export default function DashboardPage() {
         onSend={handleSendComposer}
         onClose={closeComposer}
       />
+
+      {/* Campaign Creation Modal */}
+      {showCampaignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowCampaignModal(false)}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-rose-400" /> Create Campaign
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">{selectedLeadIds.size} leads selected</p>
+              </div>
+              <button onClick={() => setShowCampaignModal(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-200 rounded">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Campaign Name</label>
+                <input value={campaignName} onChange={e => setCampaignName(e.target.value)}
+                  placeholder={`Auto: ${selectedTask?.domainIdea || 'Campaign'}`}
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daily Limit</label>
+                <select value={campaignThrottle} onChange={e => setCampaignThrottle(Number(e.target.value))}
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                >
+                  <option value={5}>5 / day (conservative)</option>
+                  <option value={10}>10 / day (moderate)</option>
+                  <option value={20}>20 / day (aggressive)</option>
+                  <option value={50}>50 / day (max)</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-300 dark:border-slate-800 flex justify-end gap-2">
+              <button onClick={() => setShowCampaignModal(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 rounded-lg">Cancel</button>
+              <button
+                onClick={handleCreateCampaign}
+                disabled={campaignCreating}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {campaignCreating ? 'Creating...' : 'Create Campaign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Options Modal */}
       {exportOptionsOpen && (
