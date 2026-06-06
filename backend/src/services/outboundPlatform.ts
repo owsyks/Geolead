@@ -18,6 +18,7 @@ const DEFAULT_ADMIN_EMAIL = process.env.OUTBOUND_ADMIN_EMAIL || 'admin@geoleadai
 const encryptedFieldPattern = /(api|secret|token|password|key|access)/i;
 
 let schedulerStarted = false;
+let tickInProgress = false;
 
 export interface CampaignCreateInput {
   name: string;
@@ -196,8 +197,13 @@ export function startOutboundScheduler() {
 
   schedulerStarted = true;
   const intervalMs = Number(process.env.OUTBOUND_QUEUE_INTERVAL_MS || 30000);
+  // Process the due-email queue IN-PROCESS on the web dyno. There is no separate
+  // BullMQ worker dyno running in production (Procfile has only `web`), so relying
+  // on enqueueOutboundQueueTick() would push jobs to Redis that nothing consumes —
+  // follow-ups would queue forever and never send. Running the tick inline here
+  // guarantees follow-ups go out regardless of whether a worker dyno exists.
   setInterval(() => {
-    void enqueueOutboundQueueTick().catch((error) => {
+    void processOutboundQueueTick().catch((error) => {
       console.error('[Outbound] Queue tick failed:', error);
     });
   }, intervalMs);
@@ -862,13 +868,33 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
 }
 
 export async function processOutboundQueueTick() {
+  // Guard against overlapping runs: the recurring scheduler and the instant-send
+  // path both call this. Two concurrent ticks would fetch the same QUEUED rows
+  // before either marks them SENT, causing duplicate emails.
+  if (tickInProgress) return { processed: 0, skipped: true };
+  tickInProgress = true;
+  try {
+    return await runOutboundQueueTick();
+  } finally {
+    tickInProgress = false;
+  }
+}
+
+async function runOutboundQueueTick() {
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
 
+  // Only pull logs whose campaign is ACTIVE. Past-due QUEUED logs from
+  // paused/stopped campaigns would otherwise sort first (oldest scheduledAt) and
+  // fill the batch window every tick, starving active campaigns' follow-ups.
   const dueLogs = await prisma.emailLog.findMany({
-    where: { status: 'QUEUED', scheduledAt: { lte: now } },
-    take: 20,
+    where: {
+      status: 'QUEUED',
+      scheduledAt: { lte: now },
+      campaign: { is: { status: 'ACTIVE' } },
+    },
+    take: 50,
     orderBy: { scheduledAt: 'asc' },
     include: {
       campaign: true,
