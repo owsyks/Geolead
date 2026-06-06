@@ -1722,6 +1722,21 @@ export default function DashboardPage() {
                                     {lead.decisionMakerRole}
                                   </span>
                                 )}
+                                {lead.buyerInsights?.linkedinVerified && (
+                                  <a
+                                    href={lead.buyerInsights?.linkedinUrl || '#'}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={`LinkedIn verified: ${lead.buyerInsights?.linkedinConfidence || 'medium'} confidence`}
+                                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                                      lead.buyerInsights?.linkedinConfidence === 'high'
+                                        ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                                        : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                                    }`}
+                                  >
+                                    in
+                                  </a>
+                                )}
                                 {lead.companySize && lead.companySize !== "Unknown" && (
                                   <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-400 rounded text-[9px]">
                                     {lead.companySize}
@@ -2104,6 +2119,7 @@ export default function DashboardPage() {
       {showWaPanel && (
         <WaValidationPanel
           leads={leads}
+          taskId={selectedTask?.id}
           onClose={() => setShowWaPanel(false)}
         />
       )}
@@ -2260,8 +2276,26 @@ function waLink(phone: string): string {
   return `https://wa.me/${normalized}`;
 }
 
-function WaValidationPanel({ leads, onClose }: { leads: Lead[]; onClose: () => void }) {
-  const withPhone = leads
+function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?: string; onClose: () => void }) {
+  const [allLeads, setAllLeads] = useState<Lead[]>(leads);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!taskId) return;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await authFetch(`${BACKEND_URL}/api/leads?taskId=${taskId}&hasEmails=false&limit=500&page=1`);
+        if (res.ok) {
+          const data = await res.json();
+          setAllLeads(data.leads || []);
+        }
+      } catch { /* keep current leads */ }
+      setLoading(false);
+    })();
+  }, [taskId]);
+
+  const withPhone = allLeads
     .filter(l => l.phoneNumbers.length > 0)
     .sort((a, b) => (b.whatsappScore ?? 0) - (a.whatsappScore ?? 0));
 
