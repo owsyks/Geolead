@@ -1534,6 +1534,17 @@ export default function DashboardPage() {
                             <div className="flex flex-col gap-1.5">
                               <div className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
                                 {lead.businessName}
+                                {lead.decisionMakerRole && (
+                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                    lead.decisionMakerScore && lead.decisionMakerScore >= 85
+                                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                      : lead.decisionMakerScore && lead.decisionMakerScore >= 70
+                                      ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                                      : 'bg-slate-100 dark:bg-slate-900 text-slate-400 border border-slate-300 dark:border-slate-800'
+                                  }`}>
+                                    {lead.decisionMakerRole}
+                                  </span>
+                                )}
                                 {lead.companySize && lead.companySize !== "Unknown" && (
                                   <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-400 rounded text-[9px]">
                                     {lead.companySize}
@@ -1685,6 +1696,15 @@ export default function DashboardPage() {
                                       }`}>
                                         {e.status}
                                       </span>
+                                      {lead.decisionMakerRole && (
+                                        <span className={`px-1.5 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider ${
+                                          lead.decisionMakerScore && lead.decisionMakerScore >= 85
+                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                        }`}>
+                                          {lead.decisionMakerRole}
+                                        </span>
+                                      )}
                                       <button
                                         onClick={() => openComposer(e.email, lead)}
                                         title="Compose & send via Resend"
@@ -1743,12 +1763,14 @@ export default function DashboardPage() {
                               </span>
 
                               {/* Decision Maker */}
-                              {lead.decisionMakerName && (
+                              {(lead.decisionMakerName || lead.decisionMakerRole) ? (
                                 <div className="flex flex-col items-center border-t border-slate-800/50 pt-1.5 mt-0.5 w-full">
-                                  <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[90px]">
-                                    {lead.decisionMakerName}
-                                  </span>
-                                  <span className="text-[9px] text-slate-500 uppercase tracking-wider">{lead.decisionMakerRole}</span>
+                                  {lead.decisionMakerName && (
+                                    <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[90px]">
+                                      {lead.decisionMakerName}
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] text-slate-500 uppercase tracking-wider">{lead.decisionMakerRole || 'Unknown Role'}</span>
                                   {lead.decisionMakerScore != null && (
                                     <span className={`text-[10px] font-bold ${
                                       lead.decisionMakerScore >= 85 ? 'text-amber-400' :
@@ -1757,6 +1779,10 @@ export default function DashboardPage() {
                                       DM {lead.decisionMakerScore}
                                     </span>
                                   )}
+                                </div>
+                              ) : (
+                                <div className="border-t border-slate-800/50 pt-1.5 mt-0.5 w-full">
+                                  <span className="text-[9px] text-slate-600 italic">No DM identified</span>
                                 </div>
                               )}
 
