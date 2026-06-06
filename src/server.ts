@@ -218,7 +218,7 @@ app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), a
  * GET /api/leads
  * Get leads with advanced filters, search queries, sorting, and pagination.
  */
-app.get('/api/leads', requireAuth, rateLimit('leads', 60, 10 * 60 * 1000), async (req, res) => {
+app.get('/api/leads', requireAuth, rateLimit('leads', 120, 10 * 60 * 1000), async (req, res) => {
   const {
     taskId,
     search,
