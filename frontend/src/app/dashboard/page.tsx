@@ -585,7 +585,7 @@ export default function DashboardPage() {
       } catch {
         stopPolling();
       }
-    }, 1500);
+    }, 3000);
   };
 
   const stopPolling = () => {
