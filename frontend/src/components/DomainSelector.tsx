@@ -100,7 +100,7 @@ export function DomainSelector({
                   type="button"
                   onClick={() => handleSelect(null)}
                   className={`w-full text-left px-3 py-2 rounded-md text-xs ${
-                    !activeDomainId ? "bg-teal-500/15 text-teal-100" : "text-slate-400 hover:bg-slate-900"
+                    !activeDomainId ? "bg-teal-500/15 text-teal-900 dark:text-teal-100" : "text-slate-400 hover:bg-slate-900"
                   }`}
                 >
                   No active domain (use manual fields)
@@ -123,7 +123,7 @@ export function DomainSelector({
                     onClick={() => handleSelect(domain.id)}
                     className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between gap-3 ${
                       activeDomainId === domain.id
-                        ? "bg-teal-500/15 text-teal-100"
+                        ? "bg-teal-500/15 text-teal-900 dark:text-teal-100"
                         : "text-slate-300 hover:bg-slate-900"
                     }`}
                   >

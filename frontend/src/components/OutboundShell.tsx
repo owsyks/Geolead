@@ -99,10 +99,10 @@ export function OutboundShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-colors ${
-                    active
-                      ? "bg-teal-500/15 text-teal-100 border border-teal-400/20"
-                      : "text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/70"
+                    className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-colors ${
+                      active
+                        ? "bg-teal-500/15 text-teal-900 dark:text-teal-100 border border-teal-400/20"
+                        : "text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/70"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -195,7 +195,7 @@ export function OutboundShell({
                     href={item.href}
                     className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border ${
                       active
-                        ? "bg-teal-500/15 text-teal-100 border-teal-400/20"
+                        ? "bg-teal-500/15 text-teal-900 dark:text-teal-100 border-teal-400/20"
                         : "bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-slate-300 dark:border-slate-800"
                     }`}
                   >
@@ -236,11 +236,11 @@ export function StatusBadge({ value }: { value: string }) {
   const normalized = value.toLowerCase();
   const tone =
     normalized.includes("active") || normalized.includes("verified") || normalized.includes("sent")
-      ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-300"
+      ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
       : normalized.includes("pause") || normalized.includes("draft") || normalized.includes("pending")
-        ? "border-amber-400/25 bg-amber-500/10 text-amber-300"
+        ? "border-amber-400/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         : normalized.includes("bounce") || normalized.includes("complaint") || normalized.includes("failed")
-          ? "border-red-400/25 bg-red-500/10 text-red-300"
+          ? "border-red-400/25 bg-red-500/10 text-red-700 dark:text-red-300"
           : "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300";
 
   return (

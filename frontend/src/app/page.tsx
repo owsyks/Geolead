@@ -228,7 +228,7 @@ export default function HomePage() {
       }
     >
       {offline ? (
-        <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-100">
           Backend offline. Showing seeded workspace data until {OUTBOUND_API_BASE} is available.
         </div>
       ) : null}
@@ -249,7 +249,7 @@ export default function HomePage() {
               <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Operating View</h2>
               <p className="mt-1 text-sm text-slate-500">Status, sender health, and conversion signals in one place.</p>
             </div>
-            <Link href="/campaigns" className="text-sm text-teal-300 hover:text-teal-200 inline-flex items-center gap-1">
+            <Link href="/campaigns" className="text-sm text-teal-700 dark:text-teal-300 hover:text-teal-600 dark:hover:text-teal-200 inline-flex items-center gap-1">
               Open campaigns <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -342,7 +342,7 @@ export default function HomePage() {
           <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Deliverability Alerts</h2>
           <div className="mt-4 space-y-3">
             {overview.deliverabilityAlerts.map((alert) => (
-              <div key={alert} className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+              <div key={alert} className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-100">
                 {alert}
               </div>
             ))}
