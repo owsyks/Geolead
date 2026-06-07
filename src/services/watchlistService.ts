@@ -185,6 +185,13 @@ async function createNotification(
   });
 }
 
+// Where watchlist alert/reminder emails are delivered. A WATCHLIST_REMINDER_EMAIL
+// env override wins (so all alerts go to one inbox regardless of the acting
+// user), otherwise the user's own account email.
+function reminderRecipient(userEmail?: string | null): string | null {
+  return process.env.WATCHLIST_REMINDER_EMAIL?.trim() || userEmail || null;
+}
+
 async function sendWatchlistEmail(
   userId: string,
   subject: string,
@@ -192,13 +199,14 @@ async function sendWatchlistEmail(
 ) {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-    if (!user?.email) return;
+    const to = reminderRecipient(user?.email);
+    if (!to) return;
     const key = process.env.RESEND_API_KEY;
     if (!key) return;
-    const from = `${process.env.RESEND_FROM_NAME || 'GeoLead AI'} <${process.env.RESEND_FROM_EMAIL || 'no-reply@geoleadai.local'}>`;
+    const from = `${process.env.RESEND_FROM_NAME || 'GeoLead AI'} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
     await axios.post(
       'https://api.resend.com/emails',
-      { from, to: user.email, subject, html },
+      { from, to, subject, html },
       { headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 10000 }
     );
   } catch { /* non-blocking */ }
@@ -226,7 +234,8 @@ function availableEmailHtml(domain: string, acquisitionScore: number, aiReco: st
 // instead of swallowing errors, so the UI can show why it failed.
 export async function sendTestReminderEmail(userId: string, watchedDomainId?: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-  if (!user?.email) return { ok: false, reason: 'Your account has no email address.' };
+  const to = reminderRecipient(user?.email);
+  if (!to) return { ok: false, reason: 'No reminder email configured (set WATCHLIST_REMINDER_EMAIL or an account email).' };
 
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, reason: 'Email sending is not configured (RESEND_API_KEY missing on the server).' };
@@ -240,19 +249,19 @@ export async function sendTestReminderEmail(userId: string, watchedDomainId?: st
     if (w) { domainName = w.domainName; acquisitionScore = w.acquisitionScore; aiReco = w.aiRecommendation || 'MONITOR'; }
   }
 
-  const from = `${process.env.RESEND_FROM_NAME || 'GeoLead AI'} <${process.env.RESEND_FROM_EMAIL || 'no-reply@geoleadai.local'}>`;
+  const from = `${process.env.RESEND_FROM_NAME || 'GeoLead AI'} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
   try {
     await axios.post(
       'https://api.resend.com/emails',
       {
         from,
-        to: user.email,
+        to,
         subject: `[Test] Domain Available: ${domainName}`,
         html: availableEmailHtml(domainName, acquisitionScore, aiReco),
       },
       { headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 10000 }
     );
-    return { ok: true, to: user.email, domainName };
+    return { ok: true, to, domainName };
   } catch (err: any) {
     const detail = err?.response?.data?.message || err?.message || 'Unknown error';
     return { ok: false, reason: `Resend rejected the send: ${detail}` };
