@@ -229,6 +229,20 @@ export default function CampaignsPage() {
     };
   }, []);
 
+  // Keep the "emails left today" indicator live: always recompute from the
+  // current sent count (the backend counts real sends each call) rather than
+  // showing a stale snapshot. Refresh on mount and every 30s.
+  useEffect(() => {
+    let active = true;
+    const refreshQuota = () =>
+      fetchOutbound<SendQuota>("/api/outbound/quota")
+        .then((q) => { if (active) setQuota(q); })
+        .catch(() => {});
+    void refreshQuota();
+    const id = setInterval(refreshQuota, 30000);
+    return () => { active = false; clearInterval(id); };
+  }, []);
+
   // Whenever the user picks a portfolio domain, hydrate the campaign form
   // so they never have to retype name/niche/city for a new campaign.
   useEffect(() => {
