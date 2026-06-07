@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Eye,
+  Gauge,
   Loader2,
   Pause,
   Play,
@@ -18,6 +19,17 @@ import {
   XCircle,
 } from "lucide-react";
 import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+
+type SendQuota = {
+  senderCount: number;
+  dailyLimit: number;
+  hourlyLimit: number;
+  sentToday: number;
+  sentThisHour: number;
+  dailyRemaining: number;
+  hourlyRemaining: number;
+  resetsAt: string;
+};
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import {
@@ -97,6 +109,7 @@ export default function CampaignsPage() {
   const [message, setMessage] = useState("");
   const [variantsFor, setVariantsFor] = useState<{ id: string; name: string } | null>(null);
   const [opensFor, setOpensFor] = useState<{ id: string; name: string } | null>(null);
+  const [quota, setQuota] = useState<SendQuota | null>(null);
   const [form, setForm] = useState({
     name: "Geo-domain buyer outreach",
     geoDomain: "TexasCarVendor.com",
@@ -140,6 +153,7 @@ export default function CampaignsPage() {
       setOverview(overviewData);
       setTemplates(templateData);
       setMessage("");
+      void fetchOutbound<SendQuota>("/api/outbound/quota").then(setQuota).catch(() => setQuota(null));
     } catch {
       setCampaigns(demoCampaigns);
       setMessage("Backend offline. Showing demo campaign data.");
@@ -385,17 +399,43 @@ export default function CampaignsPage() {
       title="Campaign Manager"
       subtitle="Create campaigns, select leads, assign default AI templates, schedule sends, and pause or resume sequences."
       actions={
-        <button
-          onClick={() => {
-            setLoading(true);
-            setMessage("");
-            void load();
-          }}
-          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
-        >
-          <RefreshCcw className="h-4 w-4" />
-          Refresh
-        </button>
+        <>
+          {quota && quota.senderCount > 0 ? (
+            <button
+              onClick={() => void fetchOutbound<SendQuota>("/api/outbound/quota").then(setQuota).catch(() => {})}
+              title={`${quota.sentToday}/${quota.dailyLimit} sent today across ${quota.senderCount} sender${quota.senderCount > 1 ? "s" : ""} · ${quota.hourlyRemaining} left this hour · resets ${new Date(quota.resetsAt).toLocaleString()}`}
+              className={`h-10 px-3 rounded-lg border text-sm inline-flex items-center gap-2 transition-colors ${
+                quota.dailyRemaining === 0
+                  ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
+                  : quota.dailyRemaining <= 10
+                    ? "border-amber-400/40 bg-amber-500/10 text-amber-300"
+                    : "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+              }`}
+            >
+              <Gauge className="h-4 w-4" />
+              {quota.dailyRemaining}/{quota.dailyLimit} emails left today
+            </button>
+          ) : quota ? (
+            <span
+              title="Add a sender in Senders to start sending"
+              className="h-10 px-3 rounded-lg border border-amber-400/40 bg-amber-500/10 text-sm text-amber-300 inline-flex items-center gap-2"
+            >
+              <Gauge className="h-4 w-4" />
+              No sender configured
+            </span>
+          ) : null}
+          <button
+            onClick={() => {
+              setLoading(true);
+              setMessage("");
+              void load();
+            }}
+            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh
+          </button>
+        </>
       }
     >
       {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}

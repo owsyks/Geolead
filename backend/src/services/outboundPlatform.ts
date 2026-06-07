@@ -2442,6 +2442,58 @@ interface RequestInfoPayload extends Record<string, unknown> {
   url?: string;
 }
 
+// Daily / hourly send quota for the user's active senders: how many emails have
+// gone out today and how many are left before the cap. Powers the "emails left"
+// indicator in the UI.
+export async function getSendQuota(userId: string) {
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+  const senders = await prisma.senderAccount.findMany({
+    where: { userId, status: { in: ['active', 'warming'] } },
+    select: { id: true, fromEmail: true, label: true, dailyLimit: true, hourlyLimit: true },
+  });
+
+  let dailyLimit = 0, hourlyLimit = 0, sentToday = 0, sentThisHour = 0;
+  const perSender = [] as Array<Record<string, unknown>>;
+  for (const s of senders) {
+    const [daily, hourly] = await Promise.all([
+      prisma.emailLog.count({ where: { senderAccountId: s.id, sentAt: { gte: startOfDay } } }),
+      prisma.emailLog.count({ where: { senderAccountId: s.id, sentAt: { gte: hourAgo } } }),
+    ]);
+    dailyLimit += s.dailyLimit;
+    hourlyLimit += s.hourlyLimit;
+    sentToday += daily;
+    sentThisHour += hourly;
+    perSender.push({
+      id: s.id,
+      fromEmail: s.fromEmail,
+      label: s.label,
+      dailyLimit: s.dailyLimit,
+      hourlyLimit: s.hourlyLimit,
+      sentToday: daily,
+      sentThisHour: hourly,
+      dailyRemaining: Math.max(0, s.dailyLimit - daily),
+      hourlyRemaining: Math.max(0, s.hourlyLimit - hourly),
+    });
+  }
+
+  return {
+    senderCount: senders.length,
+    dailyLimit,
+    hourlyLimit,
+    sentToday,
+    sentThisHour,
+    dailyRemaining: Math.max(0, dailyLimit - sentToday),
+    hourlyRemaining: Math.max(0, hourlyLimit - sentThisHour),
+    // Daily counters reset at the next UTC midnight (server runs in UTC).
+    resetsAt: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    senders: perSender,
+  };
+}
+
 async function getRotatedSender() {
   const senders = await prisma.senderAccount.findMany({
     where: { status: { in: ['active', 'warming'] } },
