@@ -912,7 +912,12 @@ export default function DashboardPage() {
                 'Status': e.status,
                 'Website': lead.website || '',
                 'Phone': lead.phoneNumbers[0] || '',
-                'Location': lead.location || ''
+                'Location': lead.location || '',
+                'Category': lead.category || '',
+                'Decision Maker Name': lead.decisionMakerName || '',
+                'Decision Maker Role': lead.decisionMakerRole || '',
+                'Priority Score': lead.priorityScore ?? '',
+                'Buyer Intent': lead.buyerIntentScore ?? '',
               }))
             )
           : filteredLeads.map(lead => {
@@ -931,6 +936,16 @@ export default function DashboardPage() {
                 'Rating': lead.rating !== undefined && lead.rating !== null ? lead.rating : '',
                 'Reviews Count': lead.reviewsCount !== undefined && lead.reviewsCount !== null ? lead.reviewsCount : 0,
                 'Company Size': lead.companySize || 'Unknown',
+                'Decision Maker Name': lead.decisionMakerName || '',
+                'Decision Maker Role': lead.decisionMakerRole || '',
+                'Decision Maker Score': lead.decisionMakerScore ?? '',
+                'Decision Maker Email': lead.decisionMakerEmail || '',
+                'Buyer Intent Score': lead.buyerIntentScore ?? '',
+                'Domain Upgrade Score': lead.domainUpgradeScore ?? '',
+                'Business Quality Score': lead.businessQualityScore ?? '',
+                'Priority Score': lead.priorityScore ?? '',
+                'Contact Strategy': lead.contactStrategy || '',
+                'Engagement Score': lead.engagementScore ?? 0,
                 'Domain Relevance Score': lead.domainMatchScore,
                 'Relevance Explanation': lead.scoreExplanation || '',
                 'CRM Notes': lead.notes || '',
@@ -2222,9 +2237,9 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-indigo-400" /> Export Options
+                  <Download className="w-4 h-4 text-teal-400" /> Export Options
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Choose format and filters</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Format, filters, and column groups</p>
               </div>
               <button onClick={() => setExportOptionsOpen(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-200 rounded">
                 <X className="w-4 h-4" />
@@ -2240,7 +2255,7 @@ export default function DashboardPage() {
                       onClick={() => setExportFormat(fmt)}
                       className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
                         exportFormat === fmt
-                          ? 'bg-indigo-600 text-slate-900 dark:text-white'
+                          ? 'bg-teal-600 text-white'
                           : 'bg-white dark:bg-slate-950 text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-800'
                       }`}
                     >
@@ -2249,32 +2264,42 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Export Mode</p>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={exportEmailsOnly}
                     onChange={(e) => setExportEmailsOnly(e.target.checked)}
-                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
                   />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Export emails only (one row per email)</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">One row per email (flat list)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={exportIncludeRisky}
                     onChange={(e) => setExportIncludeRisky(e.target.checked)}
-                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
                   />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky (catch-all / unverified) emails</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky (catch-all) emails</span>
                 </label>
+              </div>
+              <div className="space-y-1.5 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Columns Included</p>
+                <p className="text-[9px] text-slate-500 mb-2">Business info, contacts, emails, phone, location, category, rating, and notes are always included.</p>
+                <p className="text-[9px] text-teal-400 font-semibold">+ Decision maker (name, role, score, email)</p>
+                <p className="text-[9px] text-teal-400 font-semibold">+ LinkedIn (URL, verified status)</p>
+                <p className="text-[9px] text-teal-400 font-semibold">+ Buyer scores (intent, fit, quality, priority)</p>
+                <p className="text-[9px] text-teal-400 font-semibold">+ Contact strategy + engagement</p>
+                <p className="text-[9px] text-teal-400 font-semibold">+ Email verification details (provider, MX, confidence)</p>
               </div>
             </div>
             <div className="p-5 border-t border-slate-300 dark:border-slate-800 flex justify-end gap-2">
               <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-800 dark:text-slate-200 rounded-lg">Cancel</button>
               <button
                 onClick={() => { setExportOptionsOpen(false); handleExport(exportFormat); }}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-teal-600 hover:bg-teal-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export
