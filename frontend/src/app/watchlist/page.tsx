@@ -12,6 +12,7 @@ import {
   Clock,
   ExternalLink,
   Loader2,
+  Mail,
   Plus,
   RefreshCcw,
   Star,
@@ -68,6 +69,7 @@ export default function WatchlistPage() {
   const [message, setMessage] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [checkingAll, setCheckingAll] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -99,6 +101,24 @@ export default function WatchlistPage() {
     high_priority: highPriority,
     reminders: withReminders,
     notifications: [],
+  };
+
+  const sendTestEmail = async () => {
+    setSendingTest(true);
+    setMessage("Sending a test drop-alert email…");
+    try {
+      const res = await fetchOutbound<{ ok: boolean; to?: string; reason?: string }>(
+        "/api/watchlist/test-email",
+        { method: "POST", body: JSON.stringify({}) }
+      );
+      setMessage(res.ok
+        ? `✅ Test drop-alert email sent to ${res.to}. Check your inbox (and spam folder).`
+        : `❌ Could not send: ${res.reason}`);
+    } catch {
+      setMessage("❌ Failed to send the test email.");
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   const checkAll = async () => {
@@ -134,6 +154,10 @@ export default function WatchlistPage() {
           <button onClick={() => void checkAll()} disabled={checkingAll || domains.length === 0} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-50">
             {checkingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
             Check all
+          </button>
+          <button onClick={() => void sendTestEmail()} disabled={sendingTest} title="Send yourself a sample 'domain available' alert to verify email delivery" className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-50">
+            {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            Test drop email
           </button>
         </>
       }

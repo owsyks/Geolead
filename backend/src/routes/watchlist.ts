@@ -14,6 +14,7 @@ import {
   markAllRead,
   checkDomainNow,
   moveToPortfolio,
+  sendTestReminderEmail,
   type AddToWatchlistInput,
   type WatchPriority,
   type WatchStatus,
@@ -85,6 +86,11 @@ router.post('/:id/reminders', wrap(async (req, res) => {
 
 router.delete('/:id/reminders/:reminderId', wrap(async (req, res) => {
   res.json(await deleteReminder(req.params.reminderId, req.userId!));
+}));
+
+// Send a test "domain available" reminder email to verify delivery.
+router.post('/test-email', wrap(async (req, res) => {
+  res.json(await sendTestReminderEmail(req.userId!, asString(req.body.watchedDomainId) || undefined));
 }));
 
 // ─── Notifications ────────────────────────────────────────────────────────────
