@@ -10,7 +10,7 @@ import { deriveDomainIntelligence } from './domains.js';
 
 export type WatchPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type WatchStatus = 'WATCHING' | 'INTERESTED' | 'HIGH_PRIORITY' | 'AVAILABLE' | 'PURCHASED' | 'IN_PORTFOLIO';
-export type DnsStatus = 'dns_registered' | 'dns_available' | 'dns_unknown';
+export type DnsStatus = 'dns_registered' | 'dns_available' | 'dns_unknown' | 'dns_dropping';
 export type AiReco = 'BUY_NOW' | 'WAIT' | 'MONITOR' | 'AVOID';
 
 export interface AddToWatchlistInput {
@@ -61,10 +61,57 @@ async function hasDnsPresence(domain: string): Promise<boolean> {
   return false;
 }
 
-async function checkDns(domain: string): Promise<DnsStatus> {
-  // 1) RDAP — authoritative registry lookup. rdap.org redirects to the correct
-  //    registry RDAP server for the TLD.
+export interface DomainStatusResult {
+  status: DnsStatus;
+  eppStatuses: string[];      // normalized EPP codes, e.g. ['clientTransferProhibited','redemptionPeriod']
+  registrar: string | null;
+  expiration: Date | null;
+}
+
+// EPP lifecycle codes that mean the domain is registered but on its way out — it
+// has expired and is in the redemption / deletion window, i.e. "about to drop".
+const DROP_STATUSES = new Set(['redemptionPeriod', 'pendingDelete', 'pendingRestore']);
+
+// RDAP status strings are lowercase space-separated ("redemption period").
+// Normalize to the conventional camelCase EPP code ("redemptionPeriod").
+function normalizeEppStatus(s: string): string {
+  const parts = String(s).trim().toLowerCase().split(/[\s_]+/).filter(Boolean);
+  if (parts.length === 0) return String(s).trim();
+  return parts.map((p, i) => (i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1))).join('');
+}
+
+function extractRdapRegistrar(data: any): string | null {
+  if (!Array.isArray(data?.entities)) return null;
+  for (const e of data.entities) {
+    if (Array.isArray(e?.roles) && e.roles.includes('registrar')) {
+      const vcard = e?.vcardArray?.[1];
+      if (Array.isArray(vcard)) {
+        const fn = vcard.find((f: any) => Array.isArray(f) && f[0] === 'fn');
+        if (fn && typeof fn[3] === 'string' && fn[3].trim()) return fn[3].trim();
+      }
+      if (typeof e.handle === 'string' && e.handle.trim()) return e.handle.trim();
+    }
+  }
+  return null;
+}
+
+function extractRdapExpiration(data: any): Date | null {
+  if (!Array.isArray(data?.events)) return null;
+  const ev = data.events.find((e: any) => e?.eventAction === 'expiration');
+  if (ev?.eventDate) {
+    const d = new Date(ev.eventDate);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+// Resolve the full registration status from RDAP (authoritative registry data):
+// the lifecycle status (registered / dropping / available / unknown), the raw
+// EPP status codes (clientTransferProhibited, redemptionPeriod, …), the
+// registrar, and the expiration date.
+async function resolveDomainStatus(domain: string): Promise<DomainStatusResult> {
   let rdapStatus: number | null = null;
+  let data: any = null;
   try {
     const res = await axios.get(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
       timeout: 8000,
@@ -73,23 +120,36 @@ async function checkDns(domain: string): Promise<DnsStatus> {
       headers: { Accept: 'application/rdap+json' },
     });
     rdapStatus = res.status;
+    if (res.status === 200) data = res.data;
   } catch {
     rdapStatus = null; // network/timeout — fall back to DNS
   }
 
-  if (rdapStatus === 200) return 'dns_registered';
+  const eppStatuses: string[] = Array.isArray(data?.status)
+    ? Array.from(new Set(data.status.map((s: string) => normalizeEppStatus(s))))
+    : [];
+  const registrar = extractRdapRegistrar(data);
+  const expiration = extractRdapExpiration(data);
 
-  // 2) DNS delegation check. NS/SOA/A present → definitely registered. This also
-  //    covers TLDs that RDAP doesn't serve (some ccTLDs), preventing a 404 from
-  //    RDAP being misread as available when the domain is clearly delegated.
-  if (await hasDnsPresence(domain)) return 'dns_registered';
+  if (rdapStatus === 200) {
+    // Registered. If it's in the redemption/pending-delete window, flag it as
+    // dropping — that's the high-opportunity "about to become available" state.
+    const dropping = eppStatuses.some((s) => DROP_STATUSES.has(s));
+    return { status: dropping ? 'dns_dropping' : 'dns_registered', eppStatuses, registrar, expiration };
+  }
 
-  // 3) No DNS presence. Only trust an authoritative RDAP 404 as "available".
-  if (rdapStatus === 404) return 'dns_available';
+  // RDAP didn't return a record. NS/SOA/A present → still clearly registered
+  // (covers TLDs RDAP doesn't serve, so a 404 isn't misread as available).
+  if (await hasDnsPresence(domain)) {
+    return { status: 'dns_registered', eppStatuses, registrar, expiration };
+  }
 
-  // RDAP inconclusive (timeout / rate-limited / odd status) and no DNS → we
-  // genuinely don't know. Never claim "available" on a guess.
-  return 'dns_unknown';
+  // No DNS presence. Only an authoritative RDAP 404 means truly available.
+  if (rdapStatus === 404) return { status: 'dns_available', eppStatuses, registrar, expiration };
+
+  // RDAP inconclusive (timeout / rate-limited) and no DNS → unknown, never a
+  // guessed "available".
+  return { status: 'dns_unknown', eppStatuses, registrar, expiration };
 }
 
 // ─── Score derivation ─────────────────────────────────────────────────────────
@@ -265,18 +325,26 @@ async function checkAndUpdateDns(id: string, userId: string) {
   const w = await prisma.watchedDomain.findFirst({ where: { id, userId } });
   if (!w) return;
 
-  const newStatus = await checkDns(w.domainName);
+  const result = await resolveDomainStatus(w.domainName);
+  const newStatus = result.status;
   const prevStatus = w.registrationStatus;
   const changed = newStatus !== prevStatus;
+  const flipToAvailable = newStatus === 'dns_available'
+    && ['WATCHING', 'INTERESTED', 'HIGH_PRIORITY'].includes(w.status);
 
   await prisma.watchedDomain.update({
     where: { id },
     data: {
       registrationStatus: newStatus,
+      registrar: result.registrar ?? w.registrar,
+      expirationDate: result.expiration ?? w.expirationDate,
       lastCheckedAt: new Date(),
-      ...(newStatus === 'dns_available' && w.status === 'WATCHING' ? { status: 'AVAILABLE' } : {}),
-      ...(newStatus === 'dns_available' && w.status === 'INTERESTED' ? { status: 'AVAILABLE' } : {}),
-      ...(newStatus === 'dns_available' && w.status === 'HIGH_PRIORITY' ? { status: 'AVAILABLE' } : {}),
+      metadata: {
+        ...((w.metadata as Record<string, unknown> | null) ?? {}),
+        eppStatuses: result.eppStatuses,
+        statusCheckedAt: new Date().toISOString(),
+      },
+      ...(flipToAvailable ? { status: 'AVAILABLE' } : {}),
     },
   });
 
@@ -284,7 +352,7 @@ async function checkAndUpdateDns(id: string, userId: string) {
     data: {
       watchedDomainId: id,
       type: changed ? 'DNS_CHANGE' : 'CHECKED',
-      details: { previous: prevStatus, current: newStatus },
+      details: { previous: prevStatus, current: newStatus, eppStatuses: result.eppStatuses },
     },
   });
 
@@ -310,6 +378,23 @@ async function checkAndUpdateDns(id: string, userId: string) {
           availableEmailHtml(w.domainName, w.acquisitionScore, w.aiRecommendation || 'MONITOR')
         );
       }
+    }
+  } else if (changed && newStatus === 'dns_dropping') {
+    // Registered but in redemption / pending-delete — likely to become available
+    // soon. High-opportunity signal.
+    const priority = w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'HIGH' : 'NORMAL';
+    const codes = result.eppStatuses.filter((s) => DROP_STATUSES.has(s)).join(', ') || 'redemption/pending-delete';
+    await createNotification(
+      userId, id, w.domainName, 'STATUS_CHANGE',
+      `⏳ ${w.domainName} may drop soon`,
+      `The domain has expired and is in ${codes}. It often becomes available for registration shortly after this stage. Acquisition score: ${w.acquisitionScore}/100.`,
+      priority
+    );
+    const reminders = await prisma.watchlistReminder.findMany({
+      where: { watchedDomainId: id, triggered: false, type: 'STATUS_CHANGE' },
+    });
+    for (const r of reminders) {
+      await prisma.watchlistReminder.update({ where: { id: r.id }, data: { triggered: true, triggeredAt: new Date() } });
     }
   } else if (changed) {
     await createNotification(

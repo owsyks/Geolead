@@ -505,7 +505,7 @@ export interface AcquisitionResult {
 // ─── Watchlist types ──────────────────────────────────────────────────────────
 export type WatchPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type WatchStatus = 'WATCHING' | 'INTERESTED' | 'HIGH_PRIORITY' | 'AVAILABLE' | 'PURCHASED' | 'IN_PORTFOLIO';
-export type DnsStatus = 'dns_registered' | 'dns_available' | 'dns_unknown';
+export type DnsStatus = 'dns_registered' | 'dns_available' | 'dns_unknown' | 'dns_dropping';
 export type AiReco = 'BUY_NOW' | 'WAIT' | 'MONITOR' | 'AVOID';
 
 export interface WatchlistReminder {
@@ -542,6 +542,7 @@ export interface WatchedDomain {
   registrar?: string | null;
   expirationDate?: string | null;
   lastCheckedAt?: string | null;
+  metadata?: { eppStatuses?: string[]; statusCheckedAt?: string } | null;
   addedFrom?: string | null;
   isFavorite: boolean;
   createdAt: string;

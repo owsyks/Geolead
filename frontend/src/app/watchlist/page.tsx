@@ -251,8 +251,11 @@ function DomainRow({
   const pCfg = PRIORITY_CFG[d.priority];
   const sCfg = STATUS_CFG[d.status];
   const dnsAvailable = d.registrationStatus === "dns_available";
+  const dnsDropping = d.registrationStatus === "dns_dropping";
   const dnsRegistered = d.registrationStatus === "dns_registered";
   const dnsUnknown = !d.registrationStatus || d.registrationStatus === "dns_unknown";
+  const eppStatuses = d.metadata?.eppStatuses ?? [];
+  const expiresLabel = d.expirationDate ? new Date(d.expirationDate).toLocaleDateString() : null;
 
   const checkNow = async () => {
     setChecking(true);
@@ -287,7 +290,7 @@ function DomainRow({
   };
 
   return (
-    <div className={`rounded-lg border transition-all ${dnsAvailable ? "border-emerald-400/30 bg-emerald-500/5" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30"}`}>
+    <div className={`rounded-lg border transition-all ${dnsAvailable ? "border-emerald-400/30 bg-emerald-500/5" : dnsDropping ? "border-orange-400/40 bg-orange-500/5" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30"}`}>
       <div className="px-4 py-3 flex flex-wrap items-center gap-3">
         {/* Priority dot */}
         <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${pCfg.dot}`} title={pCfg.label} />
@@ -297,11 +300,34 @@ function DomainRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono font-black text-slate-900 dark:text-slate-50">{d.domainName}</span>
             {dnsAvailable && <span className="text-[11px] font-black text-emerald-400 border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">AVAILABLE</span>}
+            {dnsDropping && <span title="Expired and in redemption / pending-delete — often becomes available soon" className="text-[11px] font-black text-orange-400 border border-orange-400/40 bg-orange-500/10 px-1.5 py-0.5 rounded">DROPPING SOON</span>}
             {dnsRegistered && <span className="text-[11px] text-slate-500 border border-slate-300 dark:border-slate-700 px-1.5 py-0.5 rounded">Registered</span>}
             {dnsUnknown && <span title="Couldn't confirm registry status — re-check shortly" className="text-[11px] text-amber-400/90 border border-amber-400/30 bg-amber-500/10 px-1.5 py-0.5 rounded">Unverified</span>}
           </div>
+          {/* WHOIS/RDAP EPP status codes */}
+          {eppStatuses.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {eppStatuses.map((s) => {
+                const drop = s === "redemptionPeriod" || s === "pendingDelete" || s === "pendingRestore";
+                return (
+                  <span
+                    key={s}
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                      drop
+                        ? "border-orange-400/40 bg-orange-500/10 text-orange-400"
+                        : "border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    {s}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           <div className="text-xs text-slate-500 mt-0.5">
             <span className={`font-medium ${sCfg.color}`}>{sCfg.label}</span>
+            {d.registrar && <span> · {d.registrar}</span>}
+            {expiresLabel && <span> · Exp {expiresLabel}</span>}
             {d.lastCheckedAt && <span> · Checked {new Date(d.lastCheckedAt).toLocaleDateString()}</span>}
           </div>
         </div>
