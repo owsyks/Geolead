@@ -882,8 +882,6 @@ export async function processOutboundQueueTick() {
 
 async function runOutboundQueueTick() {
   const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
 
   // Only pull logs whose campaign is ACTIVE. Past-due QUEUED logs from
   // paused/stopped campaigns would otherwise sort first (oldest scheduledAt) and
@@ -903,24 +901,6 @@ async function runOutboundQueueTick() {
       senderAccount: true,
     },
   });
-
-  // Preload per-campaign sent counts for today to enforce campaign dailyLimit
-  const campaignIds = [...new Set(dueLogs.map((l) => l.campaignId).filter(Boolean))] as string[];
-  const campaignDailyCounts: Record<string, number> = {};
-  if (campaignIds.length > 0) {
-    const rows = await prisma.emailLog.groupBy({
-      by: ['campaignId'],
-      where: {
-        campaignId: { in: campaignIds },
-        sentAt: { gte: startOfDay },
-        status: { in: ['SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'REPLIED', 'SIMULATED'] },
-      },
-      _count: { id: true },
-    });
-    for (const row of rows) {
-      if (row.campaignId) campaignDailyCounts[row.campaignId] = row._count.id;
-    }
-  }
 
   // Fair-share the sender's limited daily quota across active campaigns:
   // interleave the due logs round-robin by campaign (each campaign kept
@@ -949,10 +929,10 @@ async function runOutboundQueueTick() {
   for (const log of orderedLogs) {
     if (log.campaign.status !== 'ACTIVE') continue;
 
-    // Enforce campaign-level daily send cap
-    const campaignSentToday = campaignDailyCounts[log.campaignId!] ?? 0;
-    if (campaignSentToday >= log.campaign.dailyLimit) continue;
-    campaignDailyCounts[log.campaignId!] = campaignSentToday + 1;
+    // The sender's DAILY limit is the single send cap: pull from all active
+    // campaigns (round-robin above) until the sender's daily max is reached,
+    // then stop. No per-campaign daily cap and no hourly throttle gate sends, so
+    // the full daily budget is used continuously instead of stalling early.
     if (log.campaignLead?.status && ['REPLIED', 'INTERESTED', 'UNSUBSCRIBED', 'SUPPRESSED', 'COMPLETED'].includes(log.campaignLead.status)) {
       await prisma.emailLog.update({
         where: { id: log.id },
@@ -2522,16 +2502,15 @@ async function resolveCampaignSender(campaign: any) {
   return getRotatedSender();
 }
 
-async function senderWithinLimits(senderAccountId: string, hourlyLimit: number, dailyLimit: number) {
+async function senderWithinLimits(senderAccountId: string, _hourlyLimit: number, dailyLimit: number) {
   const now = new Date();
-  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
-  const [hourly, daily] = await Promise.all([
-    prisma.emailLog.count({ where: { senderAccountId, sentAt: { gte: hourAgo } } }),
-    prisma.emailLog.count({ where: { senderAccountId, sentAt: { gte: startOfDay } } }),
-  ]);
-  return hourly < hourlyLimit && daily < dailyLimit;
+  // The daily cap is the single send limit — send continuously until the
+  // sender's daily max, then stop. The hourly throttle is intentionally not
+  // enforced so the full daily budget is used in one run instead of stalling.
+  const daily = await prisma.emailLog.count({ where: { senderAccountId, sentAt: { gte: startOfDay } } });
+  return daily < dailyLimit;
 }
 
 async function isSuppressed(email: string) {
