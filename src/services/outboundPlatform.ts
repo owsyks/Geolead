@@ -1143,6 +1143,9 @@ async function queueNextSequenceStep(emailLogId: string) {
       fromEmail: sender.fromEmail,
       subject,
       previewText: nextStep.previewText,
+      // Carry the initial email's variant onto the follow-up so variant
+      // performance stats include follow-up opens/replies, not just first sends.
+      variant: fuVariant,
       bodyText,
       bodyHtml: textToTrackedHtml(bodyText, trackingToken),
       status: 'QUEUED',
@@ -2916,9 +2919,13 @@ function personalize(
 ) {
   const cityState = campaign.cityState || lead.location || '';
   const unsubscribeUrl = `${OUTBOUND_BASE_URL}/api/outbound/unsubscribe/${tokens.unsubscribeToken}`;
+  const bizName = (lead.businessName || '').trim();
   const resolved = template
-    .replaceAll('{{businessName}}', lead.businessName || '')
-    .replaceAll('{{decisionMakerName}}', lead.decisionMakerName || lead.businessName || 'there')
+    // Resolve the business-name token, keeping a natural greeting when the name
+    // is missing ("Hi {{businessName}} team," → "Hi there," not "Hi  team,").
+    .replace(/\{\{\s*businessName\s*\}\}\s+team\b/gi, bizName ? `${bizName} team` : 'there')
+    .replace(/\{\{\s*businessName\s*\}\}/gi, bizName || 'there')
+    .replaceAll('{{decisionMakerName}}', lead.decisionMakerName || bizName || 'there')
     .replaceAll('{{decisionMakerRole}}', lead.decisionMakerRole || '')
     .replaceAll('{{geoDomain}}', campaign.geoDomain || '')
     .replaceAll('{{cityState}}', cityState)
