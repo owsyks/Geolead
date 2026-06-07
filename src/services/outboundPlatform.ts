@@ -894,7 +894,7 @@ async function runOutboundQueueTick() {
       scheduledAt: { lte: now },
       campaign: { is: { status: 'ACTIVE' } },
     },
-    take: 50,
+    take: 200,
     orderBy: { scheduledAt: 'asc' },
     include: {
       campaign: true,
@@ -922,7 +922,31 @@ async function runOutboundQueueTick() {
     }
   }
 
+  // Fair-share the sender's limited daily quota across active campaigns:
+  // interleave the due logs round-robin by campaign (each campaign kept
+  // oldest-first) instead of strict global oldest-first. Otherwise one
+  // campaign's large backlog of past-due follow-ups sorts first and consumes the
+  // whole 100/day sender budget, starving the other active campaigns.
+  const groups = new Map<string, typeof dueLogs>();
   for (const log of dueLogs) {
+    const key = log.campaignId || 'none';
+    const arr = groups.get(key);
+    if (arr) arr.push(log); else groups.set(key, [log]);
+  }
+  const orderedLogs: typeof dueLogs = [];
+  let progressed = true;
+  while (progressed) {
+    progressed = false;
+    for (const arr of groups.values()) {
+      const next = arr.shift();
+      if (next) { orderedLogs.push(next); progressed = true; }
+    }
+  }
+
+  // Senders that have hit their cap during this tick — skip further logs for them.
+  const cappedSenders = new Set<string>();
+
+  for (const log of orderedLogs) {
     if (log.campaign.status !== 'ACTIVE') continue;
 
     // Enforce campaign-level daily send cap
@@ -972,7 +996,12 @@ async function runOutboundQueueTick() {
     }
 
     const sender = log.senderAccount || (await getRotatedSender());
-    if (!sender || !(await senderWithinLimits(sender.id, sender.hourlyLimit, sender.dailyLimit))) {
+    if (!sender) continue;
+    // Once a sender has hit its hourly/daily cap, remember it so we don't run two
+    // count queries for every remaining log in this (now larger) batch.
+    if (cappedSenders.has(sender.id)) continue;
+    if (!(await senderWithinLimits(sender.id, sender.hourlyLimit, sender.dailyLimit))) {
+      cappedSenders.add(sender.id);
       continue;
     }
 
