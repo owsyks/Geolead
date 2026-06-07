@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { X, ShieldCheck, AlertTriangle, Ban, Loader2, Search } from "lucide-react";
+import { X, ShieldCheck, AlertTriangle, Ban, Loader2 } from "lucide-react";
 
 export interface EmailProgress {
   email: string;
@@ -69,9 +69,12 @@ export function VerificationModal({ open, results, total, done, complete, onClos
         {/* Email list */}
         <div ref={listRef} className="flex-1 overflow-y-auto px-6 py-3 space-y-1 min-h-[200px]">
           {results.length === 0 && !complete && (
-            <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-              <Search className="w-8 h-8 mb-2 animate-pulse" />
-              <p className="text-xs">Starting verification...</p>
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+              <div className="text-center">
+                <p className="text-sm font-semibold text-slate-400">Verifying {total} emails...</p>
+                <p className="text-[11px] text-slate-500 mt-1">Checking MX records, SPF/DMARC, and SMTP handshake</p>
+              </div>
             </div>
           )}
           {results.length === 0 && complete && (

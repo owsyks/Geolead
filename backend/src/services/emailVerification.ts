@@ -436,8 +436,8 @@ interface SmtpCheckResult {
   catchAll: boolean | null;
 }
 
-const SMTP_CONNECT_TIMEOUT_MS = 3000;
-const SMTP_CMD_TIMEOUT_MS = 2000;
+const SMTP_CONNECT_TIMEOUT_MS = 2000;
+const SMTP_CMD_TIMEOUT_MS = 1500;
 
 async function verifyMailboxViaSmtp(
   email: string,
