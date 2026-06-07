@@ -11,7 +11,7 @@
 //   D — SEO:           emphasizes search visibility / exact-match value
 //   E — Opportunity:   frames the domain as a timely opening, low-pressure
 import { nvidiaChat, getNvidiaKey, extractJson } from './nvidiaAi.js';
-import { scoreSpamRisk } from './outboundAi.js';
+import { scoreSpamRisk, humanizeMergeTokens } from './outboundAi.js';
 
 export type VariantKey = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -70,7 +70,7 @@ const GREETINGS = [
   'Hi there,',
   'Hello,',
   'Good afternoon,',
-  'Hi {{businessName}} team,',
+  'Hi team,',
   'Hope you are doing well —',
 ];
 
@@ -195,7 +195,7 @@ async function aiVariants(input: VariantInput): Promise<GeneratedVariant[]> {
     `- Subject: <= 60 chars, no emoji, no ALL-CAPS words, no exclamation marks, no clickbait.`,
     `- Each variant uses a DIFFERENT greeting style and a DIFFERENT signature sign-off.`,
     `- Body: 60-110 words, plain text. One single clear CTA per email.`,
-    `- Use merge tokens where natural: {{businessName}}, {{geoDomain}}, {{cityState}}, {{niche}}. Use {{geoDomain}} to refer to the domain.`,
+    `- Write the real domain "${domain}", niche "${niche}", and location "${geo}" inline. Do NOT use a business-name placeholder or any curly-brace token — greet generically (e.g. "Hi there,").`,
     senderLine,
     `- Do NOT include any unsubscribe line, footer, or physical address — that is appended automatically.`,
     `- NEVER use: "act now", "limited time", "guaranteed", "100% profit", "buy now", "risk-free", "click here", "urgent". No urgency or pressure language.`,
@@ -250,5 +250,34 @@ export async function generateCampaignVariants(input: VariantInput): Promise<Var
   } catch {
     variants = localVariants(input);
   }
+
+  // Resolve every merge token to readable text. Variants carry the campaign's
+  // real domain/niche/geo, so there is nothing to personalize per-recipient
+  // later — and users should never see a raw "{{businessName}}" token. The
+  // business-name token becomes a natural greeting, the rest are filled in.
+  const ctx = {
+    businessName: null,
+    senderName: input.senderName,
+    geoDomain: input.geoDomain,
+    cityState: input.cityState,
+    niche: input.niche,
+    decisionMakerName: input.decisionMakerName,
+    decisionMakerRole: input.decisionMakerRole,
+  };
+  variants = variants.map((v) => {
+    const subject = humanizeMergeTokens(v.subject, ctx);
+    const body = humanizeMergeTokens(v.body, ctx);
+    const evals = evaluateVariant(subject, body);
+    return {
+      ...v,
+      subject,
+      body,
+      greeting: humanizeMergeTokens(v.greeting, ctx),
+      cta: humanizeMergeTokens(v.cta, ctx),
+      signature: humanizeMergeTokens(v.signature, ctx),
+      ...evals,
+    };
+  });
+
   return { generatedAt: new Date().toISOString(), variants };
 }

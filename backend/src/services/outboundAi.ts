@@ -20,22 +20,62 @@ export interface EmailGenerationInput {
 }
 
 // Post-process generated copy:
-//  - {{decisionMakerName}} → kept as merge token (resolved at send time)
-//  - {{decisionMakerRole}} → kept as merge token
-//  - {{businessName}} → kept as merge token
+//  - {{businessName}} → resolved to the real business name when known, otherwise
+//    rewritten to a natural greeting. Users disliked seeing the raw token, so it
+//    is never left in the output.
 //  - {{senderName}} → replaced with provided sender name when supplied
 //  - {{unsubscribeLine}} → stripped
-function finalizeTokens(text: string, senderName?: string): string {
+//  - any other stray {{...}} merge token → stripped so nothing raw leaks through
+function finalizeTokens(text: string, opts: { senderName?: string; businessName?: string } = {}): string {
+  const biz = opts.businessName?.trim();
   let out = text
-    .replace(/\{\{\s*businessName\s*\}\}\s*team/gi, '{{businessName}}')
-    .replace(/\{\{\s*businessName\s*\}\}/gi, '{{businessName}}')
+    .replace(/\{\{\s*businessName\s*\}\}\s+team\b/gi, biz ? `${biz} team` : 'there')
+    .replace(/\{\{\s*businessName\s*\}\}'s/gi, biz ? `${biz}'s` : 'your')
+    .replace(/\{\{\s*businessName\s*\}\}/gi, biz || 'there')
     .replace(/\n*\s*\{\{\s*unsubscribeLine\s*\}\}\s*/gi, '\n')
     .replace(/^.*\b(opt[\s-]?out|unsubscribe)\b.*$/gim, '')
     .replace(/\n{3,}/g, '\n\n');
-  if (senderName && senderName.trim()) {
-    out = out.replace(/\{\{\s*senderName\s*\}\}/gi, senderName.trim());
+  if (opts.senderName && opts.senderName.trim()) {
+    out = out.replace(/\{\{\s*senderName\s*\}\}/gi, opts.senderName.trim());
   }
+  // Tidy artifacts left by removed tokens ("Hi there team," → "Hi there,").
+  out = out
+    .replace(/\bthere team\b/gi, 'there')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ ,/g, ',');
   return out.trimEnd();
+}
+
+// Resolve merge tokens to human-readable text for copy that will NOT be
+// re-personalized later (campaign variants already carry the campaign's real
+// domain/niche/geo). Fills known values, rewrites the recipient business-name
+// token to a natural greeting, and strips any leftover {{...}} so users never
+// see raw tokens like "{{businessName}}".
+export function humanizeMergeTokens(text: string, ctx: {
+  businessName?: string | null; senderName?: string | null; geoDomain?: string | null;
+  cityState?: string | null; niche?: string | null; website?: string | null;
+  decisionMakerName?: string | null; decisionMakerRole?: string | null;
+}): string {
+  const biz = ctx.businessName?.trim();
+  const dm = ctx.decisionMakerName?.trim();
+  return text
+    .replace(/\{\{\s*businessName\s*\}\}\s+team\b/gi, biz ? `${biz} team` : 'there')
+    .replace(/\{\{\s*businessName\s*\}\}'s/gi, biz ? `${biz}'s` : 'your')
+    .replace(/\{\{\s*businessName\s*\}\}/gi, biz || 'there')
+    .replace(/\{\{\s*decisionMakerName\s*\}\}/gi, dm || 'there')
+    .replace(/\{\{\s*decisionMakerRole\s*\}\}/gi, ctx.decisionMakerRole?.trim() || '')
+    .replace(/\{\{\s*geoDomain\s*\}\}/gi, ctx.geoDomain?.trim() || 'this domain')
+    .replace(/\{\{\s*cityState\s*\}\}/gi, ctx.cityState?.trim() || 'your area')
+    .replace(/\{\{\s*niche\s*\}\}/gi, ctx.niche?.trim() || 'your market')
+    .replace(/\{\{\s*website\s*\}\}/gi, ctx.website?.trim() || '')
+    .replace(/\{\{\s*senderName\s*\}\}/gi, ctx.senderName?.trim() || 'the team')
+    .replace(/\n*\s*\{\{\s*unsubscribeLine\s*\}\}\s*/gi, '\n')
+    .replace(/\{\{[^}]*\}\}/g, '') // strip any remaining unknown tokens
+    .replace(/\bthere team\b/gi, 'there')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ ,/g, ',')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
 }
 
 export interface GeneratedEmail {
@@ -67,14 +107,16 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
     ? await generateWithNvidia(normalizedInput, websiteIntel).catch(() => localGenerate(normalizedInput, websiteIntel))
     : localGenerate(normalizedInput, websiteIntel);
 
-  // Strip the recipient token and bake in the sender name before scoring/return.
+  // Resolve recipient/sender tokens into readable text before scoring/return so
+  // the output never shows raw "{{businessName}}" / "{{senderName}}".
   const sender = input.senderName;
+  const tokenOpts = { senderName: sender, businessName: input.businessName };
   const finalized = {
-    subjectLine: finalizeTokens(generated.subjectLine, sender),
-    previewText: finalizeTokens(generated.previewText, sender),
-    body: finalizeTokens(generated.body, sender),
-    followUps: generated.followUps.map((f: string) => finalizeTokens(f, sender)),
-    abSubjects: generated.abSubjects.map((s: string) => finalizeTokens(s, sender)),
+    subjectLine: finalizeTokens(generated.subjectLine, tokenOpts),
+    previewText: finalizeTokens(generated.previewText, tokenOpts),
+    body: finalizeTokens(generated.body, tokenOpts),
+    followUps: generated.followUps.map((f: string) => finalizeTokens(f, tokenOpts)),
+    abSubjects: generated.abSubjects.map((s: string) => finalizeTokens(s, tokenOpts)),
   };
 
   const spamScore = scoreSpamRisk(`${finalized.subjectLine}\n${finalized.body}`);
@@ -86,7 +128,6 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
     deliverabilityScore,
     websiteIntel,
     variables: [
-      '{{businessName}}',
       '{{geoDomain}}',
       '{{cityState}}',
       '{{niche}}',
@@ -302,7 +343,9 @@ async function generateWithNvidia(input: EmailGenerationInput, intel: WebsiteInt
       : `Business name: UNKNOWN. Open with a generic greeting such as "Hi there," — do NOT use any placeholder/merge token and do NOT invent a business name.`,
     input.decisionMakerName
       ? `Key decision maker: ${input.decisionMakerName}${input.decisionMakerRole ? `, ${input.decisionMakerRole}` : ''}. Address them by name in the greeting.`
-      : `Decision maker: Unknown. Use "{{businessName}} team" or "Hi there," as the greeting.`,
+      : hasBusiness
+        ? `Decision maker: Unknown. Greet the business by its real name (e.g. "Hi ${input.businessName} team,").`
+        : `Decision maker: Unknown. Use "Hi there," as the greeting — do NOT use any placeholder/merge token.`,
     `Website intel: ${websiteSummary}`,
     input.painPoints ? `Pain points: ${input.painPoints}` : '',
     ``,
