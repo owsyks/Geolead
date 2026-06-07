@@ -101,7 +101,7 @@ export function OutboundShell({
                   href={item.href}
                   className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-colors ${
                     active
-                      ? "bg-indigo-500/15 text-indigo-100 border border-indigo-400/20"
+                      ? "bg-teal-500/15 text-teal-100 border border-teal-400/20"
                       : "text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/70"
                   }`}
                 >
@@ -170,7 +170,7 @@ export function OutboundShell({
                 >
                   <Bell className="h-4 w-4" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -195,7 +195,7 @@ export function OutboundShell({
                     href={item.href}
                     className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border ${
                       active
-                        ? "bg-indigo-500/15 text-indigo-100 border-indigo-400/20"
+                        ? "bg-teal-500/15 text-teal-100 border-teal-400/20"
                         : "bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-slate-300 dark:border-slate-800"
                     }`}
                   >
@@ -240,7 +240,7 @@ export function StatusBadge({ value }: { value: string }) {
       : normalized.includes("pause") || normalized.includes("draft") || normalized.includes("pending")
         ? "border-amber-400/25 bg-amber-500/10 text-amber-300"
         : normalized.includes("bounce") || normalized.includes("complaint") || normalized.includes("failed")
-          ? "border-rose-400/25 bg-rose-500/10 text-rose-300"
+          ? "border-red-400/25 bg-red-500/10 text-red-300"
           : "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300";
 
   return (

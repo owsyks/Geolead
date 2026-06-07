@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
       <section className="mt-6 grid grid-cols-1 2xl:grid-cols-[1.1fr_0.9fr] gap-5">
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-indigo-300" />
+            <BarChart3 className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Timeline</h2>
           </div>
           {analytics.snapshots.length === 0 ? (
@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
                 <div key={snapshot.id} className="grid grid-cols-[90px_1fr_56px] items-center gap-3">
                   <span className="text-xs text-slate-500"><ClientDate value={snapshot.date} format="date" /></span>
                   <div className="h-9 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex">
-                    <div className="bg-indigo-500/70" style={{ width: `${(snapshot.sent / maxSent) * 100}%` }} />
+                    <div className="bg-teal-500/70" style={{ width: `${(snapshot.sent / maxSent) * 100}%` }} />
                     <div className="bg-emerald-500/70" style={{ width: `${(snapshot.replies / maxSent) * 100}%` }} />
                   </div>
                   <span className="text-xs font-black text-slate-700 dark:text-slate-300 text-right">{snapshot.sent}</span>
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
             </div>
           )}
           <div className="mt-5 flex flex-wrap gap-3 text-xs text-slate-500">
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-indigo-500" /> Sent</span>
+            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Sent</span>
             <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Replies</span>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="mt-4 space-y-3">
             {analytics.insights.map((insight) => (
-              <div key={insight} className="rounded-lg border border-indigo-400/20 bg-indigo-500/10 p-3 text-sm leading-6 text-indigo-100">
+              <div key={insight} className="rounded-lg border border-teal-400/20 bg-teal-500/10 p-3 text-sm leading-6 text-teal-100">
                 {insight}
               </div>
             ))}

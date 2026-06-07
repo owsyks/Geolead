@@ -43,16 +43,16 @@ export function DomainSelector({
 
   const containerClasses =
     variant === "card"
-      ? "rounded-lg border border-indigo-400/20 bg-indigo-500/5 p-4"
+      ? "rounded-lg border border-teal-400/20 bg-teal-500/5 p-4"
       : "";
 
   return (
     <div className={containerClasses}>
       {variant === "card" ? (
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-indigo-300">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-teal-300">
           <Globe2 className="h-3.5 w-3.5" />
           {label}
-          {required ? <span className="text-rose-300">*</span> : null}
+          {required ? <span className="text-red-300">*</span> : null}
         </div>
       ) : null}
 
@@ -60,7 +60,7 @@ export function DomainSelector({
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="w-full h-11 rounded-lg border border-slate-800 bg-slate-950/70 px-3 text-left text-sm text-slate-100 flex items-center justify-between gap-3 hover:border-indigo-400/40 transition-colors"
+          className="w-full h-11 rounded-lg border border-slate-800 bg-slate-950/70 px-3 text-left text-sm text-slate-100 flex items-center justify-between gap-3 hover:border-teal-400/40 transition-colors"
         >
           <span className="truncate">
             {loading ? (
@@ -89,7 +89,7 @@ export function DomainSelector({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search portfolio…"
-                  className="h-9 w-full rounded-md border border-slate-800 bg-slate-900/70 pl-8 pr-3 text-sm text-slate-100 outline-none focus:border-indigo-400"
+                  className="h-9 w-full rounded-md border border-slate-800 bg-slate-900/70 pl-8 pr-3 text-sm text-slate-100 outline-none focus:border-teal-400"
                 />
               </div>
             </div>
@@ -100,7 +100,7 @@ export function DomainSelector({
                   type="button"
                   onClick={() => handleSelect(null)}
                   className={`w-full text-left px-3 py-2 rounded-md text-xs ${
-                    !activeDomainId ? "bg-indigo-500/15 text-indigo-100" : "text-slate-400 hover:bg-slate-900"
+                    !activeDomainId ? "bg-teal-500/15 text-teal-100" : "text-slate-400 hover:bg-slate-900"
                   }`}
                 >
                   No active domain (use manual fields)
@@ -110,7 +110,7 @@ export function DomainSelector({
               {filtered.length === 0 ? (
                 <div className="px-3 py-6 text-center text-sm text-slate-500">
                   No domains match. {emptyAction ? (
-                    <a href={emptyAction.href} className="text-indigo-300 underline">
+                    <a href={emptyAction.href} className="text-teal-300 underline">
                       {emptyAction.label}
                     </a>
                   ) : null}
@@ -123,7 +123,7 @@ export function DomainSelector({
                     onClick={() => handleSelect(domain.id)}
                     className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between gap-3 ${
                       activeDomainId === domain.id
-                        ? "bg-indigo-500/15 text-indigo-100"
+                        ? "bg-teal-500/15 text-teal-100"
                         : "text-slate-300 hover:bg-slate-900"
                     }`}
                   >

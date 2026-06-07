@@ -27,7 +27,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+      className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-teal-500"
     />
   );
 }
@@ -130,7 +130,7 @@ function ProfileBody() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400">
+            <button type="submit" className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-400">
               Save profile
             </button>
             {profileMsg ? <span className="text-sm text-slate-400">{profileMsg}</span> : null}

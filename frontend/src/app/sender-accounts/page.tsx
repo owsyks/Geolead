@@ -151,7 +151,7 @@ export default function SenderAccountsPage() {
           }}
         >
           <div className="flex items-center gap-2">
-            <PlugZap className="h-5 w-5 text-indigo-300" />
+            <PlugZap className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Add Sender</h2>
           </div>
 
@@ -168,7 +168,7 @@ export default function SenderAccountsPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                 />
               </label>
             ))}
@@ -178,7 +178,7 @@ export default function SenderAccountsPage() {
               <select
                 value={form.provider}
                 onChange={(event) => setForm((current) => ({ ...current, provider: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               >
                 <option value="DRY_RUN">Dry run</option>
                 <option value="RESEND">Resend</option>
@@ -196,7 +196,7 @@ export default function SenderAccountsPage() {
               <input
                 value={form.dailyLimit}
                 onChange={(event) => setForm((current) => ({ ...current, dailyLimit: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               />
             </label>
             <label className="text-xs font-bold text-slate-400">
@@ -204,7 +204,7 @@ export default function SenderAccountsPage() {
               <input
                 value={form.hourlyLimit}
                 onChange={(event) => setForm((current) => ({ ...current, hourlyLimit: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               />
             </label>
           </div>
@@ -214,11 +214,11 @@ export default function SenderAccountsPage() {
             <textarea
               value={form.providerConfig}
               onChange={(event) => setForm((current) => ({ ...current, providerConfig: event.target.value }))}
-              className="mt-2 h-44 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-44 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
-          <button className="mt-5 h-11 w-full rounded-lg bg-indigo-600 text-sm font-black text-white hover:bg-indigo-500 inline-flex items-center justify-center gap-2">
+          <button className="mt-5 h-11 w-full rounded-lg bg-teal-600 text-sm font-black text-white hover:bg-teal-500 inline-flex items-center justify-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             Save sender
           </button>
@@ -226,7 +226,7 @@ export default function SenderAccountsPage() {
 
         <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-300" />
+            <ShieldCheck className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Sender Fleet</h2>
           </div>
           <div className="mt-5 space-y-4">
@@ -270,7 +270,7 @@ export default function SenderAccountsPage() {
                     <button
                       onClick={() => void verifySender(sender.id)}
                       disabled={verifyingId === sender.id}
-                      className="h-8 px-3 rounded-lg border border-indigo-400/25 bg-indigo-500/10 text-xs font-bold text-indigo-200 hover:bg-indigo-500/15 disabled:opacity-60"
+                      className="h-8 px-3 rounded-lg border border-teal-400/25 bg-teal-500/10 text-xs font-bold text-teal-200 hover:bg-teal-500/15 disabled:opacity-60"
                     >
                       {verifyingId === sender.id ? "Verifying..." : "Verify DNS"}
                     </button>

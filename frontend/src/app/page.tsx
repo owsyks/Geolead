@@ -219,7 +219,7 @@ export default function HomePage() {
           </button>
           <Link
             href="/ai-email-generator"
-            className="h-10 px-4 rounded-lg bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-500 inline-flex items-center gap-2"
+            className="h-10 px-4 rounded-lg bg-teal-600 text-sm font-bold text-white hover:bg-teal-500 inline-flex items-center gap-2"
           >
             <Bot className="h-4 w-4" />
             Write Email
@@ -249,7 +249,7 @@ export default function HomePage() {
               <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Operating View</h2>
               <p className="mt-1 text-sm text-slate-500">Status, sender health, and conversion signals in one place.</p>
             </div>
-            <Link href="/campaigns" className="text-sm text-indigo-300 hover:text-indigo-200 inline-flex items-center gap-1">
+            <Link href="/campaigns" className="text-sm text-teal-300 hover:text-teal-200 inline-flex items-center gap-1">
               Open campaigns <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -299,9 +299,9 @@ export default function HomePage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/35 p-4 text-sm font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-400/40 hover:text-indigo-100 transition-colors"
+                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/35 p-4 text-sm font-bold text-slate-800 dark:text-slate-200 hover:border-teal-400/40 hover:text-teal-100 transition-colors"
                 >
-                  <Icon className="h-5 w-5 text-indigo-300 mb-3" />
+                  <Icon className="h-5 w-5 text-teal-300 mb-3" />
                   {item.label}
                 </Link>
               );

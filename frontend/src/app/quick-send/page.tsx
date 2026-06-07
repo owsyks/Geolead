@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
@@ -83,16 +83,16 @@ export default function QuickSendPage() {
               value={senderId}
               onChange={(e) => setSenderId(e.target.value)}
               disabled={loadingSenders || senders.length === 0}
-              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             >
               {loadingSenders ? (
-                <option>Loadingâ€¦</option>
+                <option>Loading…</option>
               ) : senders.length === 0 ? (
                 <option>No active senders</option>
               ) : (
                 senders.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.provider} â€” {s.fromName} &lt;{s.fromEmail}&gt;
+                    {s.provider} — {s.fromName} &lt;{s.fromEmail}&gt;
                   </option>
                 ))
               )}
@@ -107,7 +107,7 @@ export default function QuickSendPage() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
               placeholder="recipient@example.com"
-              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             />
           </div>
 
@@ -119,7 +119,7 @@ export default function QuickSendPage() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Quick question about your business"
-              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             />
           </div>
 
@@ -130,18 +130,18 @@ export default function QuickSendPage() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={10}
-              placeholder="Write your messageâ€¦"
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 resize-y"
+              placeholder="Write your message…"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 resize-y"
             />
           </div>
 
           <button
             type="submit"
             disabled={sending || !senderId || !to || !subject || !body}
-            className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 dark:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
+            className="w-full h-11 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-200 dark:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
           >
             <Send className={`w-4 h-4 ${sending ? "animate-pulse" : ""}`} />
-            {sending ? "Sendingâ€¦" : "Send Email"}
+            {sending ? "Sending…" : "Send Email"}
           </button>
         </form>
 
@@ -159,7 +159,7 @@ export default function QuickSendPage() {
         )}
 
         {error && (
-          <div className="mt-4 p-4 rounded-xl border bg-rose-500/10 border-rose-500/30 text-rose-300 flex gap-3">
+          <div className="mt-4 p-4 rounded-xl border bg-red-500/10 border-red-500/30 text-red-300 flex gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div className="text-sm">{error}</div>
           </div>

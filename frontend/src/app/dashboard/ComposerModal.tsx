@@ -78,7 +78,7 @@ export function ComposerModal({
             <select
               value={senderId}
               onChange={(e) => onSenderChange(e.target.value)}
-              className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             >
               {senders.length === 0 ? (
                 <option>No active senders</option>
@@ -97,7 +97,7 @@ export function ComposerModal({
               type="text"
               value={subject}
               onChange={(e) => onSubjectChange(e.target.value)}
-              className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+              className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             />
           </div>
           <div>
@@ -106,7 +106,7 @@ export function ComposerModal({
               rows={8}
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 resize-y"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 resize-y"
             />
           </div>
           {result && (
@@ -114,7 +114,7 @@ export function ComposerModal({
               className={`p-2.5 rounded-lg text-[11px] ${
                 result.ok
                   ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
-                  : "bg-rose-500/10 text-rose-300 border border-rose-500/30"
+                  : "bg-red-500/10 text-red-300 border border-red-500/30"
               }`}
             >
               {result.message}

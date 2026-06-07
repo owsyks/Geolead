@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -34,7 +34,7 @@ import {
   X
 } from "lucide-react";
 
-// API URL (Express backend) — env override allowed for non-localhost setups
+// API URL (Express backend) � env override allowed for non-localhost setups
 const BACKEND_URL = process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
@@ -123,7 +123,7 @@ export default function DashboardPage() {
   const [searchDepth, setSearchDepth] = useState(10);
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
-  // user never re-types keyword/domain/geo — they just pick from the portfolio.
+  // user never re-types keyword/domain/geo � they just pick from the portfolio.
   useEffect(() => {
     if (!activeDomain) return;
     setDomainIdea(activeDomain.name);
@@ -605,7 +605,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // While in demo mode, retry the backend every 15s — recovers automatically
+  // While in demo mode, retry the backend every 15s � recovers automatically
   // once the user starts the backend, instead of staying stuck forever.
   useEffect(() => {
     if (!isDemoMode) return;
@@ -1114,7 +1114,7 @@ export default function DashboardPage() {
         setVerifying(false);
         if (selectedTask) fetchTaskLeads(selectedTask.id);
       } else {
-        // Queued — poll until done
+        // Queued � poll until done
         const jobId: string = data.jobId;
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
@@ -1158,8 +1158,8 @@ export default function DashboardPage() {
         {/* Branding header */}
         <div className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="p-1.5 bg-indigo-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
-            <span className="font-extrabold text-sm tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-indigo-300">GeoLead AI</span>
+            <span className="p-1.5 bg-teal-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
+            <span className="font-extrabold text-sm tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-slate-100 to-teal-300">GeoLead AI</span>
           </Link>
           <Link href="/settings" className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200 transition-colors" title="Settings">
             <Settings className="w-4 h-4" />
@@ -1189,7 +1189,7 @@ export default function DashboardPage() {
                 value={domainIdea}
                 onChange={(e) => setDomainIdea(e.target.value)}
                 placeholder="e.g. TexasCarVendor.com"
-                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
               />
             </div>
             <div>
@@ -1200,7 +1200,7 @@ export default function DashboardPage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="e.g. Texas Car Dealership"
-                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1211,7 +1211,7 @@ export default function DashboardPage() {
                   value={cityState}
                   onChange={(e) => setCityState(e.target.value)}
                   placeholder="Texas"
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
@@ -1219,7 +1219,7 @@ export default function DashboardPage() {
                 <select
                   value={searchDepth}
                   onChange={(e) => setSearchDepth(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                 >
                    <option value={5}>5 Leads</option>
                    <option value={10}>10 Leads</option>
@@ -1233,7 +1233,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-1.5"
+              className="w-full h-10 bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-teal-600/10 flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> Start Lead Discovery
             </button>
@@ -1246,7 +1246,7 @@ export default function DashboardPage() {
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
               <History className="w-3.5 h-3.5" /> Search History
             </h3>
-            <button onClick={handleReloadHistory} className="text-[10px] text-indigo-400 hover:underline">
+            <button onClick={handleReloadHistory} className="text-[10px] text-teal-400 hover:underline">
               Refresh
             </button>
           </div>
@@ -1261,7 +1261,7 @@ export default function DashboardPage() {
                   onClick={() => handleSelectTask(task)}
                   className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
                     selectedTask?.id === task.id
-                      ? "bg-indigo-950/20 border-indigo-500/40 shadow-inner"
+                      ? "bg-teal-950/20 border-teal-500/40 shadow-inner"
                       : "bg-slate-50 dark:bg-slate-900/10 border-slate-200 dark:border-slate-900/60 hover:bg-slate-100 dark:bg-slate-900/30"
                   }`}
                 >
@@ -1271,7 +1271,7 @@ export default function DashboardPage() {
                       task.status === "COMPLETED" 
                         ? "bg-emerald-500/10 text-emerald-400"
                         : task.status === "FAILED"
-                        ? "bg-rose-500/10 text-rose-400"
+                        ? "bg-red-500/10 text-red-400"
                         : task.status === "PAUSED"
                         ? "bg-amber-500/10 text-amber-400"
                         : task.status === "CANCELLED"
@@ -1284,7 +1284,7 @@ export default function DashboardPage() {
                   <div className="text-[10px] text-slate-500">Query: {task.keyword}</div>
                   {task.status === "PROCESSING" && (
                     <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1 mt-1 overflow-hidden">
-                      <div className="bg-indigo-500 h-1 transition-all duration-300" style={{ width: `${task.progress}%` }} />
+                      <div className="bg-teal-500 h-1 transition-all duration-300" style={{ width: `${task.progress}%` }} />
                     </div>
                   )}
                   {(task.status === "PENDING" || task.status === "PROCESSING") && (
@@ -1297,7 +1297,7 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={(e) => handleStopTask(task.id, e)}
-                        className="flex-1 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                        className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Stop
                       </button>
@@ -1313,7 +1313,7 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={(e) => handleStopTask(task.id, e)}
-                        className="flex-1 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                        className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                       >
                         Stop
                       </button>
@@ -1361,20 +1361,20 @@ export default function DashboardPage() {
             <Link href="/" className="p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <span className="p-1.5 bg-indigo-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
+            <span className="p-1.5 bg-teal-600 rounded text-slate-900 dark:text-white font-bold text-xs">GL</span>
             <div>
               <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 {selectedTask ? `Campaign: ${selectedTask.domainIdea}` : "Select a Search Campaign"}
               </h2>
               {selectedTask && (
                 <p className="text-[10px] text-slate-500 mt-0.5">
-                  Target Keyword: &quot;{selectedTask.keyword}&quot; • Search depth: {selectedTask.searchDepth} sites
+                  Target Keyword: &quot;{selectedTask.keyword}&quot; � Search depth: {selectedTask.searchDepth} sites
                 </p>
               )}
             </div>
           </div>
 
-          {/* Export Controls — show for COMPLETED, PAUSED, CANCELLED */}
+          {/* Export Controls � show for COMPLETED, PAUSED, CANCELLED */}
           {selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
             <div className="flex items-center gap-2">
               {/* Verify Emails Button */}
@@ -1401,7 +1401,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setExportOptionsOpen(true)}
                   disabled={exporting !== null}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/10 transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md shadow-teal-600/10 transition-colors cursor-pointer"
                 >
                   <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
                   {exporting ? `Exporting ${exporting.toUpperCase()}...` : "Export Data"}
@@ -1411,7 +1411,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => { setCampaignName(''); setShowCampaignModal(true); }}
                 disabled={selectedLeadIds.size === 0}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900 disabled:opacity-50 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-900 disabled:opacity-50 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
                 Create Campaign ({selectedLeadIds.size})
@@ -1426,10 +1426,10 @@ export default function DashboardPage() {
             
             {/* Active Scraping Progress Tracker */}
             {(selectedTask.status === "PENDING" || selectedTask.status === "PROCESSING") && (
-              <div className="glass-card rounded-2xl p-6 border-indigo-500/20 relative overflow-hidden shadow-lg">
+              <div className="glass-card rounded-2xl p-6 border-teal-500/20 relative overflow-hidden shadow-lg">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
-                    <Database className="w-5 h-5 text-indigo-400 animate-pulse" />
+                    <Database className="w-5 h-5 text-teal-400 animate-pulse" />
                     <div>
                       <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Crawl & Extraction Pipeline</h4>
                       <p className="text-[10px] text-slate-500 mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
@@ -1437,7 +1437,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => { setNotContactedOnly(!notContactedOnly); }}
                     className={`h-9 rounded-lg px-2.5 text-[10px] font-bold uppercase tracking-wider border transition-colors cursor-pointer ${
-                      notContactedOnly ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-500'
+                      notContactedOnly ? 'bg-teal-600/20 border-teal-500/30 text-teal-400' : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-500'
                     }`}
                   >
                     Not Contacted
@@ -1449,7 +1449,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2 ml-2">
                     <button
                       onClick={() => setShowBulkActions(!showBulkActions)}
-                      className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="h-9 px-3 rounded-lg bg-teal-600 hover:bg-teal-500 text-xs font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Zap className="w-3.5 h-3.5" />
                       Bulk ({selectedLeadIds.size})
@@ -1483,18 +1483,18 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-                  <span className="text-sm font-black text-indigo-400">{selectedTask.progress}%</span>
+                  <span className="text-sm font-black text-teal-400">{selectedTask.progress}%</span>
                 </div>
                 <div className="w-full bg-white dark:bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-slate-900">
                   <div 
-                    className="bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 h-2.5 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-teal-500 via-purple-500 to-cyan-500 h-2.5 rounded-full transition-all duration-300"
                     style={{ width: `${selectedTask.progress}%` }}
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4 mt-6 text-center text-xs">
                   <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
                     <span className="text-slate-500 block mb-1">Status</span>
-                    <span className="font-bold text-indigo-400 capitalize">{selectedTask.status.toLowerCase()}</span>
+                    <span className="font-bold text-teal-400 capitalize">{selectedTask.status.toLowerCase()}</span>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
                     <span className="text-slate-500 block mb-1">Leads Identified</span>
@@ -1521,7 +1521,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
                   <span className="text-xs text-slate-500 block">Unique Phones</span>
-                  <span className="text-2xl sm:text-3xl font-black text-indigo-400 mt-1 block">
+                  <span className="text-2xl sm:text-3xl font-black text-teal-400 mt-1 block">
                     {leads.filter(l => l.phoneNumbers.length > 0).length}
                   </span>
                 </div>
@@ -1551,7 +1551,7 @@ export default function DashboardPage() {
                       value={searchFilterInput}
                       onChange={handleSearchFilterChange}
                       placeholder="Filter by business name, keyword, city..."
-                      className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg pl-9 pr-4 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg pl-9 pr-4 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                   <button type="submit" className="h-9 px-4 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-200 dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -1581,7 +1581,7 @@ export default function DashboardPage() {
                     onClick={() => setHasEmailsOnly(!hasEmailsOnly)}
                     className={`h-9 px-3 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${
                       hasEmailsOnly
-                        ? "bg-indigo-950/30 border-indigo-500/40 text-indigo-300"
+                        ? "bg-teal-950/30 border-teal-500/40 text-teal-300"
                         : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-800 dark:text-slate-200"
                     }`}
                   >
@@ -1597,7 +1597,7 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value="all">All Channels</option>
-                      <option value="whatsapp_high">WhatsApp High (≥70)</option>
+                      <option value="whatsapp_high">WhatsApp High (=70)</option>
                       <option value="email_available">Email Available</option>
                       <option value="phone_available">Phone Available</option>
                       <option value="multi_channel">Multi-Channel</option>
@@ -1628,8 +1628,8 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value={0}>Any</option>
-                      <option value={65}>High (≥65)</option>
-                      <option value={45}>Moderate (≥45)</option>
+                      <option value={65}>High (=65)</option>
+                      <option value={45}>Moderate (=45)</option>
                     </select>
                   </div>
 
@@ -1642,8 +1642,8 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value={0}>All</option>
-                      <option value={75}>High (≥75)</option>
-                      <option value={50}>Medium (≥50)</option>
+                      <option value={75}>High (=75)</option>
+                      <option value={50}>Medium (=50)</option>
                     </select>
                   </div>
                 </div>
@@ -1652,7 +1652,7 @@ export default function DashboardPage() {
               {/* Table Data View */}
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <Database className="w-8 h-8 text-indigo-500 animate-spin" />
+                  <Database className="w-8 h-8 text-teal-500 animate-spin" />
                   <span className="text-xs text-slate-500">Querying database records...</span>
                 </div>
               ) : leads.length === 0 ? (
@@ -1716,7 +1716,7 @@ export default function DashboardPage() {
                                     lead.decisionMakerScore && lead.decisionMakerScore >= 85
                                       ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                                       : lead.decisionMakerScore && lead.decisionMakerScore >= 70
-                                      ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                                      ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
                                       : 'bg-slate-100 dark:bg-slate-900 text-slate-400 border border-slate-300 dark:border-slate-800'
                                   }`}>
                                     {lead.decisionMakerRole}
@@ -1750,7 +1750,7 @@ export default function DashboardPage() {
                                   href={lead.website}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 w-fit"
+                                  className="text-[11px] text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1 w-fit"
                                 >
                                   <Globe className="w-3.5 h-3.5" />
                                   <span className="truncate max-w-[200px]">{lead.website}</span>
@@ -1782,7 +1782,7 @@ export default function DashboardPage() {
 
                               <div className="flex flex-wrap gap-1.5 pt-1">
                                 {lead.pipelineStage && (
-                                  <span className="px-2 py-0.5 rounded-full border border-indigo-500/20 bg-indigo-950/20 text-[9px] font-bold text-indigo-300">
+                                  <span className="px-2 py-0.5 rounded-full border border-teal-500/20 bg-teal-950/20 text-[9px] font-bold text-teal-300">
                                     {lead.pipelineStage}
                                   </span>
                                 )}
@@ -1797,7 +1797,7 @@ export default function DashboardPage() {
                                   </span>
                                 )}
                                 {lead.doNotContact && (
-                                  <span className="px-2 py-0.5 rounded-full border border-rose-500/20 bg-rose-950/20 text-[9px] font-bold text-rose-300">
+                                  <span className="px-2 py-0.5 rounded-full border border-red-500/20 bg-red-950/20 text-[9px] font-bold text-red-300">
                                     DNC
                                   </span>
                                 )}
@@ -1822,14 +1822,14 @@ export default function DashboardPage() {
                           <td className="py-5 px-4 max-w-xs">
                             <div className="flex flex-col gap-3">
 
-                              {/* ── Contact Intelligence ── */}
+                              {/* -- Contact Intelligence -- */}
                               {lead.bestContactChannel && (
                                 <div className="flex flex-col gap-1.5">
                                   {/* Best channel badge */}
                                   <div className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-black w-fit ${
                                     lead.bestContactChannel === 'WHATSAPP' ? 'bg-emerald-500/10 border border-emerald-400/30 text-emerald-400' :
-                                    lead.bestContactChannel === 'EMAIL' ? 'bg-indigo-500/10 border border-indigo-400/30 text-indigo-300' :
-                                    lead.bestContactChannel === 'PHONE' ? 'bg-violet-500/10 border border-violet-400/30 text-violet-300' :
+                                    lead.bestContactChannel === 'EMAIL' ? 'bg-teal-500/10 border border-teal-400/30 text-teal-300' :
+                                    lead.bestContactChannel === 'PHONE' ? 'bg-amber-500/10 border border-amber-400/30 text-amber-300' :
                                     'bg-slate-500/10 border border-slate-600 text-slate-400'
                                   }`}>
                                     <Zap className="w-2.5 h-2.5" />
@@ -1841,9 +1841,9 @@ export default function DashboardPage() {
                                   {/* Channel score row */}
                                   <div className="flex flex-wrap gap-2 text-[10px]">
                                     {lead.emails.length > 0 && (
-                                      <span className="flex items-center gap-0.5 text-indigo-400">
+                                      <span className="flex items-center gap-0.5 text-teal-400">
                                         <Mail className="w-2.5 h-2.5" />
-                                        Email {lead.contactChannelScores?.email ?? '—'}
+                                        Email {lead.contactChannelScores?.email ?? '�'}
                                       </span>
                                     )}
                                     {lead.whatsappScore != null && lead.whatsappScore > 0 && (
@@ -1857,9 +1857,9 @@ export default function DashboardPage() {
                                       </span>
                                     )}
                                     {lead.phoneNumbers.length > 0 && (
-                                      <span className="flex items-center gap-0.5 text-violet-400">
+                                      <span className="flex items-center gap-0.5 text-amber-400">
                                         <Phone className="w-2.5 h-2.5" />
-                                        Phone {lead.contactChannelScores?.phone ?? '—'}
+                                        Phone {lead.contactChannelScores?.phone ?? '�'}
                                       </span>
                                     )}
                                   </div>
@@ -1876,9 +1876,9 @@ export default function DashboardPage() {
                                       <a
                                         href={`mailto:${e.email}`}
                                         title={`Send email to ${e.email}`}
-                                        className="flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-indigo-300 min-w-0 font-mono text-[11px]"
+                                        className="flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-teal-300 min-w-0 font-mono text-[11px]"
                                       >
-                                        <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
+                                        <Mail className="w-3 h-3 text-teal-400 shrink-0" />
                                         <span className="truncate">{e.email}</span>
                                       </a>
                                       <span className={`px-1.5 py-0.2 rounded text-[8px] font-extrabold uppercase tracking-wide ${
@@ -1892,7 +1892,7 @@ export default function DashboardPage() {
                                         <span className={`px-1.5 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider ${
                                           lead.decisionMakerScore && lead.decisionMakerScore >= 85
                                             ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                            : 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
                                         }`}>
                                           {lead.decisionMakerRole}
                                         </span>
@@ -1927,7 +1927,7 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          {/* Score Column — Domain Match, Priority, Decision Maker */}
+                          {/* Score Column � Domain Match, Priority, Decision Maker */}
                           <td className="py-5 px-4 text-center">
                             <div className="inline-flex flex-col items-center gap-1.5 min-w-[80px]">
                               {/* Priority Score (primary) */}
@@ -1948,7 +1948,7 @@ export default function DashboardPage() {
                                 lead.domainMatchScore >= 85
                                   ? "bg-emerald-950/20 text-emerald-400"
                                   : lead.domainMatchScore >= 65
-                                  ? "bg-indigo-950/20 text-indigo-400"
+                                  ? "bg-teal-950/20 text-teal-400"
                                   : "bg-slate-100 dark:bg-slate-900 text-slate-500"
                               }`}>
                                 Match {lead.domainMatchScore}%
@@ -1966,7 +1966,7 @@ export default function DashboardPage() {
                                   {lead.decisionMakerScore != null && (
                                     <span className={`text-[10px] font-bold ${
                                       lead.decisionMakerScore >= 85 ? 'text-amber-400' :
-                                      lead.decisionMakerScore >= 70 ? 'text-indigo-400' : 'text-slate-500'
+                                      lead.decisionMakerScore >= 70 ? 'text-teal-400' : 'text-slate-500'
                                     }`}>
                                       DM {lead.decisionMakerScore}
                                     </span>
@@ -1982,7 +1982,7 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-1">
                                 {lead.buyerIntentScore != null && (
                                   <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                                    lead.buyerIntentScore >= 65 ? 'bg-rose-500/10 text-rose-400' :
+                                    lead.buyerIntentScore >= 65 ? 'bg-red-500/10 text-red-400' :
                                     lead.buyerIntentScore >= 45 ? 'bg-amber-500/10 text-amber-400' :
                                     'bg-slate-100 dark:bg-slate-900 text-slate-500'
                                   }`}>
@@ -1992,7 +1992,7 @@ export default function DashboardPage() {
                                 {lead.domainUpgradeScore != null && (
                                   <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
                                     lead.domainUpgradeScore >= 60 ? 'bg-cyan-500/10 text-cyan-400' :
-                                    lead.domainUpgradeScore >= 40 ? 'bg-indigo-500/10 text-indigo-400' :
+                                    lead.domainUpgradeScore >= 40 ? 'bg-teal-500/10 text-teal-400' :
                                     'bg-slate-100 dark:bg-slate-900 text-slate-500'
                                   }`}>
                                     DF {lead.domainUpgradeScore}
@@ -2003,9 +2003,9 @@ export default function DashboardPage() {
                               {/* Contact strategy badge */}
                               {lead.contactStrategy && (
                                 <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 uppercase tracking-wider">
-                                  {lead.contactStrategy === 'email_decision_maker' ? '📧 DM' :
-                                   lead.contactStrategy === 'email_general' ? '📧 Gen' :
-                                   lead.contactStrategy === 'call_business' ? '📞 Call' : '🌐 Form'}
+                                  {lead.contactStrategy === 'email_decision_maker' ? '?? DM' :
+                                   lead.contactStrategy === 'email_general' ? '?? Gen' :
+                                   lead.contactStrategy === 'call_business' ? '?? Call' : '?? Form'}
                                 </span>
                               )}
 
@@ -2039,12 +2039,12 @@ export default function DashboardPage() {
                                 <textarea
                                   value={notesText}
                                   onChange={(e) => setNotesText(e.target.value)}
-                                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded p-1.5 text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 h-16 resize-none"
+                                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded p-1.5 text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 h-16 resize-none"
                                 />
                                 <div className="flex gap-1.5">
                                   <button
                                     onClick={() => handleSaveNotes(lead.id)}
-                                    className="p-1 bg-indigo-600 text-slate-900 dark:text-white rounded hover:bg-indigo-500"
+                                    className="p-1 bg-teal-600 text-slate-900 dark:text-white rounded hover:bg-teal-500"
                                     title="Save"
                                   >
                                     <Save className="w-3.5 h-3.5" />
@@ -2064,7 +2064,7 @@ export default function DashboardPage() {
                                 </p>
                                 <button
                                   onClick={() => handleEditNotes(lead)}
-                                  className="text-[10px] text-indigo-400 hover:underline mt-1 opacity-0 group-hover/note:opacity-100 transition-opacity"
+                                  className="text-[10px] text-teal-400 hover:underline mt-1 opacity-0 group-hover/note:opacity-100 transition-opacity"
                                 >
                                   Edit Notes
                                 </button>
@@ -2148,7 +2148,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-rose-400" /> Create Campaign
+                  <Zap className="w-4 h-4 text-red-400" /> Create Campaign
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">{selectedLeadIds.size} leads selected</p>
               </div>
@@ -2161,13 +2161,13 @@ export default function DashboardPage() {
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Campaign Name</label>
                 <input value={campaignName} onChange={e => setCampaignName(e.target.value)}
                   placeholder={`Auto: ${selectedTask?.domainIdea || 'Campaign'}`}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-red-500"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daily Limit</label>
                 <select value={campaignThrottle} onChange={e => setCampaignThrottle(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-red-500"
                 >
                   <option value={5}>5 / day (conservative)</option>
                   <option value={10}>10 / day (moderate)</option>
@@ -2181,7 +2181,7 @@ export default function DashboardPage() {
               <button
                 onClick={handleCreateCampaign}
                 disabled={campaignCreating}
-                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-900 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
               >
                 <Zap className="w-3.5 h-3.5" />
                 {campaignCreating ? 'Creating...' : 'Create Campaign'}
@@ -2201,7 +2201,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-indigo-400" /> Export Options
+                  <Download className="w-4 h-4 text-teal-400" /> Export Options
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">Choose format and filters</p>
               </div>
@@ -2219,7 +2219,7 @@ export default function DashboardPage() {
                       onClick={() => setExportFormat(fmt)}
                       className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
                         exportFormat === fmt
-                          ? 'bg-indigo-600 text-slate-900 dark:text-white'
+                          ? 'bg-teal-600 text-slate-900 dark:text-white'
                           : 'bg-white dark:bg-slate-950 text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-800'
                       }`}
                     >
@@ -2234,7 +2234,7 @@ export default function DashboardPage() {
                     type="checkbox"
                     checked={exportEmailsOnly}
                     onChange={(e) => setExportEmailsOnly(e.target.checked)}
-                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
                   />
                   <span className="text-xs text-slate-700 dark:text-slate-300">Export emails only (one row per email)</span>
                 </label>
@@ -2243,7 +2243,7 @@ export default function DashboardPage() {
                     type="checkbox"
                     checked={exportIncludeRisky}
                     onChange={(e) => setExportIncludeRisky(e.target.checked)}
-                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded bg-white dark:bg-slate-950 border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
                   />
                   <span className="text-xs text-slate-700 dark:text-slate-300">Include risky (catch-all / unverified) emails</span>
                 </label>
@@ -2253,7 +2253,7 @@ export default function DashboardPage() {
               <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-800 dark:text-slate-200 rounded-lg">Cancel</button>
               <button
                 onClick={() => { setExportOptionsOpen(false); handleExport(exportFormat); }}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-teal-600 hover:bg-teal-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export
@@ -2267,7 +2267,7 @@ export default function DashboardPage() {
   );
 }
 
-// ─── WhatsApp Validation Panel ────────────────────────────────────────────────
+// --- WhatsApp Validation Panel ------------------------------------------------
 
 function waLink(phone: string): string {
   const digits = phone.replace(/[^\d]/g, '');
@@ -2357,7 +2357,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
 
         {/* Note */}
         <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly — if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
+          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly � if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
         </div>
 
         {/* Lead list */}
@@ -2401,7 +2401,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
               {lead.bestContactChannel && (
                 <div className="shrink-0 text-[10px] text-slate-500 text-right">
                   <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-slate-400'}`}>
-                    {lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}
+                    {lead.bestContactChannel === 'WHATSAPP' ? '?? WA First' : lead.bestContactChannel}
                   </div>
                   {lead.contactChannelScores && (
                     <div className="mt-0.5 space-y-0.5">

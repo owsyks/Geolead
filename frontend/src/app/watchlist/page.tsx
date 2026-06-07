@@ -34,7 +34,7 @@ import {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const PRIORITY_CFG: Record<WatchPriority, { label: string; color: string; bg: string; dot: string }> = {
-  CRITICAL: { label: "Critical", color: "text-rose-300", bg: "bg-rose-500/10 border-rose-400/30", dot: "bg-rose-500" },
+  CRITICAL: { label: "Critical", color: "text-red-300", bg: "bg-red-500/10 border-red-400/30", dot: "bg-red-500" },
   HIGH:     { label: "High",     color: "text-orange-300", bg: "bg-orange-500/10 border-orange-400/30", dot: "bg-orange-500" },
   MEDIUM:   { label: "Medium",   color: "text-amber-300", bg: "bg-amber-500/10 border-amber-400/30", dot: "bg-amber-400" },
   LOW:      { label: "Low",      color: "text-slate-400", bg: "bg-slate-800/50 border-slate-700", dot: "bg-slate-500" },
@@ -42,18 +42,18 @@ const PRIORITY_CFG: Record<WatchPriority, { label: string; color: string; bg: st
 
 const STATUS_CFG: Record<WatchStatus, { label: string; color: string }> = {
   WATCHING:       { label: "Watching",     color: "text-slate-400" },
-  INTERESTED:     { label: "Interested",   color: "text-indigo-400" },
+  INTERESTED:     { label: "Interested",   color: "text-teal-400" },
   HIGH_PRIORITY:  { label: "High Priority",color: "text-amber-400" },
   AVAILABLE:      { label: "Available",    color: "text-emerald-400" },
-  PURCHASED:      { label: "Purchased",    color: "text-violet-400" },
+  PURCHASED:      { label: "Purchased",    color: "text-amber-400" },
   IN_PORTFOLIO:   { label: "In Portfolio", color: "text-blue-400" },
 };
 
 const RECO_CFG: Record<AiReco, { label: string; color: string }> = {
   BUY_NOW: { label: "Buy Now", color: "text-emerald-400" },
   WAIT:    { label: "Wait",    color: "text-amber-400" },
-  MONITOR: { label: "Monitor", color: "text-indigo-400" },
-  AVOID:   { label: "Avoid",   color: "text-rose-400" },
+  MONITOR: { label: "Monitor", color: "text-teal-400" },
+  AVOID:   { label: "Avoid",   color: "text-red-400" },
 };
 
 type Tab = "all" | "available" | "high_priority" | "reminders" | "notifications";
@@ -128,7 +128,7 @@ export default function WatchlistPage() {
       subtitle="Monitor domains you want — get alerts when they become available or change status."
       actions={
         <>
-          <button onClick={() => setShowAdd(true)} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-200 inline-flex items-center gap-2">
+          <button onClick={() => setShowAdd(true)} className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-200 inline-flex items-center gap-2">
             <Plus className="h-4 w-4" /> Watch domain
           </button>
           <button onClick={() => void checkAll()} disabled={checkingAll || domains.length === 0} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-50">
@@ -163,12 +163,12 @@ export default function WatchlistPage() {
 
       {/* Unread notifications banner */}
       {unreadNotifs.length > 0 && tab !== "notifications" && (
-        <div className="mb-4 rounded-lg border border-indigo-400/20 bg-indigo-500/5 px-5 py-3 flex items-center gap-3">
-          <Bell className="h-4 w-4 text-indigo-400 shrink-0" />
+        <div className="mb-4 rounded-lg border border-teal-400/20 bg-teal-500/5 px-5 py-3 flex items-center gap-3">
+          <Bell className="h-4 w-4 text-teal-400 shrink-0" />
           <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">
             {unreadNotifs.length} unread alert{unreadNotifs.length > 1 ? "s" : ""}
           </span>
-          <button onClick={() => setTab("notifications")} className="text-xs text-indigo-400 hover:text-indigo-300">View →</button>
+          <button onClick={() => setTab("notifications")} className="text-xs text-teal-400 hover:text-teal-300">View →</button>
           <button onClick={() => void markAllRead()} className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Mark all read</button>
         </div>
       )}
@@ -192,7 +192,7 @@ export default function WatchlistPage() {
         ] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
             tab === t
-              ? "bg-indigo-500/15 border border-b-0 border-indigo-400/30 text-indigo-200"
+              ? "bg-teal-500/15 border border-b-0 border-teal-400/30 text-teal-200"
               : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           }`}>{label}</button>
         ))}
@@ -327,19 +327,19 @@ function DomainRow({
           <button onClick={() => setShowReminder(true)} title="Add reminder" className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-amber-400">
             <Clock className="h-3 w-3" />
           </button>
-          <button onClick={() => void moveToPortfolio()} title="Add to Portfolio" className="h-7 px-2 rounded-md border border-indigo-400/30 bg-indigo-500/10 text-indigo-300 text-[11px] flex items-center gap-1 hover:text-indigo-200">
+          <button onClick={() => void moveToPortfolio()} title="Add to Portfolio" className="h-7 px-2 rounded-md border border-teal-400/30 bg-teal-500/10 text-teal-300 text-[11px] flex items-center gap-1 hover:text-teal-200">
             <ArrowUpRight className="h-3 w-3" /> Portfolio
           </button>
-          <Link href={`/acquisition?prefill=${encodeURIComponent(d.domainName)}`} title="Analyze" className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-indigo-400">
+          <Link href={`/acquisition?prefill=${encodeURIComponent(d.domainName)}`} title="Analyze" className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-teal-400">
             <TrendingUp className="h-3 w-3" />
           </Link>
-          <button onClick={() => setArchiveDomain(d.domainName)} title="Check archive history" className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-indigo-400">
+          <button onClick={() => setArchiveDomain(d.domainName)} title="Check archive history" className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-teal-400">
             <Clock className="h-3 w-3" />
           </button>
           <button onClick={onToggle} className="h-7 w-7 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-500">
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
           </button>
-          <button onClick={() => void remove()} className="h-7 w-7 rounded-md border border-rose-400/20 bg-rose-500/5 flex items-center justify-center text-rose-400 hover:text-rose-300">
+          <button onClick={() => void remove()} className="h-7 w-7 rounded-md border border-red-400/20 bg-red-500/5 flex items-center justify-center text-red-400 hover:text-red-300">
             <Trash2 className="h-3 w-3" />
           </button>
         </div>
@@ -366,7 +366,7 @@ function DomainRow({
               <div className="flex flex-wrap gap-1.5">
                 {(["WATCHING","INTERESTED","HIGH_PRIORITY","AVAILABLE","PURCHASED"] as WatchStatus[]).map(s => (
                   <button key={s} onClick={() => void setStatus(s)} className={`h-6 px-2 rounded-md text-[11px] font-bold border transition-all ${
-                    d.status === s ? "border-indigo-400/30 bg-indigo-500/15 text-indigo-300" : "border-slate-300 dark:border-slate-700 text-slate-500"
+                    d.status === s ? "border-teal-400/30 bg-teal-500/15 text-teal-300" : "border-slate-300 dark:border-slate-700 text-slate-500"
                   }`}>{STATUS_CFG[s].label}</button>
                 ))}
               </div>
@@ -385,7 +385,7 @@ function DomainRow({
                       <button onClick={async () => {
                         await fetchOutbound(`/api/watchlist/${d.id}/reminders/${r.id}`, { method: "DELETE" }).catch(() => {});
                         onRefresh();
-                      }} className="text-slate-500 hover:text-rose-400"><X className="h-3 w-3" /></button>
+                      }} className="text-slate-500 hover:text-red-400"><X className="h-3 w-3" /></button>
                     </li>
                   ))}
                 </ul>
@@ -445,9 +445,9 @@ function NotificationsTab({
 }) {
   const NOTIF_COLORS: Record<string, string> = {
     AVAILABLE: "border-emerald-400/30 bg-emerald-500/5",
-    STATUS_CHANGE: "border-indigo-400/20 bg-indigo-500/5",
+    STATUS_CHANGE: "border-teal-400/20 bg-teal-500/5",
     REMINDER: "border-amber-400/20 bg-amber-500/5",
-    EXPIRING: "border-rose-400/20 bg-rose-500/5",
+    EXPIRING: "border-red-400/20 bg-red-500/5",
   };
 
   if (notifications.length === 0) {
@@ -471,7 +471,7 @@ function NotificationsTab({
               <p className="text-xs text-slate-500 mt-1">{n.body}</p>
               <div className="text-[11px] text-slate-500 mt-1.5">{new Date(n.createdAt).toLocaleString()}</div>
             </div>
-            {!n.read && <span className="h-2 w-2 rounded-full bg-indigo-400 shrink-0 mt-1.5" />}
+            {!n.read && <span className="h-2 w-2 rounded-full bg-teal-400 shrink-0 mt-1.5" />}
           </div>
         </div>
       ))}
@@ -533,20 +533,20 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
       <div className="w-full max-w-lg rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-indigo-400" /><h3 className="text-base font-black text-slate-900 dark:text-slate-100">Wayback Machine History</h3></div>
+            <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-teal-400" /><h3 className="text-base font-black text-slate-900 dark:text-slate-100">Wayback Machine History</h3></div>
             <div className="mt-0.5 text-xs font-mono text-slate-500">{domain}</div>
           </div>
           <button onClick={onClose} className="h-7 w-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-5">
-          {state === "loading" && <div className="flex items-center justify-center gap-3 py-10 text-slate-500"><Loader2 className="h-5 w-5 animate-spin text-indigo-400" />Checking archive…</div>}
-          {state === "error" && <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-400">{errorMsg}</div>}
+          {state === "loading" && <div className="flex items-center justify-center gap-3 py-10 text-slate-500"><Loader2 className="h-5 w-5 animate-spin text-teal-400" />Checking archive…</div>}
+          {state === "error" && <div className="rounded-lg border border-red-400/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">{errorMsg}</div>}
           {state === "empty" && (
             <div className="text-center py-8">
               <div className="text-3xl mb-3">🆕</div>
               <div className="text-base font-black text-slate-900 dark:text-slate-100">No archive records found</div>
               <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">This domain has no history in the Wayback Machine — likely a <strong className="text-emerald-400">clean slate</strong> with no prior content.</p>
-              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300"><ExternalLink className="h-3 w-3" />Verify on Wayback Machine</a>
+              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs text-teal-400 hover:text-teal-300"><ExternalLink className="h-3 w-3" />Verify on Wayback Machine</a>
             </div>
           )}
           {state === "done" && (
@@ -569,15 +569,15 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
                     <a key={i} href={`https://web.archive.org/web/${s.timestamp}/${domain}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-900/60 group">
                       <span className="text-slate-600 dark:text-slate-400">{fmt(s.timestamp)}</span>
                       <div className="flex items-center gap-2">
-                        <span className={`font-mono font-bold text-[11px] ${s.status==="200"?"text-emerald-500":s.status==="301"||s.status==="302"?"text-amber-400":s.status==="404"?"text-rose-400":"text-slate-400"}`}>{s.status}</span>
-                        <ExternalLink className="h-3 w-3 text-slate-300 dark:text-slate-600 group-hover:text-indigo-400 transition" />
+                        <span className={`font-mono font-bold text-[11px] ${s.status==="200"?"text-emerald-500":s.status==="301"||s.status==="302"?"text-amber-400":s.status==="404"?"text-red-400":"text-slate-400"}`}>{s.status}</span>
+                        <ExternalLink className="h-3 w-3 text-slate-300 dark:text-slate-600 group-hover:text-teal-400 transition" />
                       </div>
                     </a>
                   ))}
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">200 = active · 301/302 = redirect · 404 = not found</div>
               </div>
-              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-indigo-400/30 bg-indigo-500/10 text-sm text-indigo-300 hover:text-indigo-200 transition">
+              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-teal-400/30 bg-teal-500/10 text-sm text-teal-300 hover:text-teal-200 transition">
                 <ExternalLink className="h-4 w-4" />View full timeline on Wayback Machine
               </a>
             </div>
@@ -617,12 +617,12 @@ function AddDomainModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
         </div>
         <div className="p-5 space-y-4">
           <label className="block text-xs font-bold text-slate-500">
-            Domain name<span className="text-rose-400">*</span>
+            Domain name<span className="text-red-400">*</span>
             <input
               value={form.domainName}
               onChange={e => setForm(c => ({ ...c, domainName: e.target.value }))}
               placeholder="MiamiRoofing.com"
-              className="mt-1 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-1 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
           <label className="block text-xs font-bold text-slate-500">
@@ -633,12 +633,12 @@ function AddDomainModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
           </label>
           <label className="block text-xs font-bold text-slate-500">
             Notes
-            <textarea value={form.notes} onChange={e => setForm(c => ({ ...c, notes: e.target.value }))} rows={2} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400 resize-none" />
+            <textarea value={form.notes} onChange={e => setForm(c => ({ ...c, notes: e.target.value }))} rows={2} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400 resize-none" />
           </label>
-          {error && <div className="text-xs text-rose-400">{error}</div>}
+          {error && <div className="text-xs text-red-400">{error}</div>}
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className="h-9 px-4 rounded-lg border border-slate-300 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400">Cancel</button>
-            <button onClick={() => void submit()} disabled={saving} className="h-9 px-4 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-200 disabled:opacity-50">
+            <button onClick={() => void submit()} disabled={saving} className="h-9 px-4 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-200 disabled:opacity-50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add to watchlist"}
             </button>
           </div>
@@ -685,7 +685,7 @@ function AddReminderModal({ domainId, domainName, onClose, onSaved }: {
             <div className="text-xs font-bold text-slate-500 mb-2">Reminder type</div>
             <div className="flex flex-col gap-1.5">
               {(["DAYS","STATUS_CHANGE","AVAILABLE"] as const).map(t => (
-                <button key={t} onClick={() => setType(t)} className={`h-9 px-3 rounded-lg border text-sm text-left transition-all ${type === t ? "border-indigo-400/30 bg-indigo-500/15 text-indigo-200" : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400"}`}>
+                <button key={t} onClick={() => setType(t)} className={`h-9 px-3 rounded-lg border text-sm text-left transition-all ${type === t ? "border-teal-400/30 bg-teal-500/15 text-teal-200" : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400"}`}>
                   {TYPE_LABELS[t]}
                 </button>
               ))}
@@ -708,7 +708,7 @@ function AddReminderModal({ domainId, domainName, onClose, onSaved }: {
             <div className="text-xs font-bold text-slate-500 mb-2">Notify via</div>
             <div className="flex gap-2">
               {(["IN_APP","EMAIL","BOTH"] as const).map(v => (
-                <button key={v} onClick={() => setNotifyVia(v)} className={`h-7 px-3 rounded-md border text-xs transition-all ${notifyVia === v ? "border-indigo-400/30 bg-indigo-500/10 text-indigo-300" : "border-slate-300 dark:border-slate-700 text-slate-500"}`}>{v}</button>
+                <button key={v} onClick={() => setNotifyVia(v)} className={`h-7 px-3 rounded-md border text-xs transition-all ${notifyVia === v ? "border-teal-400/30 bg-teal-500/10 text-teal-300" : "border-slate-300 dark:border-slate-700 text-slate-500"}`}>{v}</button>
               ))}
             </div>
           </div>

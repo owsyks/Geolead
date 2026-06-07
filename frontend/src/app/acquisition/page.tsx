@@ -30,10 +30,10 @@ import { fetchOutbound, type AcquisitionResult, type AcquisitionTier, type BulkS
 
 const TIER_CONFIG: Record<AcquisitionTier, { label: string; color: string; bg: string; badge: string }> = {
   STRONG_BUY: { label: "Strong Buy", color: "text-emerald-300", bg: "bg-emerald-500/10 border-emerald-400/30", badge: "bg-emerald-500 text-white" },
-  BUY: { label: "Buy", color: "text-indigo-300", bg: "bg-indigo-500/10 border-indigo-400/30", badge: "bg-indigo-500 text-white" },
+  BUY: { label: "Buy", color: "text-teal-300", bg: "bg-teal-500/10 border-teal-400/30", badge: "bg-teal-500 text-white" },
   WATCHLIST: { label: "Watchlist", color: "text-amber-300", bg: "bg-amber-500/10 border-amber-400/30", badge: "bg-amber-500 text-white" },
   SPECULATIVE: { label: "Speculative", color: "text-orange-300", bg: "bg-orange-500/10 border-orange-400/30", badge: "bg-orange-500 text-white" },
-  AVOID: { label: "Avoid", color: "text-rose-400", bg: "bg-rose-500/10 border-rose-400/30", badge: "bg-rose-600 text-white" },
+  AVOID: { label: "Avoid", color: "text-red-400", bg: "bg-red-500/10 border-red-400/30", badge: "bg-red-600 text-white" },
 };
 
 const EXAMPLE_DOMAINS = `TexasCarVendor.com
@@ -196,7 +196,7 @@ export default function AcquisitionAdvisorPage() {
               <label className="text-sm font-bold text-slate-800 dark:text-slate-200">Domain list</label>
               <button
                 onClick={() => setInput(EXAMPLE_DOMAINS)}
-                className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+                className="text-xs text-teal-400 hover:text-teal-300 underline"
               >
                 Load examples
               </button>
@@ -206,7 +206,7 @@ export default function AcquisitionAdvisorPage() {
               onChange={e => setInput(e.target.value)}
               placeholder={"Paste domains — one per line:\nTexasCarVendor.com\nMiamiRoofing.com\nChicagoDentist.com"}
               rows={10}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-mono placeholder-slate-400 outline-none focus:border-indigo-400 resize-y"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-mono placeholder-slate-400 outline-none focus:border-teal-400 resize-y"
             />
             <div className="mt-3 flex items-center justify-between">
               <div className="text-xs text-slate-500">
@@ -217,7 +217,7 @@ export default function AcquisitionAdvisorPage() {
               <button
                 onClick={() => void scan()}
                 disabled={domainList.length === 0 || scanState === "scanning"}
-                className="h-10 px-5 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-200 inline-flex items-center gap-2 disabled:opacity-50"
+                className="h-10 px-5 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-200 inline-flex items-center gap-2 disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" />
                 Analyze {domainList.length > 0 ? `${domainList.length} domains` : ""}
@@ -228,8 +228,8 @@ export default function AcquisitionAdvisorPage() {
           {/* How it works */}
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { icon: <BarChart3 className="h-5 w-5 text-indigo-400" />, title: "Market Intelligence", body: "DNS TLD checks, buyer pool estimation, brand scoring, geo market analysis" },
-              { icon: <Bot className="h-5 w-5 text-violet-400" />, title: "AI Dossier Review", body: "NVIDIA AI evaluates each domain like a professional domain investor + broker" },
+              { icon: <BarChart3 className="h-5 w-5 text-teal-400" />, title: "Market Intelligence", body: "DNS TLD checks, buyer pool estimation, brand scoring, geo market analysis" },
+              { icon: <Bot className="h-5 w-5 text-amber-400" />, title: "AI Dossier Review", body: "NVIDIA AI evaluates each domain like a professional domain investor + broker" },
               { icon: <TrendingUp className="h-5 w-5 text-emerald-400" />, title: "Ranked Results", body: "Strong Buy → Avoid rankings with confidence scores, ROI estimates, and reasoning" },
             ].map(item => (
               <div key={item.title} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/35 p-4">
@@ -244,14 +244,14 @@ export default function AcquisitionAdvisorPage() {
       {/* Loading state */}
       {scanState === "scanning" && (
         <div className="mt-8 flex flex-col items-center gap-4 py-16">
-          <Loader2 className="h-10 w-10 text-indigo-400 animate-spin" />
+          <Loader2 className="h-10 w-10 text-teal-400 animate-spin" />
           <div className="text-base font-bold text-slate-800 dark:text-slate-200">
             Analyzing {domainList.length} domains…
             <span className="ml-2 text-sm font-normal text-slate-500">{elapsed}s</span>
           </div>
           <div className="w-64 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
             <div
-              className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
+              className="h-full bg-teal-500 rounded-full transition-all duration-1000"
               style={{ width: `${Math.min(95, (elapsed / 90) * 100)}%` }}
             />
           </div>
@@ -271,12 +271,12 @@ export default function AcquisitionAdvisorPage() {
 
       {/* Error */}
       {scanState === "error" && (
-        <div className="mt-6 rounded-lg border border-rose-400/30 bg-rose-500/10 px-5 py-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+        <div className="mt-6 rounded-lg border border-red-400/30 bg-red-500/10 px-5 py-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
           <div>
-            <div className="text-sm font-bold text-rose-300">Scan failed</div>
-            <p className="text-xs text-rose-400 mt-1">{errorMsg}</p>
-            <button onClick={() => { setScanState("idle"); setErrorMsg(""); }} className="mt-3 text-xs text-rose-300 underline">Try again</button>
+            <div className="text-sm font-bold text-red-300">Scan failed</div>
+            <p className="text-xs text-red-400 mt-1">{errorMsg}</p>
+            <button onClick={() => { setScanState("idle"); setErrorMsg(""); }} className="mt-3 text-xs text-red-300 underline">Try again</button>
           </div>
         </div>
       )}
@@ -415,7 +415,7 @@ function DomainCard({
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button onClick={onChat} title="Ask AI investor" className="h-8 w-8 rounded-lg border border-violet-400/30 bg-violet-500/10 text-violet-300 hover:text-violet-200 flex items-center justify-center">
+          <button onClick={onChat} title="Ask AI investor" className="h-8 w-8 rounded-lg border border-amber-400/30 bg-amber-500/10 text-amber-300 hover:text-amber-200 flex items-center justify-center">
             <MessageSquare className="h-3.5 w-3.5" />
           </button>
           <button
@@ -429,7 +429,7 @@ function DomainCard({
           <button
             onClick={onCheckArchive}
             title="Check Wayback Machine archive history"
-            className="h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 text-slate-500 hover:text-indigo-400 dark:hover:text-indigo-400 flex items-center justify-center transition"
+            className="h-8 w-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 text-slate-500 hover:text-teal-400 dark:hover:text-teal-400 flex items-center justify-center transition"
           >
             <Clock className="h-3.5 w-3.5" />
           </button>
@@ -437,7 +437,7 @@ function DomainCard({
             onClick={onAddToPortfolio}
             disabled={adding}
             title="Add to portfolio"
-            className="h-8 px-2 rounded-lg border border-indigo-400/30 bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 flex items-center gap-1 text-xs"
+            className="h-8 px-2 rounded-lg border border-teal-400/30 bg-teal-500/10 text-teal-300 hover:text-teal-200 flex items-center gap-1 text-xs"
           >
             {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
             Portfolio
@@ -476,7 +476,7 @@ function DomainCard({
               <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">Risks</div>
               <ul className="space-y-1">
                 {r.risks.map((risk, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-rose-500 dark:text-rose-400">
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-red-500 dark:text-red-400">
                     <ChevronRight className="h-3 w-3 mt-0.5 shrink-0" />{risk}
                   </li>
                 ))}
@@ -527,7 +527,7 @@ function DomainCard({
             <button
               onClick={onAddToPortfolio}
               disabled={adding}
-              className="h-8 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/10 text-xs text-indigo-300 hover:text-indigo-200 inline-flex items-center gap-1.5"
+              className="h-8 px-3 rounded-lg border border-teal-400/30 bg-teal-500/10 text-xs text-teal-300 hover:text-teal-200 inline-flex items-center gap-1.5"
             >
               {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
               Add {domain} to Portfolio
@@ -601,7 +601,7 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-indigo-400" />
+              <Clock className="h-4 w-4 text-teal-400" />
               <h3 className="text-base font-black text-slate-900 dark:text-slate-100">Wayback Machine History</h3>
             </div>
             <div className="mt-0.5 text-xs font-mono text-slate-500">{domain}</div>
@@ -614,13 +614,13 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
         <div className="p-5">
           {state === "loading" && (
             <div className="flex items-center justify-center gap-3 py-10 text-slate-500">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-teal-400" />
               Checking archive…
             </div>
           )}
 
           {state === "error" && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-sm text-rose-400">{error}</div>
+            <div className="rounded-lg border border-red-400/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">{error}</div>
           )}
 
           {state === "empty" && (
@@ -630,7 +630,7 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
               <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
                 This domain has no history in the Wayback Machine — it was likely never registered or was never crawled. This is a <strong className="text-emerald-400">clean slate</strong>.
               </p>
-              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300">
+              <a href={`https://web.archive.org/web/*/${domain}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs text-teal-400 hover:text-teal-300">
                 <ExternalLink className="h-3 w-3" /> Verify on Wayback Machine
               </a>
             </div>
@@ -683,9 +683,9 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
                         <span className={`font-mono font-bold text-[11px] ${
                           s.status === "200" ? "text-emerald-500" :
                           s.status === "301" || s.status === "302" ? "text-amber-400" :
-                          s.status === "404" ? "text-rose-400" : "text-slate-400"
+                          s.status === "404" ? "text-red-400" : "text-slate-400"
                         }`}>{s.status}</span>
-                        <ExternalLink className="h-3 w-3 text-slate-300 dark:text-slate-600 group-hover:text-indigo-400 transition" />
+                        <ExternalLink className="h-3 w-3 text-slate-300 dark:text-slate-600 group-hover:text-teal-400 transition" />
                       </div>
                     </a>
                   ))}
@@ -699,7 +699,7 @@ function ArchiveHistoryModal({ domain, onClose }: { domain: string; onClose: () 
                 href={`https://web.archive.org/web/*/${domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-indigo-400/30 bg-indigo-500/10 text-sm text-indigo-300 hover:text-indigo-200 transition"
+                className="flex items-center justify-center gap-2 h-9 w-full rounded-lg border border-teal-400/30 bg-teal-500/10 text-sm text-teal-300 hover:text-teal-200 transition"
               >
                 <ExternalLink className="h-4 w-4" />
                 View full timeline on Wayback Machine
@@ -766,7 +766,7 @@ function InvestorChatModal({ result, onClose }: { result: AcquisitionResult; onC
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-violet-400" />
+              <Bot className="h-5 w-5 text-amber-400" />
               <span className="text-base font-black text-slate-900 dark:text-slate-50">AI Investor Chat</span>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
             </div>
@@ -783,7 +783,7 @@ function InvestorChatModal({ result, onClose }: { result: AcquisitionResult; onC
             <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Quick questions</div>
             <div className="flex flex-wrap gap-2">
               {QUICK_QUESTIONS.map(q => (
-                <button key={q} onClick={() => void send(q)} className="h-7 px-3 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-400 transition">
+                <button key={q} onClick={() => void send(q)} className="h-7 px-3 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 hover:border-teal-400 hover:text-teal-400 transition">
                   {q}
                 </button>
               ))}
@@ -802,7 +802,7 @@ function InvestorChatModal({ result, onClose }: { result: AcquisitionResult; onC
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === "user"
-                  ? "bg-indigo-500 text-white"
+                  ? "bg-teal-500 text-white"
                   : "bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
               }`}>
                 {msg.content}
@@ -831,12 +831,12 @@ function InvestorChatModal({ result, onClose }: { result: AcquisitionResult; onC
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }}
               placeholder="Ask about this domain investment…"
-              className="flex-1 h-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="flex-1 h-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
             <button
               onClick={() => void send(input)}
               disabled={!input.trim() || loading}
-              className="h-10 w-10 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-indigo-300 hover:text-indigo-200 flex items-center justify-center disabled:opacity-50"
+              className="h-10 w-10 rounded-lg border border-teal-400/30 bg-teal-500/15 text-teal-300 hover:text-teal-200 flex items-center justify-center disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
             </button>

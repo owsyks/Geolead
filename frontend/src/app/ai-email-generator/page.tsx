@@ -153,7 +153,7 @@ export default function AiEmailGeneratorPage() {
         <button
           onClick={generate}
           disabled={loading}
-          className="h-10 px-4 rounded-lg bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-60 inline-flex items-center gap-2"
+          className="h-10 px-4 rounded-lg bg-teal-600 text-sm font-bold text-white hover:bg-teal-500 disabled:opacity-60 inline-flex items-center gap-2"
         >
           <Sparkles className="h-4 w-4" />
           {loading ? "Generating..." : "Generate"}
@@ -175,7 +175,7 @@ export default function AiEmailGeneratorPage() {
           }}
         >
           <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-indigo-300" />
+            <Bot className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Personalization Inputs</h2>
           </div>
 
@@ -211,7 +211,7 @@ export default function AiEmailGeneratorPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => updateField(field as keyof typeof form, event.target.value)}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                 />
               </label>
             ))}
@@ -222,7 +222,7 @@ export default function AiEmailGeneratorPage() {
             <textarea
               value={form.painPoints}
               onChange={(event) => updateField("painPoints", event.target.value)}
-              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
@@ -232,7 +232,7 @@ export default function AiEmailGeneratorPage() {
               <select
                 value={form.tone}
                 onChange={(event) => updateField("tone", event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               >
                 <option value="professional">Professional</option>
                 <option value="friendly">Friendly</option>
@@ -245,7 +245,7 @@ export default function AiEmailGeneratorPage() {
               <select
                 value={form.variant}
                 onChange={(event) => updateField("variant", event.target.value)}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               >
                 <option value="cold">Cold outreach</option>
                 <option value="follow_up">Follow-up</option>
@@ -302,7 +302,7 @@ export default function AiEmailGeneratorPage() {
                       type="text"
                       value={result.subjectLine}
                       onChange={(event) => setResult({ ...result, subjectLine: event.target.value })}
-                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                     />
                   </div>
                   <div>
@@ -311,7 +311,7 @@ export default function AiEmailGeneratorPage() {
                       type="text"
                       value={result.previewText}
                       onChange={(event) => setResult({ ...result, previewText: event.target.value })}
-                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-400"
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/50 p-3 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-teal-400"
                     />
                   </div>
                   <div>
@@ -319,7 +319,7 @@ export default function AiEmailGeneratorPage() {
                     <textarea
                       value={result.body}
                       onChange={(event) => setResult({ ...result, body: event.target.value })}
-                      className="mt-1 h-72 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                      className="mt-1 h-72 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                     />
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export default function AiEmailGeneratorPage() {
                     <button
                       key={item.action}
                       onClick={() => void rewrite(item.action)}
-                      className="h-8 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-indigo-200"
+                      className="h-8 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-teal-200"
                     >
                       {item.label}
                     </button>
@@ -348,8 +348,8 @@ export default function AiEmailGeneratorPage() {
                         onClick={() => setResult({ ...result, subjectLine: subject })}
                         className={`w-full text-left rounded-lg border p-3 text-sm transition-colors ${
                           result.subjectLine === subject
-                            ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-200'
-                            : 'border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 text-slate-700 dark:text-slate-300 hover:border-indigo-500/30 hover:bg-indigo-500/5'
+                            ? 'border-teal-500/50 bg-teal-500/10 text-teal-200'
+                            : 'border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 text-slate-700 dark:text-slate-300 hover:border-teal-500/30 hover:bg-teal-500/5'
                         }`}
                       >
                         {subject}
@@ -371,7 +371,7 @@ export default function AiEmailGeneratorPage() {
                           newFollowUps[index] = event.target.value;
                           setResult({ ...result, followUps: newFollowUps });
                         }}
-                        className="w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-xs leading-5 text-slate-400 outline-none focus:border-indigo-400 resize-y min-h-[80px]"
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3 text-xs leading-5 text-slate-400 outline-none focus:border-teal-400 resize-y min-h-[80px]"
                       />
                     ))}
                   </div>

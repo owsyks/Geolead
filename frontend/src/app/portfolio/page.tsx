@@ -252,7 +252,7 @@ export default function PortfolioPage() {
           </button>
           <button
             onClick={openAdd}
-            className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 hover:bg-indigo-500/25 inline-flex items-center gap-2 dark:text-indigo-100"
+            className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100 hover:bg-teal-500/25 inline-flex items-center gap-2 dark:text-teal-100"
           >
             <Plus className="h-4 w-4" /> Add domain
           </button>
@@ -300,7 +300,7 @@ export default function PortfolioPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by name, niche, city, notes…"
-              className="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 pl-10 pr-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 pl-10 pr-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </div>
           <select
@@ -353,7 +353,7 @@ export default function PortfolioPage() {
               type="checkbox"
               checked={showArchived}
               onChange={(event) => setShowArchived(event.target.checked)}
-              className="h-4 w-4 accent-indigo-500"
+              className="h-4 w-4 accent-teal-500"
             />
             Show archived
           </label>
@@ -386,7 +386,7 @@ export default function PortfolioPage() {
                 {filtered.map((domain) => (
                   <tr key={domain.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
                     <td className="px-4 py-3 align-top">
-                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-200">
+                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-slate-900 dark:text-slate-100 hover:text-teal-200">
                         {domain.name}
                       </Link>
                       <div className="text-[11px] text-slate-500">
@@ -399,7 +399,7 @@ export default function PortfolioPage() {
                         {[domain.city, domain.state].filter(Boolean).join(", ") || "Geo unknown"}
                       </div>
                       {domain.metadata?.buyerPool?.total ? (
-                        <div className="mt-1 text-[11px] text-indigo-400 font-bold">
+                        <div className="mt-1 text-[11px] text-teal-400 font-bold">
                           ~{(domain.metadata.buyerPool.total).toLocaleString()} buyers
                         </div>
                       ) : null}
@@ -443,7 +443,7 @@ export default function PortfolioPage() {
                             setActiveDomainId(domain.id);
                             setMessage(`Selected ${domain.name} for lead-gen, email, and campaign workflows.`);
                           }}
-                          className="h-7 px-2 rounded-md border border-indigo-400/30 bg-indigo-500/15 text-[11px] text-indigo-100 inline-flex items-center gap-1"
+                          className="h-7 px-2 rounded-md border border-teal-400/30 bg-teal-500/15 text-[11px] text-teal-100 inline-flex items-center gap-1"
                         >
                           <ArrowUpRight className="h-3 w-3" /> Use
                         </button>
@@ -496,7 +496,7 @@ export default function PortfolioPage() {
                         <button
                           title="Delete"
                           onClick={() => void deleteDomain(domain)}
-                          className="h-7 w-7 rounded-md border border-rose-400/25 bg-rose-500/10 text-rose-300 inline-flex items-center justify-center"
+                          className="h-7 w-7 rounded-md border border-red-400/25 bg-red-500/10 text-red-300 inline-flex items-center justify-center"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -581,7 +581,7 @@ function DomainFormModal({
             value={form.name}
             onChange={(event) => setForm((c) => ({ ...c, name: event.target.value }))}
             placeholder="TexasCarVendor.com"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-400 outline-none"
+            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 focus:border-teal-400 outline-none"
           />
         </Field>
         <Field label="Status">
@@ -666,7 +666,7 @@ function DomainFormModal({
         <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
         </button>
-        <button onClick={onSave} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100">
+        <button onClick={onSave} className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100">
           {editing ? "Save changes" : "Add to portfolio"}
         </button>
       </div>
@@ -736,9 +736,9 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={`TexasCarVendor.com\nMiamiRoofing.com\nDallasPlumber.com`}
-        className="mt-3 min-h-48 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+        className="mt-3 min-h-48 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
       />
-      {error ? <div className="mt-2 text-xs text-rose-300">{error}</div> : null}
+      {error ? <div className="mt-2 text-xs text-red-300">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
         <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
@@ -746,7 +746,7 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
         <button
           onClick={() => void submit()}
           disabled={working}
-          className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 disabled:opacity-60"
+          className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100 disabled:opacity-60"
         >
           {working ? "Importing…" : "Import & categorize"}
         </button>
@@ -850,7 +850,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
           </Field>
         </div>
       </div>
-      {error ? <div className="mt-2 text-xs text-rose-300">{error}</div> : null}
+      {error ? <div className="mt-2 text-xs text-red-300">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
         <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
           Cancel
@@ -883,7 +883,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
   return (
     <label className="block text-xs font-bold text-slate-400">
       {label}
-      {required ? <span className="text-rose-300">*</span> : null}
+      {required ? <span className="text-red-300">*</span> : null}
       <div className="mt-1">{children}</div>
     </label>
   );

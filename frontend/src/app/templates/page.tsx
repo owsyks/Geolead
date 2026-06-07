@@ -124,7 +124,7 @@ export default function TemplatesPage() {
           }}
         >
           <div className="flex items-center gap-2">
-            <Save className="h-5 w-5 text-indigo-300" />
+            <Save className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Save Template</h2>
           </div>
 
@@ -141,7 +141,7 @@ export default function TemplatesPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                 />
               </label>
             ))}
@@ -152,7 +152,7 @@ export default function TemplatesPage() {
             <input
               value={form.subject}
               onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
@@ -161,7 +161,7 @@ export default function TemplatesPage() {
             <input
               value={form.previewText}
               onChange={(event) => setForm((current) => ({ ...current, previewText: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
@@ -170,7 +170,7 @@ export default function TemplatesPage() {
             <textarea
               value={form.body}
               onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-              className="mt-2 h-56 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-56 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
@@ -179,11 +179,11 @@ export default function TemplatesPage() {
             <input
               value={form.tags}
               onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
-          <button className="mt-5 h-11 w-full rounded-lg bg-indigo-600 text-sm font-black text-white hover:bg-indigo-500 inline-flex items-center justify-center gap-2">
+          <button className="mt-5 h-11 w-full rounded-lg bg-teal-600 text-sm font-black text-white hover:bg-teal-500 inline-flex items-center justify-center gap-2">
             <Save className="h-4 w-4" />
             Save template
           </button>
@@ -191,7 +191,7 @@ export default function TemplatesPage() {
 
         <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
           <div className="flex items-center gap-2">
-            <Layers3 className="h-5 w-5 text-indigo-300" />
+            <Layers3 className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Template Library</h2>
           </div>
           <div className="mt-5 space-y-4">

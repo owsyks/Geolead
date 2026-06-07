@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -234,18 +234,18 @@ export default function SettingsPage() {
 
         <div className="flex items-center justify-between gap-3 pb-6 border-b border-slate-200 dark:border-slate-900">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg border border-indigo-400/20 bg-indigo-500/10 flex items-center justify-center text-indigo-200">
+            <div className="h-12 w-12 rounded-lg border border-teal-400/20 bg-teal-500/10 flex items-center justify-center text-teal-200">
               <SettingsIcon className="h-6 w-6" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">Settings & Integrations</h1>
-              <p className="mt-1 text-sm text-slate-500">API keys, sending providers, SMTP, webhooks, and compliance â€” saved securely server-side.</p>
+              <p className="mt-1 text-sm text-slate-500">API keys, sending providers, SMTP, webhooks, and compliance — saved securely server-side.</p>
             </div>
           </div>
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="h-11 rounded-lg bg-indigo-600 px-5 text-sm font-black text-slate-900 dark:text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            className="h-11 rounded-lg bg-teal-600 px-5 text-sm font-black text-slate-900 dark:text-white hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
             {saving ? "Saving..." : saved ? "Saved" : dirty ? `Save ${Object.keys(draft).length} change(s)` : "Save settings"}
@@ -259,7 +259,7 @@ export default function SettingsPage() {
         <div className="mt-6 grid grid-cols-1 xl:grid-cols-[1fr_0.7fr] gap-5">
           <div className="space-y-5">
             {loading ? (
-              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-6 text-sm text-slate-500">Loading settingsâ€¦</div>
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-6 text-sm text-slate-500">Loading settings…</div>
             ) : (
               SECTION_ORDER.map((category) => {
                 const items = grouped.get(category) || [];
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                   <div key={category} className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-indigo-300" />
+                        <Icon className="h-5 w-5 text-teal-300" />
                         <div>
                           <h2 className="text-base font-black text-slate-900 dark:text-slate-100">{meta.title}</h2>
                           <p className="text-[11px] text-slate-500">{meta.description}</p>
@@ -290,7 +290,7 @@ export default function SettingsPage() {
                     </div>
 
                     {test && test.message ? (
-                      <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${test.ok ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200" : "border-rose-400/25 bg-rose-500/10 text-rose-200"}`}>
+                      <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${test.ok ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200" : "border-red-400/25 bg-red-500/10 text-red-200"}`}>
                         {test.message}
                       </div>
                     ) : null}
@@ -311,7 +311,7 @@ export default function SettingsPage() {
           <div className="space-y-5">
             <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-indigo-300" />
+                <KeyRound className="h-5 w-5 text-teal-300" />
                 <h2 className="text-base font-black text-slate-900 dark:text-slate-100">How keys are stored</h2>
               </div>
               <div className="mt-3 space-y-2 text-sm text-slate-400 leading-6">
@@ -323,7 +323,7 @@ export default function SettingsPage() {
 
             <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="h-5 w-5 text-rose-300" />
+                <ShieldAlert className="h-5 w-5 text-red-300" />
                 <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Suppression List</h2>
               </div>
               <div className="mt-4 grid grid-cols-1 gap-3">
@@ -331,18 +331,18 @@ export default function SettingsPage() {
                   value={suppressionEmail}
                   onChange={(event) => setSuppressionEmail(event.target.value)}
                   placeholder="prospect@example.com"
-                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-rose-400"
+                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-red-400"
                 />
                 <input
                   value={suppressionReason}
                   onChange={(event) => setSuppressionReason(event.target.value)}
                   placeholder="manual"
-                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-rose-400"
+                  className="h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-red-400"
                 />
                 <button
                   onClick={handleAddSuppression}
                   disabled={savingSuppression}
-                  className="h-11 rounded-lg bg-rose-600 px-4 text-sm font-black text-slate-900 dark:text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="h-11 rounded-lg bg-red-600 px-4 text-sm font-black text-slate-900 dark:text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
                   {savingSuppression ? "Saving..." : "Add suppression"}
                 </button>
@@ -397,7 +397,7 @@ export default function SettingsPage() {
 
             <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
               <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-indigo-300" />
+                <KeyRound className="h-5 w-5 text-teal-300" />
                 <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Recent Audit Log</h2>
               </div>
               <div className="mt-4 space-y-3">
@@ -430,7 +430,7 @@ function SettingField({ item, value, onChange }: { item: SettingItem; value: str
   const touched = value !== undefined;
   // For secret fields with a stored value, show the masked dots as a
   // placeholder so the user knows one exists; typing replaces it.
-  const placeholder = item.secret && item.hasValue && !touched ? item.masked || "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : item.placeholder;
+  const placeholder = item.secret && item.hasValue && !touched ? item.masked || "••••••••" : item.placeholder;
   const display = touched ? value : item.secret ? "" : item.value;
 
   return (
@@ -445,7 +445,7 @@ function SettingField({ item, value, onChange }: { item: SettingItem; value: str
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         autoComplete="off"
-        className="mt-2 h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+        className="mt-2 h-11 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
       />
       {item.hint ? <span className="mt-1 block text-[11px] font-normal text-slate-500">{item.hint}</span> : null}
     </label>
@@ -558,7 +558,7 @@ function GmailInboxCard() {
     setResult(null);
     try {
       const r = await fetchOutbound<SyncResult>("/api/inbox/sync", { method: "POST" });
-      setResult({ ok: r.ok, message: r.ok ? `Sync complete â€” ${r.imported} new reply(ies), ${r.scanned} scanned.` : (r.error || "Sync failed.") });
+      setResult({ ok: r.ok, message: r.ok ? `Sync complete — ${r.imported} new reply(ies), ${r.scanned} scanned.` : (r.error || "Sync failed.") });
       await load();
     } catch (err: any) {
       setResult({ ok: false, message: err?.message || "Sync failed." });
@@ -571,10 +571,10 @@ function GmailInboxCard() {
     <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <InboxIcon className="h-5 w-5 text-indigo-300" />
+          <InboxIcon className="h-5 w-5 text-teal-300" />
           <div>
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Gmail Inbox (IMAP)</h2>
-            <p className="text-[11px] text-slate-500">Import replies from Gmail. Use an App Password (Google Account â†’ Security â†’ App Passwords) with IMAP enabled.</p>
+            <p className="text-[11px] text-slate-500">Import replies from Gmail. Use an App Password (Google Account ? Security ? App Passwords) with IMAP enabled.</p>
           </div>
         </div>
         {mailbox ? (
@@ -585,13 +585,13 @@ function GmailInboxCard() {
       </div>
 
       {result ? (
-        <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${result.ok ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200" : "border-rose-400/25 bg-rose-500/10 text-rose-200"}`}>
+        <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${result.ok ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200" : "border-red-400/25 bg-red-500/10 text-red-200"}`}>
           {result.message}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="mt-4 text-sm text-slate-500">Loadingâ€¦</div>
+        <div className="mt-4 text-sm text-slate-500">Loading…</div>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -611,7 +611,7 @@ function GmailInboxCard() {
               <input value={form.imapPort} onChange={(e) => setForm((c) => ({ ...c, imapPort: e.target.value }))}
                 className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
-            <SmallField label={`App Password ${mailbox?.hasPassword ? "(saved â€” leave blank to keep)" : ""}`}>
+            <SmallField label={`App Password ${mailbox?.hasPassword ? "(saved — leave blank to keep)" : ""}`}>
               <input type="password" value={form.appPassword} onChange={(e) => setForm((c) => ({ ...c, appPassword: e.target.value }))} placeholder="xxxx xxxx xxxx xxxx" autoComplete="off"
                 className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
@@ -623,22 +623,22 @@ function GmailInboxCard() {
 
           <div className="mt-3 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-              <input type="checkbox" checked={form.useSsl} onChange={(e) => setForm((c) => ({ ...c, useSsl: e.target.checked }))} className="h-4 w-4 accent-indigo-500" />
+              <input type="checkbox" checked={form.useSsl} onChange={(e) => setForm((c) => ({ ...c, useSsl: e.target.checked }))} className="h-4 w-4 accent-teal-500" />
               SSL (port 993)
             </label>
             <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-              <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((c) => ({ ...c, enabled: e.target.checked }))} className="h-4 w-4 accent-indigo-500" />
+              <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((c) => ({ ...c, enabled: e.target.checked }))} className="h-4 w-4 accent-teal-500" />
               Auto-sync every minute
             </label>
             {mailbox?.lastSyncAt ? (
               <span className="text-[11px] text-slate-500">
-                Last sync: <ClientDate value={mailbox.lastSyncAt} /> Â· {mailbox.totalImported} imported Â· {mailbox.lastSyncStatus}
+                Last sync: <ClientDate value={mailbox.lastSyncAt} /> · {mailbox.totalImported} imported · {mailbox.lastSyncStatus}
               </span>
             ) : null}
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <button onClick={() => void save()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-sm text-indigo-100 inline-flex items-center gap-2 disabled:opacity-60">
+            <button onClick={() => void save()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100 inline-flex items-center gap-2 disabled:opacity-60">
               {busy === "save" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
             </button>
             <button onClick={() => void test()} disabled={busy !== ""} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 disabled:opacity-60">

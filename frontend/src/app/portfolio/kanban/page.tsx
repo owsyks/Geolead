@@ -108,7 +108,7 @@ export default function PortfolioKanbanPage() {
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         href={`/portfolio/${domain.id}`}
-                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-200 text-sm truncate"
+                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-teal-200 text-sm truncate"
                       >
                         {domain.name}
                       </Link>
@@ -117,7 +117,7 @@ export default function PortfolioKanbanPage() {
                           setActiveDomainId(domain.id);
                           setMessage(`Active: ${domain.name}`);
                         }}
-                        className="text-[10px] text-indigo-300 hover:text-indigo-200"
+                        className="text-[10px] text-teal-300 hover:text-teal-200"
                         title="Use for workflows"
                       >
                         Use

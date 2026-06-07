@@ -418,7 +418,7 @@ export default function CampaignsPage() {
           }}
         >
           <div className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-indigo-300" />
+            <Plus className="h-5 w-5 text-teal-300" />
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Create Campaign</h2>
           </div>
 
@@ -446,7 +446,7 @@ export default function CampaignsPage() {
                 <input
                   value={form[field as keyof typeof form]}
                   onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                 />
               </label>
             ))}
@@ -456,7 +456,7 @@ export default function CampaignsPage() {
               <select
                 value={form.tone}
                 onChange={(event) => setForm((current) => ({ ...current, tone: event.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               >
                 <option value="professional">Professional</option>
                 <option value="friendly">Friendly</option>
@@ -470,7 +470,7 @@ export default function CampaignsPage() {
             <textarea
               value={form.objective}
               onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
-              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-20 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             />
           </label>
 
@@ -485,7 +485,7 @@ export default function CampaignsPage() {
               <select
                 value={form.throttlePreset}
                 onChange={(e) => setForm(current => ({ ...current, throttlePreset: e.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               >
                 {Object.entries(THROTTLE_PRESETS).map(([key, preset]) => (
                   <option key={key} value={key}>{preset.label}</option>
@@ -503,7 +503,7 @@ export default function CampaignsPage() {
                     max={1440}
                     value={form.smartDelayMin}
                     onChange={(e) => setForm(current => ({ ...current, smartDelayMin: e.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                   />
                 </label>
                 <label className="block text-xs font-bold text-slate-400">
@@ -514,7 +514,7 @@ export default function CampaignsPage() {
                     max={1440}
                     value={form.smartDelayMax}
                     onChange={(e) => setForm(current => ({ ...current, smartDelayMax: e.target.value }))}
-                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                    className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
                   />
                 </label>
               </div>
@@ -528,7 +528,7 @@ export default function CampaignsPage() {
                 max={1000}
                 value={form.dailyLimit}
                 onChange={(e) => setForm(current => ({ ...current, dailyLimit: e.target.value }))}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
               />
             </label>
 
@@ -545,7 +545,7 @@ export default function CampaignsPage() {
             <select
               value={form.senderAccountId}
               onChange={(event) => setForm((current) => ({ ...current, senderAccountId: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             >
               {(overview?.senders || []).length === 0 ? <option value="">No senders — add one in Senders</option> : null}
               {(overview?.senders || []).map((s) => (
@@ -564,7 +564,7 @@ export default function CampaignsPage() {
             <select
               value={form.templateId}
               onChange={(event) => setForm((current) => ({ ...current, templateId: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-indigo-400"
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
             >
               <option value="">Generate with AI</option>
               {templates.map(t => (
@@ -578,7 +578,7 @@ export default function CampaignsPage() {
               Upload Email List (CSV)
             </label>
             <div className="flex items-center gap-2">
-              <label className="flex-1 h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-400 flex items-center gap-2 cursor-pointer hover:border-indigo-500 transition-colors">
+              <label className="flex-1 h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-400 flex items-center gap-2 cursor-pointer hover:border-teal-500 transition-colors">
                 <Upload className="w-4 h-4" />
                 <span className="text-xs">{uploadedEmails.length > 0 ? `${uploadedEmails.length} emails loaded` : 'Choose CSV / Excel file'}</span>
                 <input type="file" accept=".csv,.txt,.xlsx,.xls" onChange={handleCSVUpload} className="hidden" />
@@ -608,7 +608,7 @@ export default function CampaignsPage() {
                 onClick={() => setLeadsScopedToDomain((v) => !v)}
                 className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1.5 ${
                   leadsScopedToDomain
-                    ? "border-indigo-400/30 bg-indigo-500/10 text-indigo-300"
+                    ? "border-teal-400/30 bg-teal-500/10 text-teal-300"
                     : "border-slate-300 dark:border-slate-700 text-slate-500"
                 }`}
                 title="Show only valid leads scraped for this domain"
@@ -652,7 +652,7 @@ export default function CampaignsPage() {
                       type="checkbox"
                       checked={selectedLeadIds.includes(lead.id)}
                       onChange={() => toggleLead(lead.id)}
-                      className="mt-1 h-4 w-4 accent-indigo-500"
+                      className="mt-1 h-4 w-4 accent-teal-500"
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold text-slate-900 dark:text-slate-100 truncate">{lead.businessName}</span>
@@ -667,7 +667,7 @@ export default function CampaignsPage() {
             </div>
           </div>
 
-          <button className="mt-5 h-11 w-full rounded-lg bg-indigo-600 text-sm font-black text-white hover:bg-indigo-500 inline-flex items-center justify-center gap-2">
+          <button className="mt-5 h-11 w-full rounded-lg bg-teal-600 text-sm font-black text-white hover:bg-teal-500 inline-flex items-center justify-center gap-2">
             <Plus className="h-4 w-4" />
             Create campaign
           </button>
@@ -721,7 +721,7 @@ export default function CampaignsPage() {
                             </div>
                           </div>
                           <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                            <div className="h-full rounded-full bg-indigo-400" style={{ width: `${Math.min(campaign.engagementScore, 100)}%` }} />
+                            <div className="h-full rounded-full bg-teal-400" style={{ width: `${Math.min(campaign.engagementScore, 100)}%` }} />
                           </div>
                           {campaign.nextFollowUpAt && (
                             <div className="mt-2 text-center text-[10px] font-bold">
@@ -767,7 +767,7 @@ export default function CampaignsPage() {
                             <button
                               onClick={() => setVariantsFor({ id: campaign.id, name: campaign.name })}
                               title="AI variants"
-                              className="h-8 px-2 rounded border border-violet-400/25 bg-violet-500/10 text-xs font-bold text-violet-300 inline-flex items-center gap-1"
+                              className="h-8 px-2 rounded border border-amber-400/25 bg-amber-500/10 text-xs font-bold text-amber-300 inline-flex items-center gap-1"
                             >
                               <Sparkles className="h-3.5 w-3.5" />
                               Variants
@@ -775,7 +775,7 @@ export default function CampaignsPage() {
                             <button
                               onClick={() => setOpensFor({ id: campaign.id, name: campaign.name })}
                               title="Who opened"
-                              className="h-8 px-2 rounded border border-indigo-400/25 bg-indigo-500/10 text-xs font-bold text-indigo-300 inline-flex items-center gap-1"
+                              className="h-8 px-2 rounded border border-teal-400/25 bg-teal-500/10 text-xs font-bold text-teal-300 inline-flex items-center gap-1"
                             >
                               <Eye className="h-3.5 w-3.5" />
                               Opens
@@ -783,7 +783,7 @@ export default function CampaignsPage() {
                             <button
                               onClick={() => void deleteCampaign(campaign.id, campaign.name)}
                               title="Delete campaign"
-                              className="h-8 px-2 rounded border border-rose-400/25 bg-rose-500/10 text-xs font-bold text-rose-300 inline-flex items-center gap-1 ml-auto"
+                              className="h-8 px-2 rounded border border-red-400/25 bg-red-500/10 text-xs font-bold text-red-300 inline-flex items-center gap-1 ml-auto"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -836,9 +836,9 @@ interface VariantsResponse {
 }
 
 const VARIANT_COLORS: Record<string, string> = {
-  A: "border-indigo-400/30 bg-indigo-500/5",
+  A: "border-teal-400/30 bg-teal-500/5",
   B: "border-emerald-400/30 bg-emerald-500/5",
-  C: "border-violet-400/30 bg-violet-500/5",
+  C: "border-amber-400/30 bg-amber-500/5",
   D: "border-amber-400/30 bg-amber-500/5",
   E: "border-sky-400/30 bg-sky-500/5",
 };
@@ -889,20 +889,20 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
         <button
           onClick={() => void generate()}
           disabled={generating}
-          className="h-9 px-3 shrink-0 rounded-lg border border-violet-400/30 bg-violet-500/15 text-xs font-bold text-violet-200 inline-flex items-center gap-1.5 disabled:opacity-60"
+          className="h-9 px-3 shrink-0 rounded-lg border border-amber-400/30 bg-amber-500/15 text-xs font-bold text-amber-200 inline-flex items-center gap-1.5 disabled:opacity-60"
         >
           {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           {hasVariants ? "Regenerate" : "Generate variants"}
         </button>
       </div>
 
-      {error ? <div className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{error}</div> : null}
+      {error ? <div className="mb-3 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</div> : null}
 
       {loading ? (
         <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
       ) : !hasVariants ? (
         <div className="py-10 text-center">
-          <Sparkles className="h-9 w-9 mx-auto text-violet-400 mb-3" />
+          <Sparkles className="h-9 w-9 mx-auto text-amber-400 mb-3" />
           <div className="text-sm font-black text-slate-900 dark:text-slate-100">No variants generated yet</div>
           <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">Generate 5 unique email styles (Direct, Consultative, Branding, SEO, Opportunity) that rotate across your leads.</p>
         </div>
@@ -932,9 +932,9 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
                   {v.approved ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /> Approved</span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400" title={v.flags.join("; ")}><XCircle className="h-3.5 w-3.5" /> Blocked</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-400" title={v.flags.join("; ")}><XCircle className="h-3.5 w-3.5" /> Blocked</span>
                   )}
-                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${v.spamScore <= 4 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`} title="Spam risk score (0-10)">
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${v.spamScore <= 4 ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`} title="Spam risk score (0-10)">
                     Spam {v.spamScore}
                   </span>
                 </div>
@@ -943,7 +943,7 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
               <pre className="mt-3 whitespace-pre-wrap font-sans text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-md p-3 max-h-44 overflow-y-auto">{v.body}</pre>
 
               {v.flags.length > 0 && (
-                <div className="mt-2 text-[11px] text-rose-400">{v.flags.join(" · ")}</div>
+                <div className="mt-2 text-[11px] text-red-400">{v.flags.join(" · ")}</div>
               )}
 
               {/* Performance bar */}
@@ -963,8 +963,8 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
 
 function BestCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-lg border border-indigo-400/20 bg-indigo-500/5 p-3">
-      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-indigo-400"><TrendingUp className="h-3 w-3" /> {label}</div>
+    <div className="rounded-lg border border-teal-400/20 bg-teal-500/5 p-3">
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-teal-400"><TrendingUp className="h-3 w-3" /> {label}</div>
       <div className="mt-1 text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={value}>{value}</div>
       <div className="text-[10px] text-slate-500">{sub}</div>
     </div>

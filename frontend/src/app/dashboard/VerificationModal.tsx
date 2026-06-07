@@ -87,12 +87,12 @@ export function VerificationModal({ open, results, total, done, complete, onClos
             >
               {r.status === "VALID" && <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-500" />}
               {r.status === "RISKY" && <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />}
-              {r.status === "INVALID" && <Ban className="w-3.5 h-3.5 shrink-0 text-rose-500" />}
+              {r.status === "INVALID" && <Ban className="w-3.5 h-3.5 shrink-0 text-red-500" />}
               <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{r.email}</span>
               <span className={`shrink-0 font-semibold ${
                 r.status === "VALID" ? "text-emerald-500" :
                 r.status === "RISKY" ? "text-amber-500" :
-                "text-rose-500"
+                "text-red-500"
               }`}>
                 {r.status === "VALID" ? "Valid" : r.status === "RISKY" ? "Risky" : "Invalid"}
               </span>
@@ -112,7 +112,7 @@ export function VerificationModal({ open, results, total, done, complete, onClos
             <div className="flex items-center gap-3 text-xs">
               <span className="text-emerald-500 font-bold">{valid} valid</span>
               <span className="text-amber-500 font-bold">{risky} risky</span>
-              <span className="text-rose-500 font-bold">{invalid} invalid</span>
+              <span className="text-red-500 font-bold">{invalid} invalid</span>
             </div>
             <button
               onClick={onClose}

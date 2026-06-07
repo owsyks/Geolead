@@ -37,7 +37,7 @@ export default function LoginPage() {
       footer={
         <>
           New here?{" "}
-          <Link href="/register" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link href="/register" className="font-medium text-teal-400 hover:text-teal-300">
             Create an account
           </Link>
         </>
@@ -73,7 +73,7 @@ export default function LoginPage() {
             />
             Remember me
           </label>
-          <Link href="/forgot-password" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link href="/forgot-password" className="font-medium text-teal-400 hover:text-teal-300">
             Forgot password?
           </Link>
         </div>
