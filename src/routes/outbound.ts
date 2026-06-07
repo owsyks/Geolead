@@ -19,6 +19,7 @@ import {
   listWebhookEvents,
   listInbox,
   listSenderAccounts,
+  getSendQuota,
   listSuppressionEntries,
   listTemplates,
   listAuditLogs,
@@ -206,6 +207,11 @@ router.post(
 
 router.get('/senders', wrap(async (req, res) => {
   res.json(await listSenderAccounts(req.userId!));
+}));
+
+// Daily/hourly send quota — how many emails are left before the cap today.
+router.get('/quota', wrap(async (req, res) => {
+  res.json(await getSendQuota(req.userId!));
 }));
 
 router.post(
