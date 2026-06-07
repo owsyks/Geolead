@@ -36,13 +36,60 @@ export interface AddReminderInput {
 
 // ─── DNS helper ───────────────────────────────────────────────────────────────
 
+// Determine whether a domain is actually registered.
+//
+// The old implementation used dns.lookup() (an A/AAAA record check) and treated
+// ANY failure as "available". That is wrong: a huge number of *registered*
+// domains have no A record — parked domains, domains with no website, and
+// especially expiring / "about to drop" domains in redemption/pendingDelete.
+// Those have no IP, so they were falsely reported as available.
+//
+// We now use two authoritative-ish signals:
+//   1. RDAP (registry data): 200 = registered (even if expiring), 404 = the
+//      registry has no record → genuinely available.
+//   2. DNS delegation: NS or SOA records (or any A) mean the domain is
+//      delegated, i.e. registered — even with no website.
+//
+// A domain is only reported "available" when RDAP says 404 AND there is no DNS
+// presence. Anything inconclusive (RDAP down / rate-limited and no DNS) is
+// reported as "unknown" rather than "available", so we never falsely signal a
+// drop.
+async function hasDnsPresence(domain: string): Promise<boolean> {
+  try { const ns = await dnsPromises.resolveNs(domain); if (ns && ns.length > 0) return true; } catch { /* no NS */ }
+  try { const soa = await dnsPromises.resolveSoa(domain); if (soa && soa.nsname) return true; } catch { /* no SOA */ }
+  try { await dnsPromises.lookup(domain); return true; } catch { /* no A/AAAA */ }
+  return false;
+}
+
 async function checkDns(domain: string): Promise<DnsStatus> {
+  // 1) RDAP — authoritative registry lookup. rdap.org redirects to the correct
+  //    registry RDAP server for the TLD.
+  let rdapStatus: number | null = null;
   try {
-    await dnsPromises.lookup(domain);
-    return 'dns_registered';
+    const res = await axios.get(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
+      timeout: 8000,
+      maxRedirects: 5,
+      validateStatus: (s) => s < 500, // we want to read 404 ourselves
+      headers: { Accept: 'application/rdap+json' },
+    });
+    rdapStatus = res.status;
   } catch {
-    return 'dns_available';
+    rdapStatus = null; // network/timeout — fall back to DNS
   }
+
+  if (rdapStatus === 200) return 'dns_registered';
+
+  // 2) DNS delegation check. NS/SOA/A present → definitely registered. This also
+  //    covers TLDs that RDAP doesn't serve (some ccTLDs), preventing a 404 from
+  //    RDAP being misread as available when the domain is clearly delegated.
+  if (await hasDnsPresence(domain)) return 'dns_registered';
+
+  // 3) No DNS presence. Only trust an authoritative RDAP 404 as "available".
+  if (rdapStatus === 404) return 'dns_available';
+
+  // RDAP inconclusive (timeout / rate-limited / odd status) and no DNS → we
+  // genuinely don't know. Never claim "available" on a guess.
+  return 'dns_unknown';
 }
 
 // ─── Score derivation ─────────────────────────────────────────────────────────
