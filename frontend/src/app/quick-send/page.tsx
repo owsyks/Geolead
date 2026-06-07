@@ -86,13 +86,13 @@ export default function QuickSendPage() {
               className="w-full h-10 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             >
               {loadingSenders ? (
-                <option>Loading…</option>
+                <option>Loadingâ€¦</option>
               ) : senders.length === 0 ? (
                 <option>No active senders</option>
               ) : (
                 senders.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.provider} — {s.fromName} &lt;{s.fromEmail}&gt;
+                    {s.provider} â€” {s.fromName} &lt;{s.fromEmail}&gt;
                   </option>
                 ))
               )}
@@ -130,7 +130,7 @@ export default function QuickSendPage() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={10}
-              placeholder="Write your message…"
+              placeholder="Write your messageâ€¦"
               className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 resize-y"
             />
           </div>
@@ -141,7 +141,7 @@ export default function QuickSendPage() {
             className="w-full h-11 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-200 dark:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
           >
             <Send className={`w-4 h-4 ${sending ? "animate-pulse" : ""}`} />
-            {sending ? "Sending…" : "Send Email"}
+            {sending ? "Sendingâ€¦" : "Send Email"}
           </button>
         </form>
 

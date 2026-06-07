@@ -34,7 +34,7 @@ import {
   X
 } from "lucide-react";
 
-// API URL (Express backend) � env override allowed for non-localhost setups
+// API URL (Express backend) — env override allowed for non-localhost setups
 const BACKEND_URL = process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
@@ -123,7 +123,7 @@ export default function DashboardPage() {
   const [searchDepth, setSearchDepth] = useState(10);
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
-  // user never re-types keyword/domain/geo � they just pick from the portfolio.
+  // user never re-types keyword/domain/geo — they just pick from the portfolio.
   useEffect(() => {
     if (!activeDomain) return;
     setDomainIdea(activeDomain.name);
@@ -605,7 +605,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // While in demo mode, retry the backend every 15s � recovers automatically
+  // While in demo mode, retry the backend every 15s — recovers automatically
   // once the user starts the backend, instead of staying stuck forever.
   useEffect(() => {
     if (!isDemoMode) return;
@@ -1114,7 +1114,7 @@ export default function DashboardPage() {
         setVerifying(false);
         if (selectedTask) fetchTaskLeads(selectedTask.id);
       } else {
-        // Queued � poll until done
+        // Queued — poll until done
         const jobId: string = data.jobId;
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
@@ -1368,13 +1368,13 @@ export default function DashboardPage() {
               </h2>
               {selectedTask && (
                 <p className="text-[10px] text-slate-500 mt-0.5">
-                  Target Keyword: &quot;{selectedTask.keyword}&quot; � Search depth: {selectedTask.searchDepth} sites
+                  Target Keyword: &quot;{selectedTask.keyword}&quot; • Search depth: {selectedTask.searchDepth} sites
                 </p>
               )}
             </div>
           </div>
 
-          {/* Export Controls � show for COMPLETED, PAUSED, CANCELLED */}
+          {/* Export Controls — show for COMPLETED, PAUSED, CANCELLED */}
           {selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
             <div className="flex items-center gap-2">
               {/* Verify Emails Button */}
@@ -1597,7 +1597,7 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value="all">All Channels</option>
-                      <option value="whatsapp_high">WhatsApp High (=70)</option>
+                      <option value="whatsapp_high">WhatsApp High (≥70)</option>
                       <option value="email_available">Email Available</option>
                       <option value="phone_available">Phone Available</option>
                       <option value="multi_channel">Multi-Channel</option>
@@ -1628,8 +1628,8 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value={0}>Any</option>
-                      <option value={65}>High (=65)</option>
-                      <option value={45}>Moderate (=45)</option>
+                      <option value={65}>High (≥65)</option>
+                      <option value={45}>Moderate (≥45)</option>
                     </select>
                   </div>
 
@@ -1642,8 +1642,8 @@ export default function DashboardPage() {
                       className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
                     >
                       <option value={0}>All</option>
-                      <option value={75}>High (=75)</option>
-                      <option value={50}>Medium (=50)</option>
+                      <option value={75}>High (≥75)</option>
+                      <option value={50}>Medium (≥50)</option>
                     </select>
                   </div>
                 </div>
@@ -1822,7 +1822,7 @@ export default function DashboardPage() {
                           <td className="py-5 px-4 max-w-xs">
                             <div className="flex flex-col gap-3">
 
-                              {/* -- Contact Intelligence -- */}
+                              {/* ── Contact Intelligence ── */}
                               {lead.bestContactChannel && (
                                 <div className="flex flex-col gap-1.5">
                                   {/* Best channel badge */}
@@ -1843,7 +1843,7 @@ export default function DashboardPage() {
                                     {lead.emails.length > 0 && (
                                       <span className="flex items-center gap-0.5 text-teal-400">
                                         <Mail className="w-2.5 h-2.5" />
-                                        Email {lead.contactChannelScores?.email ?? '�'}
+                                        Email {lead.contactChannelScores?.email ?? '—'}
                                       </span>
                                     )}
                                     {lead.whatsappScore != null && lead.whatsappScore > 0 && (
@@ -1859,7 +1859,7 @@ export default function DashboardPage() {
                                     {lead.phoneNumbers.length > 0 && (
                                       <span className="flex items-center gap-0.5 text-amber-400">
                                         <Phone className="w-2.5 h-2.5" />
-                                        Phone {lead.contactChannelScores?.phone ?? '�'}
+                                        Phone {lead.contactChannelScores?.phone ?? '—'}
                                       </span>
                                     )}
                                   </div>
@@ -1927,7 +1927,7 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          {/* Score Column � Domain Match, Priority, Decision Maker */}
+                          {/* Score Column — Domain Match, Priority, Decision Maker */}
                           <td className="py-5 px-4 text-center">
                             <div className="inline-flex flex-col items-center gap-1.5 min-w-[80px]">
                               {/* Priority Score (primary) */}
@@ -2003,9 +2003,9 @@ export default function DashboardPage() {
                               {/* Contact strategy badge */}
                               {lead.contactStrategy && (
                                 <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 uppercase tracking-wider">
-                                  {lead.contactStrategy === 'email_decision_maker' ? '?? DM' :
-                                   lead.contactStrategy === 'email_general' ? '?? Gen' :
-                                   lead.contactStrategy === 'call_business' ? '?? Call' : '?? Form'}
+                                  {lead.contactStrategy === 'email_decision_maker' ? '📧 DM' :
+                                   lead.contactStrategy === 'email_general' ? '📧 Gen' :
+                                   lead.contactStrategy === 'call_business' ? '📞 Call' : '🌐 Form'}
                                 </span>
                               )}
 
@@ -2267,7 +2267,7 @@ export default function DashboardPage() {
   );
 }
 
-// --- WhatsApp Validation Panel ------------------------------------------------
+// ─── WhatsApp Validation Panel ────────────────────────────────────────────────
 
 function waLink(phone: string): string {
   const digits = phone.replace(/[^\d]/g, '');
@@ -2357,7 +2357,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
 
         {/* Note */}
         <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly � if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
+          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly — if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
         </div>
 
         {/* Lead list */}
@@ -2401,7 +2401,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
               {lead.bestContactChannel && (
                 <div className="shrink-0 text-[10px] text-slate-500 text-right">
                   <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-slate-400'}`}>
-                    {lead.bestContactChannel === 'WHATSAPP' ? '?? WA First' : lead.bestContactChannel}
+                    {lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}
                   </div>
                   {lead.contactChannelScores && (
                     <div className="mt-0.5 space-y-0.5">

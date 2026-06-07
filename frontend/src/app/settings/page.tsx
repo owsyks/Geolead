@@ -239,7 +239,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">Settings & Integrations</h1>
-              <p className="mt-1 text-sm text-slate-500">API keys, sending providers, SMTP, webhooks, and compliance — saved securely server-side.</p>
+              <p className="mt-1 text-sm text-slate-500">API keys, sending providers, SMTP, webhooks, and compliance â€” saved securely server-side.</p>
             </div>
           </div>
           <button
@@ -259,7 +259,7 @@ export default function SettingsPage() {
         <div className="mt-6 grid grid-cols-1 xl:grid-cols-[1fr_0.7fr] gap-5">
           <div className="space-y-5">
             {loading ? (
-              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-6 text-sm text-slate-500">Loading settings…</div>
+              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-6 text-sm text-slate-500">Loading settingsâ€¦</div>
             ) : (
               SECTION_ORDER.map((category) => {
                 const items = grouped.get(category) || [];
@@ -430,7 +430,7 @@ function SettingField({ item, value, onChange }: { item: SettingItem; value: str
   const touched = value !== undefined;
   // For secret fields with a stored value, show the masked dots as a
   // placeholder so the user knows one exists; typing replaces it.
-  const placeholder = item.secret && item.hasValue && !touched ? item.masked || "••••••••" : item.placeholder;
+  const placeholder = item.secret && item.hasValue && !touched ? item.masked || "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : item.placeholder;
   const display = touched ? value : item.secret ? "" : item.value;
 
   return (
@@ -558,7 +558,7 @@ function GmailInboxCard() {
     setResult(null);
     try {
       const r = await fetchOutbound<SyncResult>("/api/inbox/sync", { method: "POST" });
-      setResult({ ok: r.ok, message: r.ok ? `Sync complete — ${r.imported} new reply(ies), ${r.scanned} scanned.` : (r.error || "Sync failed.") });
+      setResult({ ok: r.ok, message: r.ok ? `Sync complete â€” ${r.imported} new reply(ies), ${r.scanned} scanned.` : (r.error || "Sync failed.") });
       await load();
     } catch (err: any) {
       setResult({ ok: false, message: err?.message || "Sync failed." });
@@ -574,7 +574,7 @@ function GmailInboxCard() {
           <InboxIcon className="h-5 w-5 text-teal-300" />
           <div>
             <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Gmail Inbox (IMAP)</h2>
-            <p className="text-[11px] text-slate-500">Import replies from Gmail. Use an App Password (Google Account ? Security ? App Passwords) with IMAP enabled.</p>
+            <p className="text-[11px] text-slate-500">Import replies from Gmail. Use an App Password (Google Account â†’ Security â†’ App Passwords) with IMAP enabled.</p>
           </div>
         </div>
         {mailbox ? (
@@ -591,7 +591,7 @@ function GmailInboxCard() {
       ) : null}
 
       {loading ? (
-        <div className="mt-4 text-sm text-slate-500">Loading…</div>
+        <div className="mt-4 text-sm text-slate-500">Loadingâ€¦</div>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -611,7 +611,7 @@ function GmailInboxCard() {
               <input value={form.imapPort} onChange={(e) => setForm((c) => ({ ...c, imapPort: e.target.value }))}
                 className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
-            <SmallField label={`App Password ${mailbox?.hasPassword ? "(saved — leave blank to keep)" : ""}`}>
+            <SmallField label={`App Password ${mailbox?.hasPassword ? "(saved â€” leave blank to keep)" : ""}`}>
               <input type="password" value={form.appPassword} onChange={(e) => setForm((c) => ({ ...c, appPassword: e.target.value }))} placeholder="xxxx xxxx xxxx xxxx" autoComplete="off"
                 className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100" />
             </SmallField>
@@ -632,7 +632,7 @@ function GmailInboxCard() {
             </label>
             {mailbox?.lastSyncAt ? (
               <span className="text-[11px] text-slate-500">
-                Last sync: <ClientDate value={mailbox.lastSyncAt} /> · {mailbox.totalImported} imported · {mailbox.lastSyncStatus}
+                Last sync: <ClientDate value={mailbox.lastSyncAt} /> Â· {mailbox.totalImported} imported Â· {mailbox.lastSyncStatus}
               </span>
             ) : null}
           </div>
