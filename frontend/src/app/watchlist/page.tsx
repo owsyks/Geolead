@@ -252,6 +252,7 @@ function DomainRow({
   const sCfg = STATUS_CFG[d.status];
   const dnsAvailable = d.registrationStatus === "dns_available";
   const dnsRegistered = d.registrationStatus === "dns_registered";
+  const dnsUnknown = !d.registrationStatus || d.registrationStatus === "dns_unknown";
 
   const checkNow = async () => {
     setChecking(true);
@@ -297,6 +298,7 @@ function DomainRow({
             <span className="font-mono font-black text-slate-900 dark:text-slate-50">{d.domainName}</span>
             {dnsAvailable && <span className="text-[11px] font-black text-emerald-400 border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">AVAILABLE</span>}
             {dnsRegistered && <span className="text-[11px] text-slate-500 border border-slate-300 dark:border-slate-700 px-1.5 py-0.5 rounded">Registered</span>}
+            {dnsUnknown && <span title="Couldn't confirm registry status — re-check shortly" className="text-[11px] text-amber-400/90 border border-amber-400/30 bg-amber-500/10 px-1.5 py-0.5 rounded">Unverified</span>}
           </div>
           <div className="text-xs text-slate-500 mt-0.5">
             <span className={`font-medium ${sCfg.color}`}>{sCfg.label}</span>
