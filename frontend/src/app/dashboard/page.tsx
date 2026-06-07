@@ -598,12 +598,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     mounted.current = true;
+    // Load search history (and auto-select the latest task) on mount. Without
+    // this the page rendered empty until the user manually hit "Refresh".
+    void fetchHistory();
     return () => {
       mounted.current = false;
       stopPolling();
       if (demoInterval.current) clearInterval(demoInterval.current);
       if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // While in demo mode, retry the backend every 15s — recovers automatically
