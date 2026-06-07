@@ -220,6 +220,45 @@ function availableEmailHtml(domain: string, acquisitionScore: number, aiReco: st
 </div>`;
 }
 
+// Send a test "domain available" reminder email to the signed-in user so they can
+// verify the drop-alert email path (Resend key, from-address, recipient,
+// formatting) without waiting for a real domain to drop. Returns a clear result
+// instead of swallowing errors, so the UI can show why it failed.
+export async function sendTestReminderEmail(userId: string, watchedDomainId?: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user?.email) return { ok: false, reason: 'Your account has no email address.' };
+
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false, reason: 'Email sending is not configured (RESEND_API_KEY missing on the server).' };
+
+  // Use a real watched domain if one was given, otherwise a sample.
+  let domainName = 'example-watchlist-domain.com';
+  let acquisitionScore = 78;
+  let aiReco = 'BUY_NOW';
+  if (watchedDomainId) {
+    const w = await prisma.watchedDomain.findFirst({ where: { id: watchedDomainId, userId } });
+    if (w) { domainName = w.domainName; acquisitionScore = w.acquisitionScore; aiReco = w.aiRecommendation || 'MONITOR'; }
+  }
+
+  const from = `${process.env.RESEND_FROM_NAME || 'GeoLead AI'} <${process.env.RESEND_FROM_EMAIL || 'no-reply@geoleadai.local'}>`;
+  try {
+    await axios.post(
+      'https://api.resend.com/emails',
+      {
+        from,
+        to: user.email,
+        subject: `[Test] Domain Available: ${domainName}`,
+        html: availableEmailHtml(domainName, acquisitionScore, aiReco),
+      },
+      { headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 10000 }
+    );
+    return { ok: true, to: user.email, domainName };
+  } catch (err: any) {
+    const detail = err?.response?.data?.message || err?.message || 'Unknown error';
+    return { ok: false, reason: `Resend rejected the send: ${detail}` };
+  }
+}
+
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
 export async function listWatchlist(userId: string) {
