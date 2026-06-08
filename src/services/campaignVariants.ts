@@ -123,7 +123,7 @@ function evaluateVariant(subject: string, body: string): { spamScore: number; ap
 
 // ─── Local (no-AI) variant generation ────────────────────────────────────────
 
-function localVariants(input: VariantInput): GeneratedVariant[] {
+export function localVariants(input: VariantInput): GeneratedVariant[] {
   const domain = input.geoDomain;
   const niche = input.niche || 'your market';
   const geo = input.cityState || 'your area';

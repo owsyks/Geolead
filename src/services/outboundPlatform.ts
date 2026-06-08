@@ -6,7 +6,7 @@ import type { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import { outboundQueue } from '../queues/queues.js';
 import { generateOutboundEmail, generateFollowUpBody, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
-import { generateCampaignVariants, VARIANT_ORDER, type GeneratedVariant, type VariantBundle } from './campaignVariants.js';
+import { generateCampaignVariants, localVariants, VARIANT_ORDER, type GeneratedVariant, type VariantBundle } from './campaignVariants.js';
 import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
@@ -538,6 +538,9 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
     leadCount: (input.leadIds?.length || 0) + (input.uploadedEmails?.length || 0)
   });
 
+  // Auto-generate variants so every campaign has A/B subject rotation
+  try { await generateAndStoreVariants(campaign.id, userId); } catch { /* non-critical */ }
+
   return getCampaignDetail(campaign.id, userId as string);
 }
 
@@ -555,6 +558,11 @@ export async function updateCampaignStatus(id: string, status: string, userId?: 
   });
 
   if (status === 'ACTIVE') {
+    // Generate variants if they don't exist yet
+    const meta = (campaign.metadata as any) || {};
+    if (!meta.variants) {
+      try { await generateAndStoreVariants(id, userId); } catch { /* non-critical */ }
+    }
     await queueCampaignSends(id);
   }
 
@@ -788,8 +796,11 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
 
   // Campaign Variant Engine: if approved variants are stored on the campaign,
   // rotate them across recipients (weighted toward best performers). Otherwise
-  // fall back to the sequence's first-step template for everyone.
-  const bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
+  // fall back to local hardcoded variants so every send has subject rotation.
+  let bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
+  if (!bundle) {
+    bundle = { generatedAt: new Date().toISOString(), variants: localVariants({ geoDomain: campaign.geoDomain, niche: campaign.niche, cityState: campaign.cityState || undefined }) };
+  }
   const approvedVariants = (bundle?.variants || []).filter((v) => v.approved);
   const variantStats = approvedVariants.length ? await getVariantStats(campaign.id) : {};
   const pickVariant = buildVariantPicker(approvedVariants, variantStats);
@@ -3366,6 +3377,57 @@ function escapeHtml(value: string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+export async function getCampaignEvents(campaignId: string, userId: string, filter?: string, search?: string, page = 1, limit = 20) {
+  const where: any = { campaignId };
+  if (filter) where.status = filter;
+  if (search) {
+    where.OR = [
+      { toEmail: { contains: search, mode: 'insensitive' } },
+      { subject: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const [logs, total] = await Promise.all([
+    prisma.emailLog.findMany({
+      where,
+      include: { lead: { select: { businessName: true } } },
+      orderBy: { sentAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.emailLog.count({ where }),
+  ]);
+
+  const events = logs.map((log) => ({
+    id: log.id,
+    toEmail: log.toEmail,
+    subject: log.subject,
+    variant: log.variant,
+    status: log.status,
+    sentAt: log.sentAt,
+    deliveredAt: log.deliveredAt,
+    openedAt: log.openedAt,
+    clickedAt: log.clickedAt,
+    bouncedAt: log.bouncedAt,
+    unsubscribedAt: log.unsubscribedAt,
+    errorMessage: log.errorMessage,
+    businessName: (log.lead as any)?.businessName || log.toEmail,
+  }));
+
+  // Aggregate counts
+  const counts = {
+    sent: logs.filter((l) => l.sentAt).length,
+    delivered: logs.filter((l) => l.deliveredAt).length,
+    opened: logs.filter((l) => l.openedAt).length,
+    clicked: logs.filter((l) => l.clickedAt).length,
+    bounced: logs.filter((l) => l.status === 'BOUNCED').length,
+    unsubscribed: logs.filter((l) => l.status === 'UNSUBSCRIBED').length,
+    complaints: logs.filter((l) => l.status === 'COMPLAINT').length,
+  };
+
+  return { events, counts, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 async function writeAudit(userId: string | undefined, entityType: string, entityId: string, action: string, payload: Record<string, unknown>) {
