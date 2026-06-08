@@ -997,6 +997,18 @@ async function runOutboundQueueTick() {
     }
 
     try {
+      // Assign variant if missing (pre-existing queued emails from before auto-generation)
+      if (!log.variant) {
+        const campaignMeta = (log.campaign?.metadata as any || {});
+        const campaignVariants = (campaignMeta.variants?.variants || []) as GeneratedVariant[];
+        const approved = campaignVariants.filter((v: GeneratedVariant) => v.approved);
+        if (approved.length > 0) {
+          const pick = approved[Math.floor(Math.random() * approved.length)];
+          await prisma.emailLog.update({ where: { id: log.id }, data: { variant: pick.key } });
+          log.variant = pick.key;
+        }
+      }
+
       const providerResponse = await sendWithRetry(log, sender);
       const wasDryRun = !!providerResponse.dryRun;
       await prisma.emailLog.update({
