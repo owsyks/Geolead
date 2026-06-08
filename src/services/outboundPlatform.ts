@@ -3415,7 +3415,13 @@ function escapeHtml(value: string) {
 
 export async function getCampaignEvents(campaignId: string, userId: string, filter?: string, search?: string, page = 1, limit = 20) {
   const where: any = { campaignId };
-  if (filter) where.status = filter;
+  if (filter) {
+    if (filter === 'OPENED') where.openedAt = { not: null };
+    else if (filter === 'BOUNCED') where.status = 'BOUNCED';
+    else if (filter === 'UNSUBSCRIBED') where.status = 'UNSUBSCRIBED';
+    else if (filter === 'CLICKED') where.clickedAt = { not: null };
+    else where.status = filter;
+  }
   if (search) {
     where.OR = [
       { toEmail: { contains: search, mode: 'insensitive' } },
@@ -3426,7 +3432,10 @@ export async function getCampaignEvents(campaignId: string, userId: string, filt
   const [logs, total] = await Promise.all([
     prisma.emailLog.findMany({
       where,
-      include: { lead: { select: { businessName: true } } },
+      include: {
+        lead: { select: { businessName: true } },
+        events: { select: { type: true, payload: true, ipAddress: true, userAgent: true, occurredAt: true }, orderBy: { occurredAt: 'asc' } },
+      },
       orderBy: { sentAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -3434,23 +3443,34 @@ export async function getCampaignEvents(campaignId: string, userId: string, filt
     prisma.emailLog.count({ where }),
   ]);
 
-  const events = logs.map((log) => ({
-    id: log.id,
-    toEmail: log.toEmail,
-    subject: log.subject,
-    variant: log.variant,
-    status: log.status,
-    sentAt: log.sentAt,
-    deliveredAt: log.deliveredAt,
-    openedAt: log.openedAt,
-    clickedAt: log.clickedAt,
-    bouncedAt: log.bouncedAt,
-    unsubscribedAt: log.unsubscribedAt,
-    errorMessage: log.errorMessage,
-    businessName: (log.lead as any)?.businessName || log.toEmail,
-  }));
+  const events = logs.map((log) => {
+    const openEvents = (log.events || []).filter((e: any) => e.type === 'OPENED');
+    const clickEvents = (log.events || []).filter((e: any) => e.type === 'CLICKED');
+    const bounceEvents = (log.events || []).filter((e: any) => e.type === 'BOUNCED');
+    return {
+      id: log.id,
+      toEmail: log.toEmail,
+      fromEmail: log.fromEmail,
+      subject: log.subject,
+      variant: log.variant,
+      status: log.status,
+      sentAt: log.sentAt,
+      deliveredAt: log.deliveredAt,
+      openedAt: log.openedAt,
+      firstOpenedAt: openEvents[0]?.occurredAt || null,
+      lastOpenedAt: openEvents[openEvents.length - 1]?.occurredAt || null,
+      openCount: openEvents.length,
+      clickedAt: log.clickedAt,
+      clickCount: clickEvents.length,
+      bouncedAt: log.bouncedAt,
+      unsubscribedAt: log.unsubscribedAt,
+      errorMessage: log.errorMessage,
+      businessName: (log.lead as any)?.businessName || log.toEmail,
+      ipAddresses: [...new Set(openEvents.map((e: any) => e.ipAddress).filter(Boolean))],
+      userAgents: [...new Set(openEvents.map((e: any) => e.userAgent).filter(Boolean))],
+    };
+  });
 
-  // Aggregate counts
   const counts = {
     sent: logs.filter((l) => l.sentAt).length,
     delivered: logs.filter((l) => l.deliveredAt).length,
