@@ -248,7 +248,7 @@ export async function getOutboundOverview(userId: string) {
       where: { campaign: { userId } },
       orderBy: { occurredAt: 'desc' },
       take: 12,
-      include: { campaign: true },
+      include: { campaign: true, emailLog: { select: { toEmail: true, subject: true, variant: true, lead: { select: { businessName: true } } } } },
     }),
     prisma.lead.findMany({
       where: { ownerId: userId },
@@ -2310,7 +2310,7 @@ export async function recordEmailEvent(
   payload: Record<string, unknown>
 ) {
   if (!emailLogId) return null;
-  const log = await prisma.emailLog.findUnique({ where: { id: emailLogId } });
+  const log = await prisma.emailLog.findUnique({ where: { id: emailLogId }, include: { lead: { select: { businessName: true } } } });
   if (!log) return null;
 
   const event = await prisma.emailEvent.create({
@@ -2338,6 +2338,9 @@ export async function recordEmailEvent(
       campaignId: log.campaignId,
       campaignLeadId: log.campaignLeadId,
       subject: log.subject,
+      toEmail: log.toEmail,
+      variant: log.variant,
+      businessName: (log.lead as any)?.businessName || null,
     },
   });
 
@@ -2979,12 +2982,17 @@ function formatReply(reply: any) {
 }
 
 function formatEvent(event: any) {
+  const log = event.emailLog;
   return {
     id: event.id,
     type: event.type,
     campaignName: event.campaign?.name,
     occurredAt: event.occurredAt,
     payload: event.payload,
+    toEmail: log?.toEmail || null,
+    subject: log?.subject || null,
+    variant: log?.variant || null,
+    businessName: log?.lead?.businessName || null,
   };
 }
 

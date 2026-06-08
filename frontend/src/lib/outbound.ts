@@ -266,6 +266,10 @@ export interface OutboundEventSummary {
   campaignName?: string;
   occurredAt: string;
   payload?: Record<string, unknown>;
+  toEmail?: string | null;
+  subject?: string | null;
+  variant?: string | null;
+  businessName?: string | null;
 }
 
 export interface OutboundLeadSummary {

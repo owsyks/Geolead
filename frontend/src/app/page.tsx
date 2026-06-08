@@ -177,8 +177,18 @@ export default function HomePage() {
       socket = new WebSocket(wsUrl);
       socket.onmessage = (message) => {
         try {
-          const event = JSON.parse(message.data) as OutboundEventSummary;
-          setEvents((current) => [{ ...event, id: `${event.type}-${Date.now()}` }, ...current].slice(0, 8));
+          const raw = JSON.parse(message.data);
+          const event: OutboundEventSummary = {
+            id: `${raw.type}-${Date.now()}`,
+            type: raw.type,
+            campaignName: raw.payload?.campaignName || undefined,
+            occurredAt: raw.createdAt || new Date().toISOString(),
+            toEmail: raw.payload?.toEmail || undefined,
+            subject: raw.payload?.subject || undefined,
+            variant: raw.payload?.variant || undefined,
+            businessName: raw.payload?.businessName || undefined,
+          };
+          setEvents((current) => [event, ...current].slice(0, 8));
         } catch {
           /* malformed message, ignore */
         }
@@ -322,14 +332,41 @@ export default function HomePage() {
               <EmptyState title="No recent events" body="Open, click, reply, bounce, and unsubscribe events will appear here." />
             ) : (
               events.map((event) => (
-                <div key={event.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{event.type}</span>
-                    <span className="text-[11px] text-slate-500">
-                      {event.occurredAt ? <ClientDate value={event.occurredAt} /> : "now"}
+                <div key={event.id} className={`rounded-lg border p-3 ${
+                  event.type === 'OPENED' ? 'border-emerald-500/20 bg-emerald-500/[0.03]' :
+                  event.type === 'CLICKED' ? 'border-teal-500/20 bg-teal-500/[0.03]' :
+                  event.type === 'REPLIED' ? 'border-teal-500/20 bg-teal-500/[0.03]' :
+                  event.type === 'BOUNCED' ? 'border-red-500/20 bg-red-500/[0.03]' :
+                  'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40'
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
+                        event.type === 'OPENED' ? 'bg-emerald-500/10 text-emerald-400' :
+                        event.type === 'CLICKED' ? 'bg-teal-500/10 text-teal-400' :
+                        event.type === 'REPLIED' ? 'bg-teal-500/10 text-teal-400' :
+                        event.type === 'BOUNCED' ? 'bg-red-500/10 text-red-400' :
+                        event.type === 'UNSUBSCRIBED' ? 'bg-amber-500/10 text-amber-400' :
+                        event.type === 'SENT' ? 'bg-slate-500/10 text-slate-400' :
+                        'bg-slate-500/10 text-slate-400'
+                      }`}>{event.type}</span>
+                      {event.variant && <span className="text-[9px] font-black text-teal-400 bg-teal-500/10 px-1 rounded">{event.variant}</span>}
+                      <span className="text-[11px] text-slate-400 truncate">{event.campaignName || 'Outbound'}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 shrink-0">
+                      {event.occurredAt ? <ClientDate value={event.occurredAt} /> : 'now'}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">{event.campaignName || "Outbound system"}</div>
+                  {(event.businessName || event.toEmail) && (
+                    <div className="mt-1 text-[11px] text-slate-500 truncate">
+                      {event.businessName && <span className="font-medium text-slate-600 dark:text-slate-400">{event.businessName}</span>}
+                      {event.businessName && event.toEmail && <span className="mx-1 text-slate-600">·</span>}
+                      {event.toEmail && <span className="font-mono">{event.toEmail}</span>}
+                    </div>
+                  )}
+                  {event.subject && (
+                    <div className="mt-0.5 text-[10px] text-slate-500 truncate">{event.subject}</div>
+                  )}
                 </div>
               ))
             )}
