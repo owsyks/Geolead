@@ -127,26 +127,27 @@ export function localVariants(input: VariantInput): GeneratedVariant[] {
   const domain = input.geoDomain;
   const niche = input.niche || 'your market';
   const geo = input.cityState || 'your area';
+  const domainShort = domain.replace(/\.[^.]+$/, '').slice(0, 25);
 
   const bodies: Record<VariantKey, { subject: string; lead: string }> = {
     A: {
-      subject: `${domain} — quick question`,
+      subject: `Quick question about ${niche} in ${geo}`,
       lead: `I own ${domain} and it lines up closely with ${niche} in ${geo}. It could work well as a focused landing page or a memorable redirect to your current site.`,
     },
     B: {
-      subject: `A thought on your ${niche} presence`,
+      subject: `How do clients find your business online?`,
       lead: `I was looking at ${niche} businesses in ${geo} and wondered how you currently capture local search interest. I own ${domain}, which maps directly to that audience.`,
     },
     C: {
-      subject: `Branding idea for your business`,
-      lead: `A clean, exact-match name like ${domain} tends to stick in people's minds and reinforces a local identity in ${geo}. I own it and thought of your business right away.`,
+      subject: `A simple brand idea for ${geo}`,
+      lead: `A clean, exact-match name like ${domain} tends to stick in people's minds and reinforces a local identity. I own it and thought of your business right away.`,
     },
     D: {
-      subject: `${domain} and local search`,
+      subject: `Boost your local search visibility`,
       lead: `Exact-match geo domains like ${domain} can help with search visibility and paid campaigns for ${niche} in ${geo}, without touching your existing brand.`,
     },
     E: {
-      subject: `Thought you may want ${domain}`,
+      subject: `${domainShort} — wanted you to have first look`,
       lead: `${domain} recently became available and it fits ${niche} in ${geo} unusually well. No pressure at all — I just wanted you to have first look before I list it more widely.`,
     },
   };
