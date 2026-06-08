@@ -27,6 +27,7 @@ import {
   generateAndStoreVariants,
   getCampaignVariants,
   getCampaignRecipients,
+  getCampaignEvents,
   deleteCampaign,
   recordClick,
   recordOpen,
@@ -163,6 +164,19 @@ router.get('/campaigns/:id/variants', wrap(async (req, res) => {
 // Per-recipient open detail: who opened, which variant, how many times.
 router.get('/campaigns/:id/recipients', wrap(async (req, res) => {
   res.json(await getCampaignRecipients(req.params.id, req.userId!));
+}));
+
+// Per-email event log: sent, delivered, opened, bounced, unsubscribed, complaints.
+router.get('/campaigns/:id/events', wrap(async (req, res) => {
+  const { filter, search, page, limit } = req.query;
+  res.json(await getCampaignEvents(
+    req.params.id,
+    req.userId!,
+    filter as string | undefined,
+    search as string | undefined,
+    parseInt(page as string) || 1,
+    parseInt(limit as string) || 20,
+  ));
 }));
 
 router.delete(

@@ -108,7 +108,7 @@ export default function CampaignsPage() {
   const [leadsScopedToDomain, setLeadsScopedToDomain] = useState(true);
   const [message, setMessage] = useState("");
   const [variantsFor, setVariantsFor] = useState<{ id: string; name: string } | null>(null);
-  const [opensFor, setOpensFor] = useState<{ id: string; name: string } | null>(null);
+  const [eventsFor, setEventsFor] = useState<{ id: string; name: string } | null>(null);
   const [quota, setQuota] = useState<SendQuota | null>(null);
   const [form, setForm] = useState({
     name: "Geo-domain buyer outreach",
@@ -827,12 +827,12 @@ export default function CampaignsPage() {
                               Variants
                             </button>
                             <button
-                              onClick={() => setOpensFor({ id: campaign.id, name: campaign.name })}
-                              title="Who opened"
-                              className="h-8 px-2 rounded border border-teal-400/25 bg-teal-500/10 text-xs font-bold text-teal-300 inline-flex items-center gap-1"
+                              onClick={() => setEventsFor({ id: campaign.id, name: campaign.name })}
+                              title="Email events"
+                              className="h-8 px-2 rounded border border-emerald-400/25 bg-emerald-500/10 text-xs font-bold text-emerald-300 inline-flex items-center gap-1"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              Opens
+                              Events
                             </button>
                             <button
                               onClick={() => void deleteCampaign(campaign.id, campaign.name)}
@@ -856,8 +856,8 @@ export default function CampaignsPage() {
       {variantsFor ? (
         <VariantsModal campaign={variantsFor} onClose={() => setVariantsFor(null)} />
       ) : null}
-      {opensFor ? (
-        <OpensModal campaign={opensFor} onClose={() => setOpensFor(null)} />
+      {eventsFor ? (
+        <EventsModal campaign={eventsFor} onClose={() => setEventsFor(null)} />
       ) : null}
     </OutboundShell>
   );
@@ -1034,106 +1034,145 @@ function Stat({ label, value, highlight }: { label: string; value: string | numb
   );
 }
 
-// ─── Opens (recipient detail) modal ──────────────────────────────────────────
+// ─── Events (all email events) modal ──────────────────────────────────────────
 
-interface Recipient {
-  emailLogId: string;
-  leadId?: string;
-  businessName: string;
+interface CampaignEvent {
+  id: string;
   toEmail: string;
   subject: string;
   variant: string | null;
   status: string;
   sentAt: string | null;
-  openCount: number;
-  firstOpenedAt: string | null;
-  lastOpenedAt: string | null;
-  clicked: boolean;
-  replied: boolean;
+  deliveredAt: string | null;
+  openedAt: string | null;
+  clickedAt: string | null;
+  bouncedAt: string | null;
+  unsubscribedAt: string | null;
+  errorMessage: string | null;
+  businessName: string;
 }
 
-function OpensModal({ campaign, onClose }: { campaign: { id: string; name: string }; onClose: () => void }) {
-  const [rows, setRows] = useState<Recipient[]>([]);
+function EventsModal({ campaign, onClose }: { campaign: { id: string; name: string } | null; onClose: () => void }) {
+  const [events, setEvents] = useState<CampaignEvent[]>([]);
+  const [counts, setCounts] = useState<Record<string,number>>({});
   const [loading, setLoading] = useState(true);
-  const [onlyOpened, setOnlyOpened] = useState(false);
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
+    if (!campaign) return;
     let active = true;
     (async () => {
       try {
-        const res = await fetchOutbound<Recipient[]>(`/api/outbound/campaigns/${campaign.id}/recipients`);
-        if (active) setRows(res);
+        const params = new URLSearchParams({ limit: '200' });
+        if (filter) params.set('filter', filter);
+        const res = await fetchOutbound<any>(`/api/outbound/campaigns/${campaign.id}/events?${params}`);
+        if (active) { setEvents(res.events); setCounts(res.counts); }
       } catch { /* ignore */ }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [campaign.id]);
+  }, [campaign?.id, filter]);
 
-  const visible = onlyOpened ? rows.filter((r) => r.openCount > 0) : rows;
-  const openedCount = rows.filter((r) => r.openCount > 0).length;
-  const sentCount = rows.filter((r) => r.sentAt).length;
+  if (!campaign) return null;
+
+  const filters = [
+    { label: 'All', value: '' },
+    { label: 'Opened', value: 'OPENED' },
+    { label: 'Bounced', value: 'BOUNCED' },
+    { label: 'Unsub', value: 'UNSUBSCRIBED' },
+    { label: 'Clicked', value: 'CLICKED' },
+  ];
 
   return (
-    <Modal title={`Opens · ${campaign.name}`} onClose={onClose}>
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="text-xs text-slate-500">
-          {sentCount} sent · <span className="text-emerald-400 font-bold">{openedCount} opened</span>
-          {sentCount > 0 ? ` (${Math.round((openedCount / sentCount) * 100)}%)` : ""}
-        </div>
-        <button
-          onClick={() => setOnlyOpened((v) => !v)}
-          className={`h-8 px-3 rounded-lg text-xs font-bold border ${onlyOpened ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300" : "border-slate-300 dark:border-slate-700 text-slate-500"}`}
-        >
-          Opened only
-        </button>
+    <Modal title={`Events · ${campaign.name}`} onClose={onClose}>
+      {/* Stats bar */}
+      <div className="grid grid-cols-6 gap-2 mb-4">
+        {[
+          { label: 'sent', key: 'sent', icon: '📨' },
+          { label: 'delivered', key: 'delivered', icon: '✅' },
+          { label: 'opened', key: 'opened', icon: '👁' },
+          { label: 'clicked', key: 'clicked', icon: '🖱' },
+          { label: 'bounced', key: 'bounced', icon: '❌' },
+          { label: 'unsub', key: 'unsubscribed', icon: '🔕' },
+        ].map(({ label, key, icon }) => (
+          <div key={key} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-2 text-center">
+            <div className="text-[10px] text-slate-500 uppercase">{icon} {label}</div>
+            <div className="text-sm font-black text-slate-800 dark:text-slate-200">{counts[key] ?? 0}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+        {filters.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border transition-colors ${
+              filter === f.value
+                ? 'border-teal-400/30 bg-teal-500/10 text-teal-400'
+                : 'border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (
-        <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
-      ) : visible.length === 0 ? (
-        <div className="py-10 text-center text-sm text-slate-500">No recipients{onlyOpened ? " have opened yet" : " yet — queue the campaign to start sending"}.</div>
+        <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading events…</div>
+      ) : events.length === 0 ? (
+        <div className="py-10 text-center text-sm text-slate-500">No email events yet — queue the campaign to start sending.</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[50vh] overflow-y-auto">
           <table className="min-w-full text-xs">
-            <thead className="text-[10px] uppercase tracking-wide text-slate-500">
+            <thead className="text-[10px] uppercase tracking-wide text-slate-500 sticky top-0 bg-white dark:bg-slate-950">
               <tr>
-                <th className="px-2 py-2 text-left">Recipient</th>
-                <th className="px-2 py-2 text-center">Variant</th>
-                <th className="px-2 py-2 text-center">Status</th>
+                <th className="px-2 py-2 text-left">Email</th>
+                <th className="px-2 py-2 text-left">Subject</th>
+                <th className="px-2 py-2 text-center">V</th>
+                <th className="px-2 py-2 text-center">Sent</th>
                 <th className="px-2 py-2 text-center">Opens</th>
-                <th className="px-2 py-2 text-left">Last opened</th>
-                <th className="px-2 py-2 text-center">Reply</th>
+                <th className="px-2 py-2 text-center">Clicked</th>
+                <th className="px-2 py-2 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {visible.map((r) => (
-                <tr key={r.emailLogId} className={r.openCount > 0 ? "bg-emerald-500/[0.03]" : ""}>
+              {events.map((e) => (
+                <tr key={e.id} className={e.openedAt ? 'bg-emerald-500/[0.02]' : e.bouncedAt ? 'bg-red-500/[0.02]' : ''}>
                   <td className="px-2 py-2">
-                    <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">{r.businessName}</div>
-                    <div className="text-[10px] text-slate-500 truncate max-w-[180px]">{r.toEmail}</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[160px]">{e.businessName}</div>
+                    <div className="text-[10px] text-slate-500 truncate max-w-[160px]">{e.toEmail}</div>
+                  </td>
+                  <td className="px-2 py-2 text-slate-500 truncate max-w-[160px]">{e.subject}</td>
+                  <td className="px-2 py-2 text-center">
+                    {e.variant ? <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black text-slate-700 dark:text-slate-300">{e.variant}</span> : '—'}
+                  </td>
+                  <td className="px-2 py-2 text-center text-[10px] text-slate-500">
+                    {e.sentAt ? new Date(e.sentAt).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    {r.variant ? (
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black text-slate-700 dark:text-slate-300">{r.variant}</span>
-                    ) : <span className="text-slate-500">—</span>}
+                    {e.openedAt ? (
+                      <span className="text-emerald-400 font-bold" title={new Date(e.openedAt).toLocaleString()}>👁</span>
+                    ) : e.bouncedAt ? <span className="text-red-400">—</span> : <span className="text-slate-500">—</span>}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    <span className="text-[10px] font-bold text-slate-500">{r.status}</span>
+                    {e.clickedAt ? <span className="text-teal-400 font-bold">🖱</span> : '—'}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    {r.openCount > 0 ? (
-                      <span className={`inline-flex items-center gap-1 font-black ${r.openCount >= 3 ? "text-emerald-400" : "text-emerald-500/80"}`} title={r.firstOpenedAt ? `First: ${new Date(r.firstOpenedAt).toLocaleString()}` : ""}>
-                        <Eye className="h-3 w-3" /> {r.openCount}×
-                      </span>
+                    {e.bouncedAt ? (
+                      <span className="text-[10px] font-bold text-red-400" title={e.errorMessage || ''}>Bounced</span>
+                    ) : e.unsubscribedAt ? (
+                      <span className="text-[10px] font-bold text-amber-400">Unsub</span>
+                    ) : e.openedAt ? (
+                      <span className="text-[10px] font-bold text-emerald-400">Opened</span>
+                    ) : e.deliveredAt ? (
+                      <span className="text-[10px] text-slate-500">Delivered</span>
+                    ) : e.sentAt ? (
+                      <span className="text-[10px] text-slate-500">Sent</span>
                     ) : (
-                      <span className="text-slate-500">—</span>
+                      <span className="text-[10px] text-slate-500">{e.status}</span>
                     )}
-                  </td>
-                  <td className="px-2 py-2 text-slate-500">
-                    {r.lastOpenedAt ? new Date(r.lastOpenedAt).toLocaleString() : "—"}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    {r.replied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 inline" /> : <span className="text-slate-600">—</span>}
                   </td>
                 </tr>
               ))}
