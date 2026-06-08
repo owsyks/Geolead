@@ -1039,17 +1039,33 @@ function Stat({ label, value, highlight }: { label: string; value: string | numb
 interface CampaignEvent {
   id: string;
   toEmail: string;
+  fromEmail?: string;
   subject: string;
   variant: string | null;
   status: string;
   sentAt: string | null;
   deliveredAt: string | null;
   openedAt: string | null;
+  firstOpenedAt?: string | null;
+  lastOpenedAt?: string | null;
+  openCount?: number;
   clickedAt: string | null;
+  clickCount?: number;
   bouncedAt: string | null;
   unsubscribedAt: string | null;
   errorMessage: string | null;
   businessName: string;
+  ipAddresses?: string[];
+  userAgents?: string[];
+}
+
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function fmtTime(d: string | null | undefined): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function EventsModal({ campaign, onClose }: { campaign: { id: string; name: string } | null; onClose: () => void }) {
@@ -1057,6 +1073,7 @@ function EventsModal({ campaign, onClose }: { campaign: { id: string; name: stri
   const [counts, setCounts] = useState<Record<string,number>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     if (!campaign) return;
@@ -1066,7 +1083,7 @@ function EventsModal({ campaign, onClose }: { campaign: { id: string; name: stri
         const params = new URLSearchParams({ limit: '200' });
         if (filter) params.set('filter', filter);
         const res = await fetchOutbound<any>(`/api/outbound/campaigns/${campaign.id}/events?${params}`);
-        if (active) { setEvents(res.events); setCounts(res.counts); }
+        if (active) { setEvents(res.events); setCounts(res.counts); setExpanded(null); }
       } catch { /* ignore */ }
       finally { if (active) setLoading(false); }
     })();
@@ -1084,103 +1101,134 @@ function EventsModal({ campaign, onClose }: { campaign: { id: string; name: stri
   ];
 
   return (
-    <Modal title={`Events · ${campaign.name}`} onClose={onClose}>
-      {/* Stats bar */}
-      <div className="grid grid-cols-6 gap-2 mb-4">
-        {[
-          { label: 'sent', key: 'sent', icon: '📨' },
-          { label: 'delivered', key: 'delivered', icon: '✅' },
-          { label: 'opened', key: 'opened', icon: '👁' },
-          { label: 'clicked', key: 'clicked', icon: '🖱' },
-          { label: 'bounced', key: 'bounced', icon: '❌' },
-          { label: 'unsub', key: 'unsubscribed', icon: '🔕' },
-        ].map(({ label, key, icon }) => (
-          <div key={key} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-2 text-center">
-            <div className="text-[10px] text-slate-500 uppercase">{icon} {label}</div>
-            <div className="text-sm font-black text-slate-800 dark:text-slate-200">{counts[key] ?? 0}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filter chips */}
-      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border transition-colors ${
-              filter === f.value
-                ? 'border-teal-400/30 bg-teal-500/10 text-teal-400'
-                : 'border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading events…</div>
-      ) : events.length === 0 ? (
-        <div className="py-10 text-center text-sm text-slate-500">No email events yet — queue the campaign to start sending.</div>
-      ) : (
-        <div className="overflow-x-auto max-h-[50vh] overflow-y-auto">
-          <table className="min-w-full text-xs">
-            <thead className="text-[10px] uppercase tracking-wide text-slate-500 sticky top-0 bg-white dark:bg-slate-950">
-              <tr>
-                <th className="px-2 py-2 text-left">Email</th>
-                <th className="px-2 py-2 text-left">Subject</th>
-                <th className="px-2 py-2 text-center">V</th>
-                <th className="px-2 py-2 text-center">Sent</th>
-                <th className="px-2 py-2 text-center">Opens</th>
-                <th className="px-2 py-2 text-center">Clicked</th>
-                <th className="px-2 py-2 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {events.map((e) => (
-                <tr key={e.id} className={e.openedAt ? 'bg-emerald-500/[0.02]' : e.bouncedAt ? 'bg-red-500/[0.02]' : ''}>
-                  <td className="px-2 py-2">
-                    <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[160px]">{e.businessName}</div>
-                    <div className="text-[10px] text-slate-500 truncate max-w-[160px]">{e.toEmail}</div>
-                  </td>
-                  <td className="px-2 py-2 text-slate-500 truncate max-w-[160px]">{e.subject}</td>
-                  <td className="px-2 py-2 text-center">
-                    {e.variant ? <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black text-slate-700 dark:text-slate-300">{e.variant}</span> : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-center text-[10px] text-slate-500">
-                    {e.sentAt ? new Date(e.sentAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    {e.openedAt ? (
-                      <span className="text-emerald-400 font-bold" title={new Date(e.openedAt).toLocaleString()}>👁</span>
-                    ) : e.bouncedAt ? <span className="text-red-400">—</span> : <span className="text-slate-500">—</span>}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    {e.clickedAt ? <span className="text-teal-400 font-bold">🖱</span> : '—'}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    {e.bouncedAt ? (
-                      <span className="text-[10px] font-bold text-red-400" title={e.errorMessage || ''}>Bounced</span>
-                    ) : e.unsubscribedAt ? (
-                      <span className="text-[10px] font-bold text-amber-400">Unsub</span>
-                    ) : e.openedAt ? (
-                      <span className="text-[10px] font-bold text-emerald-400">Opened</span>
-                    ) : e.deliveredAt ? (
-                      <span className="text-[10px] text-slate-500">Delivered</span>
-                    ) : e.sentAt ? (
-                      <span className="text-[10px] text-slate-500">Sent</span>
-                    ) : (
-                      <span className="text-[10px] text-slate-500">{e.status}</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-4xl mt-10 mb-10 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+          <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Events · {campaign.name}</h3>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center"><X className="w-4 h-4" /></button>
         </div>
-      )}
-    </Modal>
+        <div className="p-5">
+          {/* Stats bar */}
+          <div className="grid grid-cols-6 gap-2 mb-4">
+            {[
+              { label: 'sent', key: 'sent', icon: '📨' },
+              { label: 'delivered', key: 'delivered', icon: '✅' },
+              { label: 'opened', key: 'opened', icon: '👁' },
+              { label: 'clicked', key: 'clicked', icon: '🖱' },
+              { label: 'bounced', key: 'bounced', icon: '❌' },
+              { label: 'unsub', key: 'unsubscribed', icon: '🔕' },
+            ].map(({ label, key, icon }) => (
+              <div key={key} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-2 text-center">
+                <div className="text-[10px] text-slate-500 uppercase">{icon} {label}</div>
+                <div className="text-sm font-black text-slate-800 dark:text-slate-200">{counts[key] ?? 0}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+            {filters.map((f) => (
+              <button key={f.value} onClick={() => setFilter(f.value)}
+                className={`h-7 px-2.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                  filter === f.value ? 'border-teal-400/30 bg-teal-500/10 text-teal-400' : 'border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="py-10 flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading events…</div>
+          ) : events.length === 0 ? (
+            <div className="py-10 text-center text-sm text-slate-500">No email events yet.</div>
+          ) : (
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+              {events.map((e) => {
+                const isExpanded = expanded === e.id;
+                return (
+                  <div key={e.id}
+                    onClick={() => setExpanded(isExpanded ? null : e.id)}
+                    className={`rounded-xl border cursor-pointer transition-colors ${
+                      e.openedAt ? 'border-emerald-500/20 bg-emerald-500/[0.02]' :
+                      e.bouncedAt ? 'border-red-500/20 bg-red-500/[0.02]' :
+                      'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'
+                    } ${isExpanded ? 'ring-1 ring-teal-500/30' : 'hover:border-teal-500/20'}`}>
+                    {/* Compact row */}
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{e.businessName}</span>
+                          {e.variant && <span className="shrink-0 inline-flex h-4 w-4 items-center justify-center rounded bg-teal-500/20 text-[9px] font-black text-teal-400">{e.variant}</span>}
+                          {e.bouncedAt ? <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">Bounced</span> :
+                           e.unsubscribedAt ? <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Unsub</span> :
+                           e.clickedAt ? <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20">Clicked</span> :
+                           e.openedAt ? <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Opened</span> :
+                           e.deliveredAt ? <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-500/10 text-slate-400">Delivered</span> :
+                           <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-500/10 text-slate-400">Queued</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-slate-500 truncate">{e.toEmail}</span>
+                          <span className="text-[10px] text-slate-600">→</span>
+                          <span className="text-[11px] text-slate-500 truncate max-w-[300px]">{e.subject}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-3 text-[10px] text-slate-500">
+                        {e.openCount != null && e.openCount > 0 && (
+                          <span className="text-emerald-400 font-bold" title={`First: ${fmtDate(e.firstOpenedAt)}\nLast: ${fmtDate(e.lastOpenedAt)}`}>👁 {e.openCount}×</span>
+                        )}
+                        <span className={e.bouncedAt ? 'text-red-400' : ''}>{fmtDate(e.sentAt)}</span>
+                        <span className="text-slate-400">{isExpanded ? '▴' : '▾'}</span>
+                      </div>
+                    </div>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800/50 pt-3 space-y-2">
+                        <div className="grid grid-cols-4 gap-2">
+                          <div className="rounded-lg bg-slate-100 dark:bg-slate-900/60 p-2 text-center">
+                            <div className="text-[9px] uppercase text-slate-500 mb-0.5">📨 Sent</div>
+                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300">{fmtTime(e.sentAt)}</div>
+                            <div className="text-[9px] text-slate-500">{fmtDate(e.sentAt)}</div>
+                          </div>
+                          <div className={`rounded-lg p-2 text-center ${e.deliveredAt ? 'bg-emerald-500/10' : 'bg-slate-100 dark:bg-slate-900/60'}`}>
+                            <div className="text-[9px] uppercase text-slate-500 mb-0.5">✅ Delivered</div>
+                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300">{fmtTime(e.deliveredAt)}</div>
+                            <div className="text-[9px] text-slate-500">{e.deliveredAt ? '✓' : '—'}</div>
+                          </div>
+                          <div className={`rounded-lg p-2 text-center ${e.openedAt ? 'bg-emerald-500/10' : 'bg-slate-100 dark:bg-slate-900/60'}`}>
+                            <div className="text-[9px] uppercase text-slate-500 mb-0.5">👁 Opened {e.openCount && e.openCount > 1 ? `(${e.openCount}×)` : ''}</div>
+                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300">{fmtTime(e.firstOpenedAt || e.openedAt)}</div>
+                            {e.firstOpenedAt && e.lastOpenedAt && e.firstOpenedAt !== e.lastOpenedAt && (
+                              <div className="text-[9px] text-slate-500">last: {fmtTime(e.lastOpenedAt)}</div>
+                            )}
+                          </div>
+                          <div className={`rounded-lg p-2 text-center ${e.clickedAt ? 'bg-teal-500/10' : 'bg-slate-100 dark:bg-slate-900/60'}`}>
+                            <div className="text-[9px] uppercase text-slate-500 mb-0.5">🖱 Clicked {e.clickCount && e.clickCount > 1 ? `(${e.clickCount}×)` : ''}</div>
+                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300">{fmtTime(e.clickedAt)}</div>
+                            <div className="text-[9px] text-slate-500">{e.clickedAt ? '✓' : '—'}</div>
+                          </div>
+                        </div>
+                        {(e.bouncedAt || e.unsubscribedAt || e.errorMessage) && (
+                          <div className={`rounded-lg p-2.5 ${e.bouncedAt ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">{e.bouncedAt ? '❌ Bounce' : '🔕 Unsubscribed'}</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400">{fmtDate(e.bouncedAt || e.unsubscribedAt)}</div>
+                            {e.errorMessage && <div className="text-[10px] text-red-400 mt-1">{e.errorMessage}</div>}
+                          </div>
+                        )}
+                        {(e.ipAddresses && e.ipAddresses.length > 0) && (
+                          <div className="text-[10px] text-slate-500"><span className="font-bold">IPs:</span> {e.ipAddresses.join(', ')}</div>
+                        )}
+                        {e.fromEmail && (
+                          <div className="text-[10px] text-slate-500"><span className="font-bold">From:</span> {e.fromEmail}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
