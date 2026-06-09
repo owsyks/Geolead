@@ -878,6 +878,60 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   return { queued };
 }
 
+export async function forceSendCampaign(campaignId: string, userId?: string) {
+  if (userId) {
+    const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
+    if (!owned) throw new Error('Campaign not found.');
+  }
+
+  const logs = await prisma.emailLog.findMany({
+    where: { campaignId, status: 'QUEUED' },
+    include: { lead: true, campaignLead: { include: { lead: true } }, senderAccount: true, campaign: true },
+    orderBy: { scheduledAt: 'asc' },
+    take: 50,
+  });
+
+  let sent = 0;
+  for (const log of logs) {
+    if (log.campaign.status !== 'ACTIVE') continue;
+    if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail))) continue;
+    if (log.campaignLead?.status && ['REPLIED', 'INTERESTED', 'UNSUBSCRIBED', 'SUPPRESSED'].includes(log.campaignLead.status)) continue;
+
+    const sender = log.senderAccount || (await getRotatedSender());
+    if (!sender) continue;
+
+    // Assign variant if missing
+    if (!log.variant) {
+      const campaignMeta = (log.campaign?.metadata as any || {});
+      const vars = (campaignMeta.variants?.variants || []) as GeneratedVariant[];
+      const approved = vars.filter((v: GeneratedVariant) => v.approved);
+      if (approved.length > 0) {
+        const pick = approved[Math.floor(Math.random() * approved.length)];
+        await prisma.emailLog.update({ where: { id: log.id }, data: { variant: pick.key } });
+        log.variant = pick.key;
+      }
+    }
+
+    try {
+      const providerResponse = await sendWithRetry(log, sender);
+      await prisma.emailLog.update({
+        where: { id: log.id },
+        data: { status: providerResponse.dryRun ? 'SIMULATED' : 'SENT', sentAt: new Date(), providerMessageId: providerResponse.providerMessageId },
+      });
+      if (log.campaignLeadId) {
+        await prisma.campaignLead.update({ where: { id: log.campaignLeadId }, data: { status: 'SENT', stage: 'Contacted', lastSentAt: new Date() } });
+      }
+      await recordEmailEvent(log.id, 'SENT', { forceSent: true });
+      await queueNextSequenceStep(log.id);
+      sent++;
+    } catch (err: any) {
+      await prisma.emailLog.update({ where: { id: log.id }, data: { status: 'FAILED', errorMessage: err.message } });
+    }
+  }
+
+  return { forceSent: sent, total: logs.length };
+}
+
 export async function processOutboundQueueTick() {
   // Guard against overlapping runs: the recurring scheduler and the instant-send
   // path both call this. Two concurrent ticks would fetch the same QUEUED rows
