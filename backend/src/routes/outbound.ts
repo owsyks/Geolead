@@ -24,6 +24,7 @@ import {
   listTemplates,
   listAuditLogs,
   queueCampaignSends,
+  forceSendCampaign,
   generateAndStoreVariants,
   getCampaignVariants,
   getCampaignRecipients,
@@ -139,6 +140,17 @@ router.post(
   wrap(async (req, res) => {
     const result = await queueCampaignSends(req.params.id, asString(req.body.senderAccountId) || undefined, req.userId!);
     await writeAudit(getActor(req), 'Campaign', req.params.id, 'QUEUE_SENDS', result);
+    res.json(result);
+  })
+);
+
+// Force-send campaign: bypass daily limits and send windows, send all QUEUED now
+router.post(
+  '/campaigns/:id/force-send',
+  rateLimit({ key: 'campaign-force-send', limit: 10, windowMs: 60 * 60 * 1000 }),
+  requireRoles('ADMIN', 'MANAGER'),
+  wrap(async (req, res) => {
+    const result = await forceSendCampaign(req.params.id, req.userId!);
     res.json(result);
   })
 );

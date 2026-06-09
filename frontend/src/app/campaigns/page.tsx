@@ -17,6 +17,7 @@ import {
   Upload,
   X,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
 
@@ -333,6 +334,21 @@ export default function CampaignsPage() {
       await load();
     } catch {
       setMessage("Queue action failed because the backend is offline.");
+    }
+  };
+
+  const forceSendCampaign = async (campaignId: string, name: string) => {
+    if (!confirm(`Force-send "${name}"? This bypasses daily limits and send windows. Use sparingly.`)) return;
+    setMessage("");
+    try {
+      const result = await fetchOutbound<{ forceSent: number; total: number }>(`/api/outbound/campaigns/${campaignId}/force-send`, {
+        method: "POST",
+      });
+      setMessage(`Force-sent ${result.forceSent} of ${result.total} queued emails.`);
+      setLoading(true);
+      await load();
+    } catch {
+      setMessage("Force-send failed because the backend is offline.");
     }
   };
 
@@ -818,6 +834,16 @@ export default function CampaignsPage() {
                               <Send className="h-3.5 w-3.5" />
                               Queue
                             </button>
+                            {campaign.status === "ACTIVE" && (
+                              <button
+                                onClick={() => forceSendCampaign(campaign.id, campaign.name)}
+                                title="Force-send bypasses daily limits and send windows"
+                                className="h-8 px-2 rounded border border-red-400/25 bg-red-500/10 text-xs font-bold text-red-300 inline-flex items-center gap-1"
+                              >
+                                <Zap className="h-3.5 w-3.5" />
+                                Force
+                              </button>
+                            )}
                             <button
                               onClick={() => setVariantsFor({ id: campaign.id, name: campaign.name })}
                               title="AI variants"
