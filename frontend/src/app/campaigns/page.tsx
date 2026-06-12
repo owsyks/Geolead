@@ -765,14 +765,14 @@ export default function CampaignsPage() {
                   </div>
                   <div className="mt-3 space-y-3">
                     {columnCampaigns.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-800 p-4 text-xs text-slate-600">No campaigns</div>
+                      <div className="rounded-lg border border-dashed border-border p-4 text-xs text-text-muted">No campaigns</div>
                     ) : (
                       columnCampaigns.map((campaign) => (
-                        <article key={campaign.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 p-4">
+                        <article key={campaign.id} className="glass-card p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">{campaign.name}</h4>
-                              <p className="mt-1 text-xs text-slate-500 truncate">{campaign.geoDomain}</p>
+                              <h4 className="text-sm font-black text-text truncate">{campaign.name}</h4>
+                              <p className="mt-1 text-xs text-text-muted truncate">{campaign.geoDomain}</p>
                             </div>
                             <span className="text-xs font-black text-emerald-300">{campaign.engagementScore}</span>
                           </div>

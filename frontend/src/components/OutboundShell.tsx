@@ -80,14 +80,14 @@ export function OutboundShell({
   const unreadCount = useUnreadCount();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-bg text-text">
       <div className="flex min-h-screen">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/90 sticky top-0 h-screen overflow-y-auto">
-          <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-200 dark:border-slate-900">
+        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-surface/90 sticky top-0 h-screen overflow-y-auto glass">
+          <div className="h-16 px-5 flex items-center gap-3 border-b border-border">
             <img src="/logo.png" alt="GeoLead AI" className="h-9 w-9 rounded-lg object-cover" />
             <div>
-              <div className="text-sm font-black tracking-wide">GeoLead AI</div>
-              <div className="text-[11px] text-slate-500">Find. Connect. Close.</div>
+              <div className="text-sm font-black tracking-wide text-text">GeoLead AI</div>
+              <div className="text-[11px] text-text-muted">Find. Connect. Close.</div>
             </div>
           </div>
 
@@ -99,10 +99,10 @@ export function OutboundShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                    className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-colors ${
+                    className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-all duration-200 ${
                       active
-                        ? "bg-teal-500/15 text-teal-900 dark:text-teal-100 border border-teal-400/20"
-                        : "text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/70"
+                        ? "bg-brand-soft text-brand border border-brand/20"
+                        : "text-text-muted hover:text-text hover:bg-surface-2"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -112,35 +112,35 @@ export function OutboundShell({
             })}
           </nav>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-900 space-y-3">
+          <div className="p-4 border-t border-border space-y-3">
             <button
               onClick={toggle}
-              className="flex w-full items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+              className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-muted hover:text-text transition"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
-            <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+            <div className="rounded-lg border border-success/20 bg-success/10 p-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-success">
                 <ShieldCheck className="h-4 w-4" />
                 Compliance Guardrails
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+              <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
                 Opt-outs, sender limits, suppression checks, and truthful cold-email copy are enforced by default.
               </p>
             </div>
             {user ? (
-              <div className="rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
-                <Link href="/profile" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white">
-                  <UserCircle className="h-5 w-5 text-slate-400" />
+              <div className="rounded-lg border border-border bg-surface-2 p-3">
+                <Link href="/profile" className="flex items-center gap-2 text-sm text-text hover:text-brand">
+                  <UserCircle className="h-5 w-5 text-text-muted" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{user.name}</span>
-                    <span className="block truncate text-[11px] text-slate-500">{user.email}</span>
+                    <span className="block truncate text-[11px] text-text-muted">{user.email}</span>
                   </span>
                 </Link>
                 <button
                   onClick={() => void logout()}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-slate-950/60 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-slate-700"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-muted transition hover:text-text hover:border-border-strong"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Sign out
@@ -151,26 +151,26 @@ export function OutboundShell({
         </aside>
 
         <div className="flex-1 min-w-0">
-          <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/90 backdrop-blur">
+          <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur glass">
             <div className="px-4 sm:px-6 lg:px-8 h-auto min-h-16 py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center gap-2 text-xs text-text-muted">
                   <Mail className="h-3.5 w-3.5" />
                   AI outbound email automation
                 </div>
-                <h1 className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50">{title}</h1>
-                <p className="mt-1 text-sm text-slate-400 max-w-3xl">{subtitle}</p>
+                <h1 className="mt-1 text-xl sm:text-2xl font-black text-text">{title}</h1>
+                <p className="mt-1 text-sm text-text-muted max-w-3xl">{subtitle}</p>
               </div>
               <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">
                 {actions}
                 <Link
                   href="/watchlist?tab=notifications"
                   title="Watchlist alerts"
-                  className="relative h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                  className="relative h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2 flex items-center justify-center text-text-muted hover:text-text transition"
                 >
                   <Bell className="h-4 w-4" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-danger text-white text-[10px] font-black flex items-center justify-center">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -178,7 +178,7 @@ export function OutboundShell({
                 <button
                   onClick={toggle}
                   title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                  className="h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/60 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+                  className="h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2 flex items-center justify-center text-text-muted hover:text-text transition"
                 >
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
@@ -193,10 +193,10 @@ export function OutboundShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border ${
+                    className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border transition-all duration-200 ${
                       active
-                        ? "bg-teal-500/15 text-teal-900 dark:text-teal-100 border-teal-400/20"
-                        : "bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-slate-300 dark:border-slate-800"
+                        ? "bg-brand-soft text-brand border-brand/20"
+                        : "bg-surface-2 text-text-muted border-border"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -224,10 +224,10 @@ export function MetricCard({
   helper?: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/45 p-4">
-      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-50">{value}</div>
-      {helper ? <div className="mt-1 text-xs text-slate-500">{helper}</div> : null}
+    <div className="glass-card rounded-lg p-4">
+      <div className="metric-card-label">{label}</div>
+      <div className="metric-card-value text-text">{value}</div>
+      {helper ? <div className="text-xs text-text-muted mt-1">{helper}</div> : null}
     </div>
   );
 }
@@ -236,15 +236,15 @@ export function StatusBadge({ value }: { value: string }) {
   const normalized = value.toLowerCase();
   const tone =
     normalized.includes("active") || normalized.includes("verified") || normalized.includes("sent")
-      ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      ? "status-badge-success"
       : normalized.includes("pause") || normalized.includes("draft") || normalized.includes("pending")
-        ? "border-amber-400/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        ? "status-badge-copper"
         : normalized.includes("bounce") || normalized.includes("complaint") || normalized.includes("failed")
-          ? "border-red-400/25 bg-red-500/10 text-red-700 dark:text-red-300"
-          : "border-slate-400 dark:border-slate-700 bg-slate-200 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300";
+          ? "status-badge-danger"
+          : "status-badge-muted";
 
   return (
-    <span className={`inline-flex h-6 items-center rounded-full border px-2 text-[11px] font-bold ${tone}`}>
+    <span className={`status-badge ${tone}`}>
       {value}
     </span>
   );
@@ -252,9 +252,9 @@ export function StatusBadge({ value }: { value: string }) {
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/35 p-8 text-center">
-      <div className="text-sm font-bold text-slate-700 dark:text-slate-300">{title}</div>
-      <p className="mt-1 text-sm text-slate-500">{body}</p>
+    <div className="glass-card rounded-lg p-8 text-center">
+      <div className="text-sm font-bold text-text">{title}</div>
+      <p className="mt-1 text-sm text-text-muted">{body}</p>
     </div>
   );
 }

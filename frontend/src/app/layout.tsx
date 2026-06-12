@@ -85,9 +85,13 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="min-h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased flex flex-col font-sans"
+        className="min-h-full bg-bg text-text antialiased flex flex-col font-sans"
         suppressHydrationWarning
       >
+        <div className="aurora-bg">
+          <div className="aurora-blob aurora-blob-1" />
+          <div className="aurora-blob aurora-blob-2" />
+        </div>
         <AuthProvider>
           <ThemeProvider>
             <DomainContextProvider>{children}</DomainContextProvider>
