@@ -19,7 +19,9 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 
 type SendQuota = {
   senderCount: number;
@@ -751,7 +753,7 @@ export default function CampaignsPage() {
                 Queue-based sending uses sender limits, opt-out checks, smart delays, and reply stops.
               </p>
             </div>
-            <StatusBadge value={loading ? "Loading" : "Ready"} />
+            <StatusBadge status={loading ? "Loading" : "Ready"} />
           </div>
 
           <div className="mt-5 grid grid-cols-1 xl:grid-cols-4 gap-4">

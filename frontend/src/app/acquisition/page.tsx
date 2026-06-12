@@ -23,7 +23,9 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { OutboundShell } from "@/components/OutboundShell";
+import { OutboundShell } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { fetchOutbound, type AcquisitionResult, type AcquisitionTier, type BulkScanResult, type ChatMessage } from "@/lib/outbound";
 
 // ─── Tier config ──────────────────────────────────────────────────────────────

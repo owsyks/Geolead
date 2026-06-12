@@ -12,7 +12,6 @@ import {
   Kanban,
   Layers3,
   LayoutDashboard,
-  LogOut,
   Mail,
   Moon,
   Search,
@@ -22,7 +21,6 @@ import {
   ShoppingCart,
   Star,
   Sun,
-  UserCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -38,7 +36,7 @@ const navItems = [
   { href: "/campaigns", label: "Campaigns", icon: LayoutDashboard },
   { href: "/quick-send", label: "Quick Send", icon: Mail },
   { href: "/ai-email-generator", label: "AI Generator", icon: Bot },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/inbox", label: "Inbox", icon: Inbox, dot: true },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/sender-accounts", label: "Senders", icon: Send },
   { href: "/templates", label: "Templates", icon: Layers3 },
@@ -75,184 +73,131 @@ export function OutboundShell({
   actions?: ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const unreadCount = useUnreadCount();
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <div className="flex min-h-screen">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-border bg-surface/90 sticky top-0 h-screen overflow-y-auto glass">
-          <div className="h-16 px-5 flex items-center gap-3 border-b border-border">
-            <img src="/logo.png" alt="GeoLead AI" className="h-9 w-9 rounded-lg object-cover" />
-            <div>
-              <div className="text-sm font-black tracking-wide text-text">GeoLead AI</div>
-              <div className="text-[11px] text-text-muted">Find. Connect. Close.</div>
+    <div className="flex min-h-screen bg-bg text-text">
+      {/* Sidebar — EXACT Figma layout */}
+      <aside className="w-[288px] flex-shrink-0 h-screen glass border-r border-border flex flex-col fixed left-0 top-0 z-20">
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">
+            GL
+          </div>
+          <div>
+            <div className="font-black text-text leading-tight">GeoLead AI</div>
+            <div className="text-[11px] text-text-muted leading-tight uppercase tracking-wider">
+              Find. Connect. Close.
             </div>
           </div>
+        </div>
 
-          <nav className="flex-1 p-3 space-y-1">
-            {navItems.map((item) => {
-              const active = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                    className={`h-10 px-3 rounded-lg flex items-center gap-3 text-sm transition-all duration-200 ${
-                      active
-                        ? "bg-brand-soft text-brand border border-brand/20"
-                        : "text-text-muted hover:text-text hover:bg-surface-2"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+          {navItems.map((item: any) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-colors relative ${
+                  isActive
+                    ? "bg-brand-soft text-brand border border-brand/20"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text"
+                }`}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-brand rounded-r-full" />
+                )}
+                <item.icon className="w-4 h-4" />
+                {item.label}
+                {item.dot && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand ml-auto shadow-[0_0_8px_var(--brand)] animate-pulse" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-          <div className="p-4 border-t border-border space-y-3">
+        <div className="p-4 border-t border-border">
+          <div className="bg-success/10 border border-success/20 rounded-lg p-3 flex gap-2 items-start text-success">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="text-[12px] leading-relaxed font-medium">
+              Opt-outs, limits, & suppression enforced by default.
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content area */}
+      <main className="flex-1 ml-[288px] flex flex-col min-h-screen">
+        {/* Header — EXACT Figma layout */}
+        <header className="h-[72px] sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-8">
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1">✉ AI outbound email automation</div>
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-[22px] font-black tracking-[-0.02em] text-text">{title}</h1>
+              {subtitle && <span className="text-sm text-text-muted">{subtitle}</span>}
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {actions}
+            <Link
+              href="/watchlist?tab=notifications"
+              className="relative w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted hover:text-text transition-colors"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full border border-bg" />
+              )}
+            </Link>
             <button
               onClick={toggle}
-              className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-muted hover:text-text transition"
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted hover:text-text transition-colors"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              {theme === "dark" ? "Light mode" : "Dark mode"}
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <div className="rounded-lg border border-success/20 bg-success/10 p-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-success">
-                <ShieldCheck className="h-4 w-4" />
-                Compliance Guardrails
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
-                Opt-outs, sender limits, suppression checks, and truthful cold-email copy are enforced by default.
-              </p>
-            </div>
-            {user ? (
-              <div className="rounded-lg border border-border bg-surface-2 p-3">
-                <Link href="/profile" className="flex items-center gap-2 text-sm text-text hover:text-brand">
-                  <UserCircle className="h-5 w-5 text-text-muted" />
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{user.name}</span>
-                    <span className="block truncate text-[11px] text-text-muted">{user.email}</span>
-                  </span>
-                </Link>
-                <button
-                  onClick={() => void logout()}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text-muted transition hover:text-text hover:border-border-strong"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  Sign out
-                </button>
-              </div>
-            ) : null}
           </div>
-        </aside>
+        </header>
 
-        <div className="flex-1 min-w-0">
-          <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur glass">
-            <div className="px-4 sm:px-6 lg:px-8 h-auto min-h-16 py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-xs text-text-muted">
-                  <Mail className="h-3.5 w-3.5" />
-                  AI outbound email automation
-                </div>
-                <h1 className="mt-1 text-xl sm:text-2xl font-black text-text">{title}</h1>
-                <p className="mt-1 text-sm text-text-muted max-w-3xl">{subtitle}</p>
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto lg:overflow-visible">
-                {actions}
-                <Link
-                  href="/watchlist?tab=notifications"
-                  title="Watchlist alerts"
-                  className="relative h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2 flex items-center justify-center text-text-muted hover:text-text transition"
-                >
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-danger text-white text-[10px] font-black flex items-center justify-center">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </Link>
-                <button
-                  onClick={toggle}
-                  title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                  className="h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2 flex items-center justify-center text-text-muted hover:text-text transition"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:hidden px-4 pb-3 flex gap-2 overflow-x-auto">
-              {navItems.map((item) => {
-                const active = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border transition-all duration-200 ${
-                      active
-                        ? "bg-brand-soft text-brand border-brand/20"
-                        : "bg-surface-2 text-text-muted border-border"
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </header>
-
-          <main className="px-4 sm:px-6 lg:px-8 py-6">{children}</main>
+        {/* Mobile nav bar */}
+        <div className="lg:hidden px-4 pb-3 flex gap-2 overflow-x-auto pt-2">
+          {navItems.map((item: any) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`h-9 shrink-0 px-3 rounded-lg flex items-center gap-2 text-xs border ${
+                  isActive ? "bg-brand-soft text-brand border-brand/20" : "bg-surface-2 text-text-muted border-border"
+                }`}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
-      </div>
+
+        <div className="px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+      </main>
     </div>
   );
 }
 
-export function MetricCard({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string | number;
-  helper?: string;
-}) {
+// ─── Simplified MetricCard for backward compat ────────────────────────────────
+export function MetricCard({ label, value, helper }: { label: string; value: string | number; helper?: string }) {
   return (
-    <div className="glass-card rounded-lg p-4">
-      <div className="metric-card-label">{label}</div>
-      <div className="metric-card-value text-text">{value}</div>
-      {helper ? <div className="text-xs text-text-muted mt-1">{helper}</div> : null}
+    <div className="glass rounded-[8px] border border-border shadow-[0_1px_0_rgba(255,255,255,.03)_inset,0_8px_32px_rgba(0,0,0,.37)] p-5 flex flex-col gap-2 transition-all duration-200 hover:-translate-y-[2px] hover:border-brand">
+      <div className="text-[11px] uppercase tracking-[0.12em] text-text-muted font-bold">{label}</div>
+      <div className="text-[28px] font-[800] font-mono tabular-nums leading-none">{value}</div>
+      {helper ? <div className="text-xs text-text-muted">{helper}</div> : null}
     </div>
-  );
-}
-
-export function StatusBadge({ value }: { value: string }) {
-  const normalized = value.toLowerCase();
-  const tone =
-    normalized.includes("active") || normalized.includes("verified") || normalized.includes("sent")
-      ? "status-badge-success"
-      : normalized.includes("pause") || normalized.includes("draft") || normalized.includes("pending")
-        ? "status-badge-copper"
-        : normalized.includes("bounce") || normalized.includes("complaint") || normalized.includes("failed")
-          ? "status-badge-danger"
-          : "status-badge-muted";
-
-  return (
-    <span className={`status-badge ${tone}`}>
-      {value}
-    </span>
   );
 }
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="glass-card rounded-lg p-8 text-center">
+    <div className="glass rounded-[8px] border border-border p-8 text-center">
       <div className="text-sm font-bold text-text">{title}</div>
       <p className="mt-1 text-sm text-text-muted">{body}</p>
     </div>

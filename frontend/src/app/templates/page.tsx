@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Layers3, RefreshCcw, Save } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { fetchOutbound, type OutboundTemplate } from "@/lib/outbound";
 
 const demoTemplates: OutboundTemplate[] = [
@@ -205,7 +207,7 @@ export default function TemplatesPage() {
                       <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{template.name}</h3>
                       <p className="mt-1 text-xs text-slate-500">{template.subject}</p>
                     </div>
-                    <StatusBadge value={template.type} />
+                    <StatusBadge status={template.type} />
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-400 line-clamp-4 whitespace-pre-wrap">{template.body}</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs">

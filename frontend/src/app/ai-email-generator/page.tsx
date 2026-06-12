@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Bot, Languages, Mail, Save, Sparkles } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import { fetchOutbound, type GeneratedOutboundEmail } from "@/lib/outbound";

@@ -21,7 +21,9 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { EmptyState, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import {
   fetchOutbound,
   type AiReco,

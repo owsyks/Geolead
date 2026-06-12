@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { PlugZap, RefreshCcw, ShieldCheck } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { ClientDate } from "@/lib/ClientDate";
 import { fetchOutbound, type OutboundSenderSummary, type SenderVerificationResult } from "@/lib/outbound";
 
@@ -240,7 +242,7 @@ export default function SenderAccountsPage() {
                       <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{sender.label}</h3>
                       <p className="mt-1 text-xs text-slate-500">{sender.fromEmail}</p>
                     </div>
-                    <StatusBadge value={sender.status} />
+                    <StatusBadge status={sender.status} />
                   </div>
                   <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">

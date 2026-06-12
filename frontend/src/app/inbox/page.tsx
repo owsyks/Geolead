@@ -17,7 +17,9 @@ import {
   WifiOff,
   XCircle,
 } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { ClientDate } from "@/lib/ClientDate";
 import { fetchOutbound, OUTBOUND_API_BASE, type InboxReply, type InboxResponse, type SyncResult } from "@/lib/outbound";
 

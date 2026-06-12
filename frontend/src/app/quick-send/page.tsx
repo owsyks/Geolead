@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
-import { OutboundShell } from "@/components/OutboundShell";
+import { OutboundShell } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { OUTBOUND_API_BASE, fetchOutbound, authFetch, type OutboundSenderSummary } from "@/lib/outbound";
 
 interface SendResult {

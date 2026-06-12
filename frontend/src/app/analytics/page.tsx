@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, RefreshCcw, TrendingUp } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { ClientDate } from "@/lib/ClientDate";
 import { fetchOutbound, type OutboundAnalytics } from "@/lib/outbound";
 
@@ -183,7 +185,7 @@ export default function AnalyticsPage() {
               <h2 className="text-base font-black text-slate-900 dark:text-slate-100">AI Insights</h2>
               <p className="mt-1 text-sm text-slate-500">{loading ? "Analyzing..." : "Recommendations from engagement and deliverability data."}</p>
             </div>
-            <StatusBadge value="Active" />
+            <StatusBadge status="Active" />
           </div>
           <div className="mt-4 space-y-3">
             {analytics.insights.map((insight) => (
@@ -275,7 +277,7 @@ export default function AnalyticsPage() {
               <h2 className="text-base font-black text-slate-900 dark:text-slate-100">AI Domain Recommendations</h2>
               <p className="mt-1 text-sm text-slate-500">Ranked by lead fit, engagement, and active campaign context.</p>
             </div>
-            <StatusBadge value={`${analytics.domainRecommendations.length} picks`} />
+            <StatusBadge status={`${analytics.domainRecommendations.length} picks`} />
           </div>
 
           <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">

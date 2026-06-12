@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, RefreshCcw } from "lucide-react";
-import { OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { useDomainContext } from "@/lib/domainContext";
 import {
   DOMAIN_STATUSES,

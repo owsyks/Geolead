@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Bot, Inbox, RefreshCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { ClientDate } from "@/lib/ClientDate";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import {
   fetchOutbound,
   OUTBOUND_API_BASE,
@@ -273,7 +275,7 @@ export default function HomePage() {
                     {hottestCampaign.geoDomain} for {hottestCampaign.niche}
                   </div>
                 </div>
-                <StatusBadge value={hottestCampaign.status} />
+                <StatusBadge status={hottestCampaign.status} />
               </div>
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div>
@@ -325,7 +327,7 @@ export default function HomePage() {
               <h2 className="text-base font-black text-text">Live Activity</h2>
               <p className="mt-1 text-sm text-text-muted">{loading ? "Connecting..." : "WebSocket feed plus latest events"}</p>
             </div>
-            <StatusBadge value={offline ? "Demo" : "Live"} />
+            <StatusBadge status={offline ? "Demo" : "Live"} />
           </div>
           <div className="mt-4 space-y-3">
             {events.length === 0 ? (
@@ -411,7 +413,7 @@ export default function HomePage() {
                     <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{sender.label}</div>
                     <div className="text-xs text-slate-500">{sender.fromEmail}</div>
                   </div>
-                  <StatusBadge value={sender.status} />
+                  <StatusBadge status={sender.status} />
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                   <div className="h-full rounded-full bg-emerald-400" style={{ width: `${sender.deliverabilityScore}%` }} />

@@ -16,7 +16,9 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import {
@@ -405,7 +407,7 @@ export default function PortfolioPage() {
                       ) : null}
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <StatusBadge value={domain.status} />
+                      <StatusBadge status={domain.status} />
                     </td>
                     <td className="px-4 py-3 align-top text-right">
                       <div className="text-slate-800 dark:text-slate-200 font-bold">

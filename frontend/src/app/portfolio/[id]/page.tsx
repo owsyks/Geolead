@@ -24,7 +24,9 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell, StatusBadge } from "@/components/OutboundShell";
+import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { useDomainContext } from "@/lib/domainContext";
 import {
   DOMAIN_STATUSES,
@@ -248,7 +250,7 @@ function OverviewTab({
       <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1.4fr] gap-5">
         <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/35 p-5">
           <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Pipeline status</h2>
-          <div className="mt-2"><StatusBadge value={domain.status} /></div>
+          <div className="mt-2"><StatusBadge status={domain.status} /></div>
           <div className="mt-4 flex flex-wrap gap-2">
             {DOMAIN_STATUSES.map((status) => (
               <button
@@ -357,7 +359,7 @@ function OverviewTab({
               {domain.campaigns.map((c) => (
                 <tr key={c.id}>
                   <td className="px-2 py-2 text-slate-800 dark:text-slate-200">{c.name}</td>
-                  <td className="px-2 py-2"><StatusBadge value={c.status} /></td>
+                  <td className="px-2 py-2"><StatusBadge status={c.status} /></td>
                   <td className="px-2 py-2 text-right">{c._count.campaignLeads}</td>
                   <td className="px-2 py-2 text-right">{c._count.emailLogs}</td>
                   <td className="px-2 py-2 text-right">{c._count.replies}</td>
@@ -695,7 +697,7 @@ function OfferRow({ offer, domainId, onChange }: { offer: DomainOffer; domainId:
           {offer.notes ? <p className="mt-1 text-xs text-slate-500">{offer.notes}</p> : null}
         </div>
         <div className="text-right shrink-0">
-          <StatusBadge value={offer.status} />
+          <StatusBadge status={offer.status} />
           <button onClick={async () => {
             if (!confirm("Delete this offer?")) return;
             try { await fetchOutbound(`/api/domains/${domainId}/offers/${offer.id}`, { method: "DELETE" }); onChange(); } catch { }

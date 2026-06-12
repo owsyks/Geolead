@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { OutboundShell } from "@/components/OutboundShell";
+import { OutboundShell } from "@/components/OutboundShell"
+import { StatusBadge } from "@/components/ui"
+;
 import { useAuth } from "@/lib/auth";
 import { fetchOutbound, OUTBOUND_API_BASE, getAccessToken } from "@/lib/outbound";
 
