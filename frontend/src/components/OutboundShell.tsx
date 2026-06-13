@@ -13,6 +13,7 @@ import {
   Layers3,
   LayoutDashboard,
   Mail,
+  Menu,
   Moon,
   Search,
   Send,
@@ -82,11 +83,17 @@ export function OutboundShell({
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const unreadCount = useUnreadCount();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-bg text-text">
-      {/* Sidebar — EXACT Figma layout */}
-      <aside className="w-[288px] flex-shrink-0 h-screen glass border-r border-border flex flex-col fixed left-0 top-0 z-20">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`w-[288px] flex-shrink-0 h-screen glass border-r border-border flex flex-col fixed left-0 top-0 z-40 transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:flex`}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">
             GL
@@ -106,6 +113,7 @@ export function OutboundShell({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-colors relative ${
                   isActive
                     ? "bg-brand-soft text-brand border border-brand/20"
@@ -136,14 +144,20 @@ export function OutboundShell({
       </aside>
 
       {/* Main content area */}
-      <main className={cn("flex-1 ml-[288px] flex flex-col", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
-        {/* Header — EXACT Figma layout */}
-        <header className="h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-8">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1">{eyebrow}</div>
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-[22px] font-black tracking-[-0.02em] text-text">{title}</h1>
-              {subtitle && <span className="text-sm text-text-muted">{subtitle}</span>}
+      <main className={cn("flex-1 ml-0 lg:ml-[288px] flex flex-col", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
+        {/* Header */}
+        <header className="h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1 truncate">{eyebrow}</div>
+            <div className="flex items-baseline gap-2 sm:gap-3">
+              <h1 className="text-lg sm:text-[22px] font-black tracking-[-0.02em] text-text truncate">{title}</h1>
+              {subtitle && <span className="text-xs sm:text-sm text-text-muted hidden sm:inline">{subtitle}</span>}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -196,7 +210,7 @@ export function OutboundShell({
         {fullBleed ? (
           <div className={cn("flex-1 min-h-0 overflow-hidden", contentClassName)}>{children}</div>
         ) : (
-          <div className={cn("px-4 sm:px-6 lg:px-8 py-6", contentClassName)}>{children}</div>
+          <div className={cn("px-4 sm:px-6 lg:px-8 py-4 sm:py-6", contentClassName)}>{children}</div>
         )}
       </main>
     </div>
@@ -208,7 +222,7 @@ export function MetricCard({ label, value, helper }: { label: string; value: str
   return (
     <div className="glass rounded-[8px] border border-border shadow-[0_1px_0_rgba(255,255,255,.03)_inset,0_8px_32px_rgba(0,0,0,.37)] p-5 flex flex-col gap-2 transition-all duration-200 hover:-translate-y-[2px] hover:border-brand">
       <div className="text-[11px] uppercase tracking-[0.12em] text-text-muted font-bold">{label}</div>
-      <div className="text-[28px] font-[800] font-mono tabular-nums leading-none">{value}</div>
+      <div className="text-xl sm:text-[28px] font-[800] font-mono tabular-nums leading-none">{value}</div>
       {helper ? <div className="text-xs text-text-muted">{helper}</div> : null}
     </div>
   );

@@ -177,13 +177,13 @@ export function PillButton({
 export function KanbanColumn({
   title,
   count,
-  width = 320,
+  width = 280,
   className,
   children,
   ...props
 }: { title: string; count?: number; width?: number } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("shrink-0 flex flex-col gap-4", className)} style={{ width }} {...props}>
+    <div className={cn("shrink-0 flex flex-col gap-4", className)} style={{ minWidth: width, width }} {...props}>
       <div className="flex justify-between items-center px-1">
         <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{title}</div>
         {count != null && (

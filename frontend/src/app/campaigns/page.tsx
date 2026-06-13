@@ -461,10 +461,10 @@ export default function CampaignsPage() {
           <div className="shrink-0 mx-6 mt-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-muted">{message}</div>
         ) : null}
 
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Create form */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+          {/* Create form — full width on mobile, 400px on desktop */}
           <form
-            className="w-[400px] shrink-0 border-r border-border bg-surface-2/30 overflow-y-auto p-6 space-y-5"
+            className="w-full lg:w-[400px] lg:min-w-[400px] shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-surface-2/30 overflow-y-auto p-4 lg:p-6 space-y-5"
             onSubmit={(event) => { event.preventDefault(); void createCampaign(); }}
           >
             <div className="flex items-center gap-2">

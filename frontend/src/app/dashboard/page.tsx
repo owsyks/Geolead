@@ -1209,7 +1209,7 @@ export default function DashboardPage() {
     >
       <div className="flex h-full">
         {/* Left rail: search + history */}
-        <aside className="w-80 shrink-0 border-r border-border bg-surface-2/30 hidden md:flex flex-col overflow-y-auto">
+        <aside className="w-64 lg:w-80 shrink-0 border-r border-border bg-surface-2/30 hidden lg:flex flex-col overflow-y-auto">
           <div className="p-5 border-b border-border">
             <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-4">New Lead Generation</h3>
             <div className="mb-4">
@@ -1349,7 +1349,7 @@ export default function DashboardPage() {
                   <div className="w-full bg-bg rounded-full h-2.5 overflow-hidden border border-border">
                     <div className="bg-gradient-to-r from-brand to-success h-2.5 rounded-full transition-all duration-300" style={{ width: `${selectedTask.progress}%` }} />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 mt-6 text-center text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 text-center text-xs">
                     <div className="p-3 bg-surface-2 rounded-xl border border-border">
                       <span className="text-text-muted block mb-1">Status</span>
                       <span className="font-bold text-brand capitalize">{selectedTask.status.toLowerCase()}</span>
@@ -1681,7 +1681,7 @@ export default function DashboardPage() {
                 {/* Pagination */}
                 {!loading && totalPages > 1 && (
                   <div className="p-4 bg-surface-2/30 border-t border-border flex justify-between items-center text-xs text-text-muted">
-                    <span>Page {page} of {totalPages} ({totalLeadsCount} total leads)</span>
+                    <span className="truncate mr-2">Page {page} of {totalPages} ({totalLeadsCount} total leads)</span>
                     <div className="flex items-center gap-1.5">
                       <button disabled={page === 1} onClick={() => setPage(prev => Math.max(1, prev - 1))} className="p-1.5 bg-surface border border-border hover:bg-surface-2 disabled:opacity-30 rounded-lg text-text-muted"><ChevronLeft className="w-4 h-4" /></button>
                       <button disabled={page === totalPages} onClick={() => setPage(prev => Math.min(totalPages, prev + 1))} className="p-1.5 bg-surface border border-border hover:bg-surface-2 disabled:opacity-30 rounded-lg text-text-muted"><ChevronRight className="w-4 h-4" /></button>
@@ -1723,8 +1723,8 @@ export default function DashboardPage() {
       {/* Campaign Creation Modal */}
       {showCampaignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowCampaignModal(false)}>
-          <div className="glass border border-border rounded-2xl w-full max-w-md shadow-[0_24px_64px_rgba(0,0,0,.5)]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-border">
+          <div className="glass border border-border rounded-2xl w-full max-w-md mx-2 shadow-[0_24px_64px_rgba(0,0,0,.5)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
               <div>
                 <h3 className="text-sm font-bold text-text flex items-center gap-2"><Zap className="w-4 h-4 text-danger" /> Create Campaign</h3>
                 <p className="text-[11px] text-text-muted mt-0.5">{selectedLeadIds.size} leads selected</p>

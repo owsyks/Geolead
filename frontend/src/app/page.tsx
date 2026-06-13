@@ -413,7 +413,7 @@ export default function HomePage() {
 
         {/* Right column */}
         <div className="space-y-6">
-          <GlassCard className="p-0 overflow-hidden flex flex-col h-[500px]">
+          <GlassCard className="p-0 overflow-hidden flex flex-col h-[380px] lg:h-[500px]">
             <div className="p-4 border-b border-border flex justify-between items-center bg-surface-2/50 sticky top-0 z-10 backdrop-blur-md">
               <div className="font-bold text-sm flex items-center gap-2">
                 <Activity className="w-4 h-4 text-brand" />
@@ -470,7 +470,7 @@ export default function HomePage() {
                       <li key={alert} className="text-sm text-text-muted">{alert}</li>
                     ))}
                   </ul>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Link href="/sender-accounts" className="px-3 py-1.5 bg-copper/10 text-copper hover:bg-copper/20 transition-colors rounded text-[12px] font-bold border border-copper/20">
                       Review Senders
                     </Link>
