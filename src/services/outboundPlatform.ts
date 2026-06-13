@@ -924,6 +924,11 @@ export async function forceSendCampaign(campaignId: string, userId?: string) {
       await recordEmailEvent(log.id, 'SENT', { forceSent: true });
       await queueNextSequenceStep(log.id);
       sent++;
+
+      // Respectful pacing: 1 email per minute to avoid spam triggers
+      if (sent < logs.length) {
+        await new Promise((r) => setTimeout(r, 60_000));
+      }
     } catch (err: any) {
       await prisma.emailLog.update({ where: { id: log.id }, data: { status: 'FAILED', errorMessage: err.message } });
     }
