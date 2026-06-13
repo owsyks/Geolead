@@ -122,6 +122,7 @@ export default function DashboardPage() {
   const [country] = useState("United States");
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(10);
+  const [railOpen, setRailOpen] = useState(false);
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
   // user never re-types keyword/domain/geo — they just pick from the portfolio.
@@ -1208,6 +1209,48 @@ export default function DashboardPage() {
       ) : null}
     >
       <div className="flex h-full">
+        {/* Mobile rail overlay */}
+        {railOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-bg">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="font-bold text-sm text-text">Lead Discovery</h3>
+              <button onClick={() => setRailOpen(false)} className="p-1.5 hover:bg-surface-2 rounded-lg text-text-muted"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Domain Idea</label>
+                <input type="text" required value={domainIdea} onChange={(e) => setDomainIdea(e.target.value)} placeholder="e.g. TexasCarVendor.com"
+                  className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Keyword Niche</label>
+                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Texas Car Dealership"
+                  className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">City / State</label>
+                <input type="text" value={cityState} onChange={(e) => setCityState(e.target.value)} placeholder="e.g. Dallas, TX"
+                  className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Depth</label>
+                <span className="text-[11px] text-text-muted font-mono">{searchDepth}</span>
+              </div>
+              <input type="range" min={1} max={200} value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className="w-full accent-brand" />
+              <button type="button" onClick={() => { handleTriggerSearch(new Event('submit') as any); setRailOpen(false); }}
+                className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
+              {tasks.length > 0 && <div className="pt-3 border-t border-border"><h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Recent Searches</h4>
+                {tasks.slice(0, 5).map((task) => (
+                  <button key={task.id} onClick={() => { handleSelectTask(task); setRailOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-2 transition-colors flex items-center justify-between">
+                    <span className="truncate">{task.domainIdea}</span>
+                    <span className={`text-[9px] font-bold uppercase ${task.status === 'COMPLETED' ? 'text-success' : task.status === 'FAILED' ? 'text-danger' : 'text-copper'}`}>{task.status}</span>
+                  </button>
+                ))}</div>}
+            </div>
+          </div>
+        )}
+
         {/* Left rail: search + history */}
         <aside className="w-64 lg:w-80 shrink-0 border-r border-border bg-surface-2/30 hidden lg:flex flex-col overflow-y-auto">
           <div className="p-5 border-b border-border">
@@ -1589,7 +1632,15 @@ export default function DashboardPage() {
                                           <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider border ${lead.decisionMakerScore && lead.decisionMakerScore >= 85 ? 'bg-copper/20 text-copper border-copper/30' : 'bg-brand/10 text-brand border-brand/20'}`}>{lead.decisionMakerRole}</span>
                                         )}
                                         <button onClick={() => openComposer(e.email, lead)} title="Compose & send" className="ml-auto p-1 rounded text-success hover:text-success hover:bg-success/10 transition-colors"><Send className="w-3 h-3" /></button>
-                                      </div>
+        {/* Mobile FAB — search leads */}
+        {!railOpen && (
+          <button onClick={() => setRailOpen(true)}
+            className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-brand text-bg flex items-center justify-center shadow-[0_4px_16px_rgba(20,184,166,0.4)] hover:bg-brand-hover transition-colors">
+            <Search className="w-5 h-5" />
+          </button>
+        )}
+
+      </div>
                                     ))}
                                   </div>
                                 )}

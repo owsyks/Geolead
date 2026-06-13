@@ -462,9 +462,9 @@ export default function CampaignsPage() {
         ) : null}
 
         <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-          {/* Create form — full width on mobile, 400px on desktop */}
+          {/* Create form — full-width on mobile, side panel on desktop */}
           <form
-            className="w-full lg:w-[400px] lg:min-w-[400px] shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-surface-2/30 overflow-y-auto p-3 lg:p-6 space-y-3 lg:space-y-5 max-h-[40vh] lg:max-h-none"
+            className="w-full lg:w-[400px] lg:min-w-[400px] shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-surface-2/30 overflow-y-auto p-3 lg:p-6 space-y-3 lg:space-y-5 max-h-[55vh] lg:max-h-none"
             onSubmit={(event) => { event.preventDefault(); void createCampaign(); }}
           >
             <div className="flex items-center gap-2">
@@ -923,7 +923,7 @@ function EventsModal({ campaign, onClose }: { campaign: { id: string; name: stri
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl mt-10 mb-10 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
+      <div className="w-full max-w-full mx-2 sm:max-w-2xl lg:max-w-4xl mt-4 lg:mt-10 mb-4 lg:mb-10 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="text-sm font-black text-text">Events · {campaign.name}</h3>
           <button onClick={onClose} className="h-8 w-8 rounded-lg text-text-muted hover:text-text flex items-center justify-center"><X className="w-4 h-4" /></button>
