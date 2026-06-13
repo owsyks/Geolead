@@ -183,7 +183,7 @@ export function KanbanColumn({
   ...props
 }: { title: string; count?: number; width?: number } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("shrink-0 flex flex-col gap-4", className)} style={{ minWidth: width, width }} {...props}>
+    <div className={cn("shrink-0 flex flex-col gap-4 w-full sm:w-auto", className)} style={width ? { minWidth: width, width } : {}} {...props}>
       <div className="flex justify-between items-center px-1">
         <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{title}</div>
         {count != null && (

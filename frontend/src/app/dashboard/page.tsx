@@ -1433,7 +1433,7 @@ export default function DashboardPage() {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                    <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Role</span>
                       <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value="all">All</option>
@@ -1443,7 +1443,7 @@ export default function DashboardPage() {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                    <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Intent</span>
                       <select value={minBuyerIntent} onChange={e => setMinBuyerIntent(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value={0}>Any</option>
@@ -1452,7 +1452,7 @@ export default function DashboardPage() {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                    <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Priority</span>
                       <select value={minPriority} onChange={e => setMinPriority(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value={0}>All</option>

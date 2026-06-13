@@ -92,8 +92,8 @@ export function OutboundShell({
         <div className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
-      <aside className={`w-[288px] flex-shrink-0 h-screen glass border-r border-border flex flex-col fixed left-0 top-0 z-40 transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:flex`}>
+      {/* Sidebar — full width on mobile, 288px on desktop */}
+      <aside className={`w-full lg:w-[288px] flex-shrink-0 h-screen glass border-r border-border flex flex-col fixed left-0 top-0 z-40 transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:flex`}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">
             GL
@@ -146,21 +146,33 @@ export function OutboundShell({
       {/* Main content area */}
       <main className={cn("flex-1 ml-0 lg:ml-[288px] flex flex-col", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
         {/* Header */}
-        <header className="h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="h-auto min-h-[56px] sm:h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-6 lg:px-8 py-2 sm:py-0">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors"
+              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1 truncate">{eyebrow}</div>
-            <div className="flex items-baseline gap-2 sm:gap-3">
-              <h1 className="text-lg sm:text-[22px] font-black tracking-[-0.02em] text-text truncate">{title}</h1>
-              {subtitle && <span className="text-xs sm:text-sm text-text-muted hidden sm:inline">{subtitle}</span>}
+            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-0 sm:mb-1 truncate">{eyebrow}</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2 sm:gap-3">
+                <h1 className="text-base sm:text-lg lg:text-[22px] font-black tracking-[-0.02em] text-text truncate">{title}</h1>
+                {subtitle && <span className="text-[11px] sm:text-sm text-text-muted hidden sm:inline">{subtitle}</span>}
+              </div>
+              <div className="flex items-center gap-2 sm:hidden shrink-0 ml-2">
+                {actions}
+                <Link href="/watchlist?tab=notifications" className="relative w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted">
+                  <Bell className="w-3.5 h-3.5" />
+                  {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full border border-bg" />}
+                </Link>
+                <button onClick={toggle} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted">
+                  {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-4">
             {actions}
             <button
               type="button"
