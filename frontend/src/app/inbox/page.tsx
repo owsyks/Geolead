@@ -267,8 +267,8 @@ export default function InboxPage() {
         </div>
 
         <div className="flex-1 flex min-h-0">
-          {/* Reply list */}
-          <div className="w-[380px] shrink-0 border-r border-border bg-bg flex flex-col">
+          {/* Reply list — full width on mobile, 380px side panel on desktop */}
+          <div className={`${selected ? 'hidden lg:flex' : 'flex'} lg:flex w-full lg:w-[380px] shrink-0 border-r border-border bg-bg flex-col`}>
             <div className="p-4 border-b border-border space-y-3 bg-surface-2/30">
               <input
                 value={search}
@@ -326,17 +326,23 @@ export default function InboxPage() {
             </div>
           </div>
 
-          {/* Reply detail */}
-          <div className="flex-1 bg-surface-2/10 flex flex-col min-w-0">
+          {/* Reply detail — full screen on mobile when selected, side panel on desktop */}
+          <div className={`${selected ? 'flex' : 'hidden lg:flex'} lg:flex flex-1 bg-surface-2/10 flex-col min-w-0`}>
             {selected ? (
-              <ReplyDetail
-                reply={selected}
-                onAction={act}
-                acting={acting}
-                onSend={sendReply}
-                sending={sendingReply}
-                canSend={senders.length > 0}
-              />
+              <>
+                {/* Mobile back button */}
+                <button onClick={() => setSelected(null)} className="lg:hidden flex items-center gap-2 px-4 py-3 border-b border-border text-sm text-text-muted hover:text-text">
+                  ← Back to inbox
+                </button>
+                <ReplyDetail
+                  reply={selected}
+                  onAction={act}
+                  acting={acting}
+                  onSend={sendReply}
+                  sending={sendingReply}
+                  canSend={senders.length > 0}
+                />
+              </>
             ) : (
               <div className="h-full flex items-center justify-center text-sm text-text-muted">
                 <div className="text-center">
@@ -390,31 +396,38 @@ function ReplyDetail({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-6 border-b border-border bg-bg flex justify-between items-start gap-4 shrink-0">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold mb-1 truncate">{reply.subject || "(no subject)"}</h2>
-          <div className="flex items-center gap-4 text-sm text-text-muted flex-wrap">
-            <span className="flex items-center gap-1"><User className="w-4 h-4" /> {reply.fromEmail}</span>
-            {reply.lead?.businessName ? <span className="flex items-center gap-1"><Building2 className="w-4 h-4" /> {reply.lead.businessName}</span> : null}
-            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> <ClientDate value={reply.receivedAt} /></span>
+      <div className="p-4 lg:p-6 border-b border-border bg-bg flex justify-between items-start gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base lg:text-xl font-bold mb-1 truncate">{reply.subject || "(no subject)"}</h2>
+          <div className="flex items-center gap-3 text-xs lg:text-sm text-text-muted flex-wrap">
+            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> {reply.fromEmail}</span>
+            {reply.lead?.businessName ? <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> {reply.lead.businessName}</span> : null}
+            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> <ClientDate value={reply.receivedAt} /></span>
           </div>
+          {reply.campaign && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-text-muted flex-wrap">
+              <span className="font-bold text-text">📨 {reply.campaign.name}</span>
+              <span>·</span>
+              <span className="text-brand">{reply.campaign.geoDomain}</span>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => onAction("mark_interested")} disabled={acting !== ""} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded text-sm font-medium hover:bg-surface-2 hover:text-success transition-colors disabled:opacity-50">
-            {acting === "mark_interested" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Interested
+        <div className="flex gap-1.5 lg:gap-2 shrink-0 flex-wrap">
+          <button onClick={() => onAction("mark_interested")} disabled={acting !== ""} className="flex items-center gap-1 px-2.5 py-1.5 bg-surface border border-border rounded text-xs lg:text-sm font-medium hover:bg-surface-2 hover:text-success transition-colors disabled:opacity-50">
+            {acting === "mark_interested" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Interested
           </button>
-          <button onClick={() => onAction("send_to_negotiation")} disabled={acting !== ""} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded text-sm font-medium hover:bg-surface-2 hover:text-info transition-colors disabled:opacity-50">
-            {acting === "send_to_negotiation" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Handshake className="w-4 h-4" />} Negotiate
+          <button onClick={() => onAction("send_to_negotiation")} disabled={acting !== ""} className="flex items-center gap-1 px-2.5 py-1.5 bg-surface border border-border rounded text-xs lg:text-sm font-medium hover:bg-surface-2 hover:text-info transition-colors disabled:opacity-50">
+            {acting === "send_to_negotiation" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Handshake className="w-3.5 h-3.5" />} Negotiate
           </button>
-          <button onClick={() => onAction("archive")} disabled={acting !== ""} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded text-sm font-medium hover:bg-surface-2 transition-colors disabled:opacity-50">
-            {acting === "archive" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />} Archive
+          <button onClick={() => onAction("archive")} disabled={acting !== ""} className="flex items-center gap-1 px-2.5 py-1.5 bg-surface border border-border rounded text-xs lg:text-sm font-medium hover:bg-surface-2 transition-colors disabled:opacity-50">
+            {acting === "archive" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />} Archive
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto p-3 lg:p-6 flex flex-col gap-4 lg:gap-6">
         {/* AI Summary */}
-        <GlassCard className="bg-brand/5 border-brand/20 p-5 flex gap-6">
+        <GlassCard className="bg-brand/5 border-brand/20 p-3 lg:p-5 flex flex-col sm:flex-row gap-4">
           <div className="flex flex-col items-center justify-center shrink-0">
             <div className="w-12 h-12 rounded-full border-2 border-brand flex items-center justify-center bg-bg relative">
               <Sparkles className="w-5 h-5 text-brand" />
@@ -485,16 +498,16 @@ function ReplyDetail({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Write your reply…"
-              className="w-full p-4 h-48 bg-transparent text-sm text-text resize-none focus:outline-none"
+              className="w-full px-3 py-2 lg:px-4 lg:py-3 h-32 lg:h-48 bg-transparent text-sm text-text resize-none focus:outline-none"
             />
-            <div className="p-3 border-t border-border bg-surface-2 flex justify-between items-center">
+            <div className="px-3 py-2 lg:px-4 lg:py-2 border-t border-border bg-surface-2 flex justify-between items-center">
               <div className="text-[11px] text-text-muted">{canSend ? "Sends via your active sender" : "No active sender configured"}</div>
               <button
                 onClick={() => onSend(draft)}
                 disabled={sending || !draft.trim() || !canSend}
-                className="flex items-center gap-2 px-4 py-2 bg-brand text-bg font-bold text-sm rounded-lg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)] disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 bg-brand text-bg font-bold text-sm rounded-lg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)] disabled:opacity-50 transition-colors"
               >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Send Reply
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Send Reply
               </button>
             </div>
           </div>
