@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { ComposerModal } from "./ComposerModal";
 import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
+import { OutboundShell, MetricCard } from "@/components/OutboundShell";
+import { GlassCard, ScoreRing } from "@/components/ui";
 import { useDomainContext } from "@/lib/domainContext";
 import { authFetch, fetchOutbound } from "@/lib/outbound";
 import {
   Search,
   MapPin,
   Download,
-  Settings,
   Database,
-  ArrowLeft,
   History,
   ExternalLink,
   ChevronLeft,
@@ -22,7 +21,6 @@ import {
   Mail,
   MessageSquare,
   Phone,
-  FileText,
   Save,
   Globe,
   AlertCircle,
@@ -31,7 +29,7 @@ import {
   ShieldCheck,
   Send,
   Zap,
-  X
+  X,
 } from "lucide-react";
 
 // API URL (Express backend) — env override allowed for non-localhost setups
@@ -40,6 +38,9 @@ const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
 const DEMO_TASK_ONE_CREATED_AT = "2026-05-21T23:00:00.000Z";
 const DEMO_TASK_TWO_CREATED_AT = "2026-05-21T22:00:00.000Z";
+
+const INPUT = "w-full h-10 bg-bg border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand transition-colors";
+const LABEL = "block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5";
 
 interface LeadEmail {
   id: string;
@@ -306,7 +307,7 @@ export default function DashboardPage() {
       const data = await response.json();
       setTasks(data);
       setIsDemoMode(false);
-      
+
       // Auto-select latest task if available
       if (data.length > 0 && !selectedTask) {
         handleSelectTask(data[0]);
@@ -572,10 +573,6 @@ export default function DashboardPage() {
         const updatedTask = await response.json();
         if (!mounted.current) { stopPolling(); return; }
 
-        // Only update the task object here. A dedicated effect (below) watches
-        // the task's status + lead count and (re)fetches the leads, so results
-        // stream in live and appear the instant the crawl finishes — no manual
-        // page refresh needed.
         setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
         setSelectedTask(updatedTask);
 
@@ -598,8 +595,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     mounted.current = true;
-    // Load search history (and auto-select the latest task) on mount. Without
-    // this the page rendered empty until the user manually hit "Refresh".
     void fetchHistory();
     return () => {
       mounted.current = false;
@@ -610,8 +605,7 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // While in demo mode, retry the backend every 15s — recovers automatically
-  // once the user starts the backend, instead of staying stuck forever.
+  // While in demo mode, retry the backend every 15s.
   useEffect(() => {
     if (!isDemoMode) return;
     const id = setInterval(async () => {
@@ -647,7 +641,6 @@ export default function DashboardPage() {
     if (!keyword || !domainIdea) return;
 
     if (isDemoMode) {
-      // Mock triggering a search in demo mode
       const newDemoId = `demo-task-${Date.now()}`;
       const newDemoTask: SearchTask = {
         id: newDemoId,
@@ -668,7 +661,6 @@ export default function DashboardPage() {
       setLeads([]);
       setTotalLeadsCount(0);
 
-      // Simulate a multi-step crawl
       let prog = 10;
       if (demoInterval.current) clearInterval(demoInterval.current);
       demoInterval.current = setInterval(() => {
@@ -683,11 +675,10 @@ export default function DashboardPage() {
           newDemoTask.progress = 100;
           newDemoTask.totalLeads = 3;
           newDemoTask.validEmails = 2;
-          
+
           setTasks(prev => prev.map(t => t.id === newDemoId ? { ...newDemoTask } : t));
           setSelectedTask({ ...newDemoTask });
 
-          // Generate simulated leads
           const generatedLeads: Lead[] = [
             {
               id: `lead-new-1`,
@@ -751,12 +742,10 @@ export default function DashboardPage() {
 
       if (!response.ok) throw new Error();
       const newTask = await response.json();
-      
-      // Update history list and select task
+
       setTasks(prev => [newTask, ...prev]);
       handleSelectTask(newTask);
 
-      // Reset form fields
       setKeyword("");
       setDomainIdea("");
       setCityState("");
@@ -792,8 +781,7 @@ export default function DashboardPage() {
         body: JSON.stringify({ notes: notesText })
       });
       if (!response.ok) throw new Error();
-      
-      // Update local state
+
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, notes: notesText } : l));
       setEditingNotesLeadId(null);
     } catch {
@@ -850,10 +838,7 @@ export default function DashboardPage() {
     };
   }, [selectedTaskId, isDemoMode, page, searchFilter, minScore, hasEmailsOnly, sortField, sortOrder, limit]);
 
-  // Reactively (re)load leads as the selected task progresses: stream new leads
-  // in while it's PROCESSING, and refresh the moment it reaches a terminal
-  // state. This is what makes results appear automatically — the polling loop
-  // above only updates the task, this effect owns lead fetching.
+  // Reactively (re)load leads as the selected task progresses.
   const lastLeadFetchKey = useRef<string>("");
   useEffect(() => {
     if (!selectedTask || isDemoMode) return;
@@ -897,10 +882,8 @@ export default function DashboardPage() {
 
     try {
       if (isDemoMode) {
-        // --- Sandbox Demo Mode: Export from local react leads state ---
         let filteredLeads = leads;
 
-        // Filter by email status if needed
         if (!exportIncludeRisky) {
           filteredLeads = filteredLeads.map(lead => ({
             ...lead,
@@ -962,7 +945,6 @@ export default function DashboardPage() {
           const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
           triggerDownload(blob, `geolead_export_${selectedTask.domainIdea.replace(/[^a-zA-Z0-9]/g, '_')}.json`);
         } else {
-          // CSV / XLSX fallback
           const headers = Object.keys(exportData[0] || {});
           if (headers.length === 0) {
             alert("No data available to export.");
@@ -980,7 +962,6 @@ export default function DashboardPage() {
           ];
           const csvString = csvRows.join('\n');
           const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-          // If they click Excel, we download CSV but notify them
           const ext = 'csv';
           triggerDownload(blob, `geolead_export_${selectedTask.domainIdea.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`);
           if (format === 'xlsx') {
@@ -988,7 +969,6 @@ export default function DashboardPage() {
           }
         }
       } else {
-        // --- Live Mode: Fetch from backend API ---
         const params = new URLSearchParams({
           taskId: selectedTask.id,
           format,
@@ -1094,7 +1074,6 @@ export default function DashboardPage() {
     setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
 
     try {
-      // Fetch ALL emails for the task (not just the current page)
       const emailRes = await authFetch(`${BACKEND_URL}/api/leads/emails?taskId=${selectedTask.id}`);
       if (!emailRes.ok) throw new Error(`HTTP ${emailRes.status}`);
       const { emails: allEmails } = await emailRes.json() as { emails: string[] };
@@ -1109,7 +1088,6 @@ export default function DashboardPage() {
       const data = await res.json();
 
       if (data.mode === 'stream') {
-        // Streaming per-email progress
         const token: string = data.progressToken;
         const total = data.total;
         setVerifyProgress((prev) => ({ ...prev, total }));
@@ -1143,7 +1121,6 @@ export default function DashboardPage() {
       }
 
       if (data.mode === 'inline' || data.mode === 'inline-fallback') {
-        const summary = data.summary as { valid: number; risky: number; invalid: number };
         setVerifyProgress({
           results: data.results?.map((r: any) => ({ email: r.email, status: r.status, confidenceScore: r.confidenceScore })) || [],
           total: data.total,
@@ -1153,7 +1130,6 @@ export default function DashboardPage() {
         setVerifying(false);
         if (selectedTask) fetchTaskLeads(selectedTask.id);
       } else {
-        // Queued — poll until done
         const jobId: string = data.jobId;
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
@@ -1188,981 +1164,544 @@ export default function DashboardPage() {
     }
   };
 
+  const visibleLeads = leads.filter(lead => {
+    if (channelFilter === 'whatsapp_high') return (lead.whatsappScore ?? 0) >= 70;
+    if (channelFilter === 'email_available') return lead.emails.length > 0;
+    if (channelFilter === 'phone_available') return lead.phoneNumbers.length > 0;
+    if (channelFilter === 'multi_channel') {
+      let c = 0;
+      if (lead.emails.length > 0) c++;
+      if (lead.phoneNumbers.length > 0) c++;
+      if ((lead.whatsappScore ?? 0) >= 50) c++;
+      return c >= 2;
+    }
+    return true;
+  });
+
+  const selectedTerminal = !!selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status);
+  const highPriorityCount = leads.filter(l => (l.priorityScore ?? l.domainMatchScore) >= 75).length;
+  const avgMatch = leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.domainMatchScore, 0) / leads.length) : 0;
+
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row relative">
-      
-      {/* Sidebar - Saved Tasks History */}
-      <aside className="w-full md:w-80 border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 flex flex-col shrink-0">
-        
-        {/* Branding header */}
-        <div className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="GeoLead AI" className="h-7 w-7 rounded-lg object-cover" />
-            <span className="font-extrabold text-sm tracking-wide text-slate-900 dark:text-slate-100">GeoLead AI</span>
-          </Link>
-          <Link href="/settings" className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200 transition-colors" title="Settings">
-            <Settings className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Create Search Form Accordion */}
-        <div className="p-5 border-b border-slate-200 dark:border-slate-900">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">New Lead Generation</h3>
-          <div className="mb-4">
-            <DomainSelector
-              label="Source domain"
-              emptyAction={{ label: "Add to portfolio", href: "/portfolio" }}
-            />
-            {activeDomain ? (
-              <p className="mt-2 text-[10px] text-emerald-300">
-                Lead search seeded from {activeDomain.name}. Edit fields below to fine-tune.
-              </p>
-            ) : null}
-          </div>
-          <form onSubmit={handleTriggerSearch} className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Domain Idea</label>
-              <input
-                type="text"
-                required
-                value={domainIdea}
-                onChange={(e) => setDomainIdea(e.target.value)}
-                placeholder="e.g. TexasCarVendor.com"
-                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-              />
+    <OutboundShell
+      eyebrow={selectedTask ? `Target: ${selectedTask.domainIdea}` : "Lead Discovery"}
+      title="Lead Explorer"
+      subtitle={selectedTask ? `Keyword: ${selectedTask.keyword} · ${selectedTask.searchDepth} sites` : "Discover high-intent local buyers"}
+      fullBleed
+      actions={selectedTerminal ? (
+        <>
+          <button onClick={handleVerifyEmails} disabled={verifying || leads.length === 0} className="h-9 px-3 rounded-lg bg-success text-bg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-colors">
+            <ShieldCheck className={`w-4 h-4 ${verifying ? 'animate-pulse' : ''}`} />
+            {verifying ? 'Verifying…' : 'Verify Emails'}
+          </button>
+          <button onClick={() => setShowWaPanel(true)} disabled={leads.filter(l => l.phoneNumbers.length > 0).length === 0} className="h-9 px-3 rounded-lg bg-[#25D366] text-bg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-40 transition-colors">
+            <MessageSquare className="w-4 h-4" /> Validate WA
+          </button>
+          <button onClick={() => setExportOptionsOpen(true)} disabled={exporting !== null} className="h-9 px-3 rounded-lg bg-brand text-bg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-60 shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors">
+            <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
+            {exporting ? `Exporting…` : 'Export Data'}
+          </button>
+          <button onClick={() => { setCampaignName(''); setShowCampaignModal(true); }} disabled={selectedLeadIds.size === 0} className="h-9 px-3 rounded-lg bg-danger text-bg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors">
+            <Zap className="w-4 h-4" /> Create Campaign ({selectedLeadIds.size})
+          </button>
+        </>
+      ) : null}
+    >
+      <div className="flex h-full">
+        {/* Left rail: search + history */}
+        <aside className="w-80 shrink-0 border-r border-border bg-surface-2/30 hidden md:flex flex-col overflow-y-auto">
+          <div className="p-5 border-b border-border">
+            <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-4">New Lead Generation</h3>
+            <div className="mb-4">
+              <DomainSelector label="Source domain" emptyAction={{ label: "Add to portfolio", href: "/portfolio" }} />
+              {activeDomain ? (
+                <p className="mt-2 text-[10px] text-success">Lead search seeded from {activeDomain.name}. Edit below to fine-tune.</p>
+              ) : null}
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Keyword Niche</label>
-              <input
-                type="text"
-                required
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="e.g. Texas Car Dealership"
-                className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleTriggerSearch} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">City / State</label>
-                <input
-                  type="text"
-                  value={cityState}
-                  onChange={(e) => setCityState(e.target.value)}
-                  placeholder="Texas"
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                />
+                <label className={LABEL}>Domain Idea</label>
+                <input type="text" required value={domainIdea} onChange={(e) => setDomainIdea(e.target.value)} placeholder="e.g. TexasCarVendor.com" className={INPUT} />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search Depth</label>
-                <select
-                  value={searchDepth}
-                  onChange={(e) => setSearchDepth(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                >
-                   <option value={5}>5 Leads</option>
-                   <option value={10}>10 Leads</option>
-                   <option value={20}>20 Leads</option>
-                   <option value={50}>50 Leads</option>
-                   <option value={100}>100 Leads</option>
-                   <option value={MAX_SEARCH_DEPTH}>{MAX_SEARCH_DEPTH} Leads</option>
-                 </select>
+                <label className={LABEL}>Keyword Niche</label>
+                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Texas Car Dealership" className={INPUT} />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={LABEL}>City / State</label>
+                  <input type="text" value={cityState} onChange={(e) => setCityState(e.target.value)} placeholder="Texas" className={INPUT} />
+                </div>
+                <div>
+                  <label className={LABEL}>Search Depth</label>
+                  <select value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className={INPUT}>
+                    <option value={5}>5 Leads</option>
+                    <option value={10}>10 Leads</option>
+                    <option value={20}>20 Leads</option>
+                    <option value={50}>50 Leads</option>
+                    <option value={100}>100 Leads</option>
+                    <option value={MAX_SEARCH_DEPTH}>{MAX_SEARCH_DEPTH} Leads</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" disabled={loading} className="w-full h-10 bg-brand hover:bg-brand-hover text-bg rounded-lg text-xs font-bold transition-all shadow-[0_0_12px_rgba(20,184,166,0.3)] flex items-center justify-center gap-1.5 disabled:opacity-60">
+                <Plus className="w-4 h-4" /> Start Lead Discovery
+              </button>
+            </form>
+          </div>
+
+          {/* Task History */}
+          <div className="flex-1 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5" /> Search History
+              </h3>
+              <button onClick={handleReloadHistory} className="text-[10px] text-brand hover:underline">Refresh</button>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" /> Start Lead Discovery
-            </button>
-          </form>
-        </div>
-
-        {/* Task History Panel */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-              <History className="w-3.5 h-3.5" /> Search History
-            </h3>
-            <button onClick={handleReloadHistory} className="text-[10px] text-indigo-400 hover:underline">
-              Refresh
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {tasks.length === 0 ? (
-              <p className="text-xs text-slate-600 text-center py-6">No previous queries found.</p>
-            ) : (
-              tasks.map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => handleSelectTask(task)}
-                  className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
-                    selectedTask?.id === task.id
-                      ? "bg-indigo-950/20 border-indigo-500/40 shadow-inner"
-                      : "bg-slate-50 dark:bg-slate-900/10 border-slate-200 dark:border-slate-900/60 hover:bg-slate-100 dark:bg-slate-900/30"
-                  }`}
-                >
-                  <div className="flex justify-between items-start w-full">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{task.domainIdea}</span>
-                    <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                      task.status === "COMPLETED" 
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : task.status === "FAILED"
-                        ? "bg-red-500/10 text-red-400"
-                        : task.status === "PAUSED"
-                        ? "bg-amber-500/10 text-amber-400"
-                        : task.status === "CANCELLED"
-                        ? "bg-slate-500/10 text-slate-400"
-                        : "bg-amber-500/10 text-amber-400 animate-pulse"
-                    }`}>
-                      {task.status}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-slate-500">Query: {task.keyword}</div>
-                  {task.status === "PROCESSING" && (
-                    <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1 mt-1 overflow-hidden">
-                      <div className="bg-indigo-500 h-1 transition-all duration-300" style={{ width: `${task.progress}%` }} />
+            <div className="space-y-2">
+              {tasks.length === 0 ? (
+                <p className="text-xs text-text-muted text-center py-6">No previous queries found.</p>
+              ) : (
+                tasks.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleSelectTask(task)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 relative overflow-hidden ${
+                      selectedTask?.id === task.id
+                        ? "bg-brand/5 border-brand/40"
+                        : "bg-surface border-border hover:border-brand/50"
+                    }`}
+                  >
+                    {task.status === "PROCESSING" && (
+                      <div className="absolute top-0 left-0 h-[2px] bg-brand animate-pulse" style={{ width: `${task.progress}%` }} />
+                    )}
+                    <div className="flex justify-between items-start w-full">
+                      <span className="text-xs font-bold text-text truncate max-w-[150px]">{task.domainIdea}</span>
+                      <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        task.status === "COMPLETED" ? "bg-success/10 text-success"
+                          : task.status === "FAILED" ? "bg-danger/10 text-danger"
+                          : task.status === "PAUSED" ? "bg-copper/10 text-copper"
+                          : task.status === "CANCELLED" ? "bg-surface-2 text-text-muted"
+                          : "bg-copper/10 text-copper animate-pulse"
+                      }`}>
+                        {task.status}
+                      </span>
                     </div>
-                  )}
-                  {(task.status === "PENDING" || task.status === "PROCESSING") && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <button
-                        onClick={(e) => handlePauseTask(task.id, e)}
-                        className="flex-1 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Pause
-                      </button>
-                      <button
-                        onClick={(e) => handleStopTask(task.id, e)}
-                        className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Stop
-                      </button>
-                    </div>
-                  )}
-                  {task.status === "PAUSED" && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <button
-                        onClick={(e) => handleResumeTask(task.id, e)}
-                        className="flex-1 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Resume
-                      </button>
-                      <button
-                        onClick={(e) => handleStopTask(task.id, e)}
-                        className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Stop
-                      </button>
-                    </div>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Panel */}
-      <main className="flex-1 bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden">
-        
-        {/* Email Verification Modal */}
-        <VerificationModal
-          open={verifying || verifyProgress.results.length > 0}
-          results={verifyProgress.results}
-          total={verifyProgress.total}
-          done={verifyProgress.done}
-          complete={verifyProgress.complete}
-          onClose={() => {
-            setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
-            setVerifyResult(null);
-          }}
-        />
-
-        {/* Offline Demo Banner */}
-        {isDemoMode && (
-          <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 px-6 py-2.5 text-xs font-medium flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              <span>Backend server offline. Displaying sandbox demo environment with mock data. Start the Express API to activate live scraping.</span>
-            </div>
-            <button onClick={fetchHistory} className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded text-[10px] font-bold uppercase transition-colors">
-              Retry Connection
-            </button>
-          </div>
-        )}
-
-        {/* Main Dashboard Top Header */}
-        <header className="h-16 px-6 border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/40 backdrop-blur-md flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-slate-800 dark:text-slate-200">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <img src="/logo.png" alt="GeoLead AI" className="h-7 w-7 rounded-lg object-cover" />
-            <div>
-              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                {selectedTask ? `Campaign: ${selectedTask.domainIdea}` : "Select a Search Campaign"}
-              </h2>
-              {selectedTask && (
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Target Keyword: &quot;{selectedTask.keyword}&quot; • Search depth: {selectedTask.searchDepth} sites
-                </p>
+                    <div className="text-[10px] text-text-muted">Query: {task.keyword}</div>
+                    {(task.status === "PENDING" || task.status === "PROCESSING") && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span onClick={(e) => handlePauseTask(task.id, e as any)} className="flex-1 py-1 bg-copper/10 hover:bg-copper/20 text-copper rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Pause</span>
+                        <span onClick={(e) => handleStopTask(task.id, e as any)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</span>
+                      </div>
+                    )}
+                    {task.status === "PAUSED" && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span onClick={(e) => handleResumeTask(task.id, e as any)} className="flex-1 py-1 bg-success/10 hover:bg-success/20 text-success rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Resume</span>
+                        <span onClick={(e) => handleStopTask(task.id, e as any)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</span>
+                      </div>
+                    )}
+                  </button>
+                ))
               )}
             </div>
           </div>
+        </aside>
 
-          {/* Export Controls — show for COMPLETED, PAUSED, CANCELLED */}
-          {selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
-            <div className="flex items-center gap-2">
-              {/* Verify Emails Button */}
-              <button
-                onClick={handleVerifyEmails}
-                disabled={verifying || leads.length === 0}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:bg-emerald-900 disabled:opacity-50 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
-              >
-                <ShieldCheck className={`w-4 h-4 ${verifying ? 'animate-pulse' : ''}`} />
-                {verifying ? 'Verifying...' : 'Verify Emails'}
-              </button>
+        {/* Main pane */}
+        <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
+          <VerificationModal
+            open={verifying || verifyProgress.results.length > 0}
+            results={verifyProgress.results}
+            total={verifyProgress.total}
+            done={verifyProgress.done}
+            complete={verifyProgress.complete}
+            onClose={() => {
+              setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
+              setVerifyResult(null);
+            }}
+          />
 
-              {/* Validate WhatsApp Button */}
-              <button
-                onClick={() => setShowWaPanel(true)}
-                disabled={leads.filter(l => l.phoneNumbers.length > 0).length === 0}
-                className="px-4 py-2 bg-[#25D366]/80 hover:bg-[#25D366] disabled:opacity-40 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Validate WA
-              </button>
-
-              <div className="relative" ref={exportDropdownRef}>
-                <button
-                  onClick={() => setExportOptionsOpen(true)}
-                  disabled={exporting !== null}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/10 transition-colors cursor-pointer"
-                >
-                  <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
-                  {exporting ? `Exporting ${exporting.toUpperCase()}...` : "Export Data"}
-                </button>
+          {isDemoMode && (
+            <div className="bg-copper/10 border-b border-copper/20 text-copper px-6 py-2.5 text-xs font-medium flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>Backend offline. Showing sandbox demo data. Start the Express API for live scraping.</span>
               </div>
-              {/* Create Campaign from Selected */}
-              <button
-                onClick={() => { setCampaignName(''); setShowCampaignModal(true); }}
-                disabled={selectedLeadIds.size === 0}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-900 disabled:opacity-50 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
-              >
-                <Zap className="w-4 h-4" />
-                Create Campaign ({selectedLeadIds.size})
-              </button>
+              <button onClick={fetchHistory} className="px-2.5 py-1 bg-copper/20 hover:bg-copper/30 text-copper rounded text-[10px] font-bold uppercase transition-colors">Retry</button>
             </div>
           )}
-        </header>
 
-        {/* Main Content Body */}
-        {selectedTask ? (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
-            {/* Active Scraping Progress Tracker */}
-            {(selectedTask.status === "PENDING" || selectedTask.status === "PROCESSING") && (
-              <div className="glass-card rounded-2xl p-6 border-indigo-500/20 relative overflow-hidden shadow-lg">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center gap-2">
-                    <Database className="w-5 h-5 text-indigo-400 animate-pulse" />
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Crawl & Extraction Pipeline</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
+          {selectedTask ? (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Active scraping progress */}
+              {(selectedTask.status === "PENDING" || selectedTask.status === "PROCESSING") && (
+                <GlassCard className="p-6 relative overflow-hidden">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-5 h-5 text-brand animate-pulse" />
+                      <div>
+                        <h4 className="text-sm font-bold text-text">Active Crawl & Extraction Pipeline</h4>
+                        <p className="text-[10px] text-text-muted mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-black text-brand">{selectedTask.progress}%</span>
+                  </div>
+                  <div className="w-full bg-bg rounded-full h-2.5 overflow-hidden border border-border">
+                    <div className="bg-gradient-to-r from-brand to-success h-2.5 rounded-full transition-all duration-300" style={{ width: `${selectedTask.progress}%` }} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-6 text-center text-xs">
+                    <div className="p-3 bg-surface-2 rounded-xl border border-border">
+                      <span className="text-text-muted block mb-1">Status</span>
+                      <span className="font-bold text-brand capitalize">{selectedTask.status.toLowerCase()}</span>
+                    </div>
+                    <div className="p-3 bg-surface-2 rounded-xl border border-border">
+                      <span className="text-text-muted block mb-1">Leads Identified</span>
+                      <span className="font-bold text-text">{selectedTask.totalLeads}</span>
+                    </div>
+                    <div className="p-3 bg-surface-2 rounded-xl border border-border">
+                      <span className="text-text-muted block mb-1">Validated Emails</span>
+                      <span className="font-bold text-success">{selectedTask.validEmails}</span>
                     </div>
                   </div>
-                  <span className="text-sm font-black text-indigo-400">{selectedTask.progress}%</span>
-                </div>
-                <div className="w-full bg-white dark:bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-200 dark:border-slate-900">
-                  <div 
-                    className="bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 h-2.5 rounded-full transition-all duration-300"
-                    style={{ width: `${selectedTask.progress}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4 mt-6 text-center text-xs">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
-                    <span className="text-slate-500 block mb-1">Status</span>
-                    <span className="font-bold text-indigo-400 capitalize">{selectedTask.status.toLowerCase()}</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
-                    <span className="text-slate-500 block mb-1">Leads Identified</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{selectedTask.totalLeads}</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-slate-900">
-                    <span className="text-slate-500 block mb-1">Validated Emails</span>
-                    <span className="font-bold text-emerald-400">{selectedTask.validEmails}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                </GlassCard>
+              )}
 
-            {/* Campaign Analytics Stats Overview */}
-            {["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status) && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
-                  <span className="text-xs text-slate-500 block">Total Prospects</span>
-                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-1 block">{selectedTask.totalLeads}</span>
+              {/* Completed task stats */}
+              {selectedTerminal && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <MetricCard label="Total Prospects" value={selectedTask.totalLeads} />
+                  <MetricCard label="Validated Emails" value={selectedTask.validEmails} />
+                  <MetricCard label="Avg Match Score" value={`${avgMatch}%`} />
+                  <MetricCard label="High Priority" value={highPriorityCount} />
                 </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
-                  <span className="text-xs text-slate-500 block">Validated Emails</span>
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 block">{selectedTask.validEmails}</span>
-                </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
-                  <span className="text-xs text-slate-500 block">Unique Phones</span>
-                  <span className="text-2xl sm:text-3xl font-black text-indigo-400 mt-1 block">
-                    {leads.filter(l => l.phoneNumbers.length > 0).length}
-                  </span>
-                </div>
-                <div className="glass-card p-5 rounded-2xl border-slate-200 dark:border-slate-900">
-                  <span className="text-xs text-slate-500 block">Avg Match Score</span>
-                  <span className="text-2xl sm:text-3xl font-black text-cyan-400 mt-1 block">
-                    {leads.length > 0
-                      ? Math.round(leads.reduce((sum, l) => sum + l.domainMatchScore, 0) / leads.length)
-                      : 0}%
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Leads Table Card with Filters */}
-            <div className="glass-card rounded-2xl border-slate-200 dark:border-slate-900 overflow-hidden flex flex-col">
-              
-              {/* Filter controls bar */}
-              <div className="p-4 bg-slate-100 dark:bg-slate-900/20 border-b border-slate-200 dark:border-slate-900 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-                
-                {/* Search input filter */}
-                <form onSubmit={triggerSearchFilterSubmit} className="flex items-center gap-2 flex-1">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchFilterInput}
-                      onChange={handleSearchFilterChange}
-                      placeholder="Filter by business name, keyword, city..."
-                      className="w-full h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg pl-9 pr-4 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <button type="submit" className="h-9 px-4 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-200 dark:bg-slate-800 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Apply
-                  </button>
-                </form>
-
-                {/* Dropdowns filters */}
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Not Contacted toggle */}
-                  <button
-                    onClick={() => setNotContactedOnly(!notContactedOnly)}
-                    className={`h-9 rounded-lg px-3 text-[11px] font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
-                      notContactedOnly ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300' : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    Not Contacted
-                  </button>
-
-                  {/* Bulk Actions (appears when 2+ leads selected) */}
-                  {selectedLeadIds.size > 1 && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setShowBulkActions(!showBulkActions)}
-                        className="h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[11px] font-bold text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        Bulk ({selectedLeadIds.size})
-                      </button>
-                      {showBulkActions && (
-                        <>
-                          <select
-                            onChange={async (e) => {
-                              const stage = e.target.value;
-                              if (!stage) return;
-                              await doBulkAction({ pipelineStage: stage });
-                              e.target.value = '';
-                            }}
-                            className="h-9 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2 text-[11px] text-slate-700 dark:text-slate-300"
-                          >
-                            <option value="">Set Stage…</option>
-                            <option value="New">New</option>
-                            <option value="Contacted">Contacted</option>
-                            <option value="Replied">Replied</option>
-                            <option value="Interested">Interested</option>
-                            <option value="Not Interested">Not Interested</option>
-                          </select>
-                          <button
-                            onClick={() => doBulkAction({ markContacted: true })}
-                            className="h-9 px-2.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-[11px] font-bold text-white transition-colors cursor-pointer"
-                          >
-                            Mark Contacted
-                          </button>
-                        </>
-                      )}
+              {/* Leads table */}
+              <GlassCard className="p-0 overflow-hidden flex flex-col">
+                {/* Filter bar */}
+                <div className="p-4 bg-surface-2/30 border-b border-border flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                  <form onSubmit={triggerSearchFilterSubmit} className="flex items-center gap-2 flex-1">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input type="text" value={searchFilterInput} onChange={handleSearchFilterChange} placeholder="Filter by business name, keyword, city…" className="w-full h-9 bg-bg border border-border rounded-full pl-9 pr-4 text-xs text-text placeholder:text-text-faint focus:outline-none focus:border-brand" />
                     </div>
-                  )}
+                    <button type="submit" className="h-9 px-4 bg-surface border border-border hover:bg-surface-2 rounded-full text-xs font-semibold text-text-muted hover:text-text">Apply</button>
+                  </form>
 
-                  {/* Min Relevance Score */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-500" />
-                    <select
-                      value={minScore}
-                      onChange={(e) => setMinScore(Number(e.target.value))}
-                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
-                    >
-                      <option value={0}>All Scores</option>
-                      <option value={50}>&gt; 50% Match</option>
-                      <option value={75}>&gt; 75% Match</option>
-                      <option value={90}>&gt; 90% Match</option>
-                    </select>
-                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button onClick={() => setNotContactedOnly(!notContactedOnly)} className={`h-9 rounded-full px-3 text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${notContactedOnly ? 'bg-brand-soft border-brand/40 text-brand' : 'bg-surface border-border text-text-muted hover:text-text'}`}>Not Contacted</button>
 
-                  {/* Has Emails Filter Toggle */}
-                  <button
-                    onClick={() => setHasEmailsOnly(!hasEmailsOnly)}
-                    className={`h-9 px-3 rounded-lg text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${
-                      hasEmailsOnly
-                        ? "bg-indigo-950/30 border-indigo-500/40 text-indigo-300"
-                        : "bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-400 hover:text-slate-800 dark:text-slate-200"
-                    }`}
-                  >
-                    <Mail className="w-3.5 h-3.5" /> Has Email
-                  </button>
+                    {selectedLeadIds.size > 1 && (
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => setShowBulkActions(!showBulkActions)} className="h-9 px-3 rounded-full bg-brand text-bg text-[11px] font-bold flex items-center gap-1.5 transition-colors"><Zap className="w-3.5 h-3.5" /> Bulk ({selectedLeadIds.size})</button>
+                        {showBulkActions && (
+                          <>
+                            <select onChange={async (e) => { const stage = e.target.value; if (!stage) return; await doBulkAction({ pipelineStage: stage }); e.target.value = ''; }} className="h-9 bg-bg border border-border rounded-full px-2 text-[11px] text-text">
+                              <option value="">Set Stage…</option>
+                              <option value="New">New</option>
+                              <option value="Contacted">Contacted</option>
+                              <option value="Replied">Replied</option>
+                              <option value="Interested">Interested</option>
+                              <option value="Not Interested">Not Interested</option>
+                            </select>
+                            <button onClick={() => doBulkAction({ markContacted: true })} className="h-9 px-2.5 rounded-full bg-success text-bg text-[11px] font-bold transition-colors">Mark Contacted</button>
+                          </>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Channel filter */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
-                    <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
-                    <select
-                      value={channelFilter}
-                      onChange={e => setChannelFilter(e.target.value as typeof channelFilter)}
-                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
-                    >
-                      <option value="all">All Channels</option>
-                      <option value="whatsapp_high">WhatsApp High (≥70)</option>
-                      <option value="email_available">Email Available</option>
-                      <option value="phone_available">Phone Available</option>
-                      <option value="multi_channel">Multi-Channel</option>
-                    </select>
-                  </div>
+                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                      <TrendingUp className="w-3.5 h-3.5 text-text-muted" />
+                      <select value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                        <option value={0}>All Scores</option>
+                        <option value={50}>&gt; 50% Match</option>
+                        <option value={75}>&gt; 75% Match</option>
+                        <option value={90}>&gt; 90% Match</option>
+                      </select>
+                    </div>
 
-                  {/* Role filter */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
-                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Role</span>
-                    <select
-                      value={roleFilter}
-                      onChange={e => setRoleFilter(e.target.value)}
-                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
-                    >
-                      <option value="all">All</option>
-                      <option value="ceo">CEOs & Founders</option>
-                      <option value="founder">Founders Only</option>
-                      <option value="director">Directors</option>
-                    </select>
-                  </div>
+                    <button onClick={() => setHasEmailsOnly(!hasEmailsOnly)} className={`h-9 px-3 rounded-full text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${hasEmailsOnly ? "bg-brand-soft border-brand/40 text-brand" : "bg-surface border-border text-text-muted hover:text-text"}`}><Mail className="w-3.5 h-3.5" /> Has Email</button>
 
-                  {/* Min Buyer Intent */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
-                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Intent</span>
-                    <select
-                      value={minBuyerIntent}
-                      onChange={e => setMinBuyerIntent(Number(e.target.value))}
-                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
-                    >
-                      <option value={0}>Any</option>
-                      <option value={65}>High (≥65)</option>
-                      <option value={45}>Moderate (≥45)</option>
-                    </select>
-                  </div>
+                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                      <MessageSquare className="w-3.5 h-3.5 text-text-muted" />
+                      <select value={channelFilter} onChange={e => setChannelFilter(e.target.value as typeof channelFilter)} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                        <option value="all">All Channels</option>
+                        <option value="whatsapp_high">WhatsApp High (≥70)</option>
+                        <option value="email_available">Email Available</option>
+                        <option value="phone_available">Phone Available</option>
+                        <option value="multi_channel">Multi-Channel</option>
+                      </select>
+                    </div>
 
-                  {/* Min Priority */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 h-9 rounded-lg px-2 text-xs">
-                    <span className="text-slate-500 font-semibold text-[10px] uppercase">Priority</span>
-                    <select
-                      value={minPriority}
-                      onChange={e => setMinPriority(Number(e.target.value))}
-                      className="bg-transparent border-none text-slate-700 dark:text-slate-300 focus:outline-none text-[11px]"
-                    >
-                      <option value={0}>All</option>
-                      <option value={75}>High (≥75)</option>
-                      <option value={50}>Medium (≥50)</option>
-                    </select>
+                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                      <span className="text-text-muted font-semibold text-[10px] uppercase">Role</span>
+                      <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                        <option value="all">All</option>
+                        <option value="ceo">CEOs & Founders</option>
+                        <option value="founder">Founders Only</option>
+                        <option value="director">Directors</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                      <span className="text-text-muted font-semibold text-[10px] uppercase">Intent</span>
+                      <select value={minBuyerIntent} onChange={e => setMinBuyerIntent(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                        <option value={0}>Any</option>
+                        <option value={65}>High (≥65)</option>
+                        <option value={45}>Moderate (≥45)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
+                      <span className="text-text-muted font-semibold text-[10px] uppercase">Priority</span>
+                      <select value={minPriority} onChange={e => setMinPriority(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                        <option value={0}>All</option>
+                        <option value={75}>High (≥75)</option>
+                        <option value={50}>Medium (≥50)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Table Data View */}
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <Database className="w-8 h-8 text-indigo-500 animate-spin" />
-                  <span className="text-xs text-slate-500">Querying database records...</span>
-                </div>
-              ) : leads.length === 0 ? (
-                <div className="text-center py-20">
-                  <Database className="w-10 h-10 text-slate-800 mx-auto mb-4" />
-                  <h4 className="text-sm font-bold text-slate-400">No matching leads found</h4>
-                  <p className="text-xs text-slate-600 mt-1">Try expanding your keyword variations or removing filters.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-900/10 text-slate-400 font-medium">
-                        <th className="py-4 px-2 w-10">
-                          <input
-                            type="checkbox"
-                            checked={selectedLeadIds.size >= leads.length && leads.length > 0}
-                            onChange={selectAllLeads}
-                            className="w-3.5 h-3.5 rounded border-slate-600 cursor-pointer"
-                          />
-                        </th>
-                        <th className="py-4 px-6">Business Details</th>
-                        <th className="py-4 px-4">Contact Info</th>
-                        <th className="py-4 px-4 text-center">Score</th>
-                        <th className="py-4 px-6">CRM Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-900/80">
-                      {leads.filter(lead => {
-                        if (channelFilter === 'whatsapp_high') return (lead.whatsappScore ?? 0) >= 70;
-                        if (channelFilter === 'email_available') return lead.emails.length > 0;
-                        if (channelFilter === 'phone_available') return lead.phoneNumbers.length > 0;
-                        if (channelFilter === 'multi_channel') {
-                          let c = 0;
-                          if (lead.emails.length > 0) c++;
-                          if (lead.phoneNumbers.length > 0) c++;
-                          if ((lead.whatsappScore ?? 0) >= 50) c++;
-                          return c >= 2;
-                        }
-                        return true;
-                      }).map((lead) => (
-                        <tr key={lead.id} className="hover:bg-slate-50 dark:bg-slate-900/10 transition-colors align-top">
-                          
-                          {/* Multi-select checkbox */}
-                          <td className="py-5 px-2">
-                            <input
-                              type="checkbox"
-                              checked={selectedLeadIds.has(lead.id)}
-                              onChange={() => toggleLeadSelection(lead.id)}
-                              className="w-3.5 h-3.5 rounded border-slate-600 cursor-pointer"
-                            />
-                          </td>
+                {/* Table */}
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                    <Database className="w-8 h-8 text-brand animate-spin" />
+                    <span className="text-xs text-text-muted">Querying database records…</span>
+                  </div>
+                ) : leads.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Database className="w-10 h-10 text-text-faint mx-auto mb-4" />
+                    <h4 className="text-sm font-bold text-text-muted">No matching leads found</h4>
+                    <p className="text-xs text-text-faint mt-1">Try expanding your keyword variations or removing filters.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse min-w-[820px]">
+                      <thead>
+                        <tr className="border-b border-border bg-surface-2/30 text-text-muted">
+                          <th className="py-4 px-2 w-10">
+                            <input type="checkbox" checked={selectedLeadIds.size >= leads.length && leads.length > 0} onChange={selectAllLeads} className="w-3.5 h-3.5 rounded accent-brand cursor-pointer" />
+                          </th>
+                          <th className="py-4 px-6 font-bold uppercase tracking-wider text-[11px]">Business Details</th>
+                          <th className="py-4 px-4 font-bold uppercase tracking-wider text-[11px]">Contact Info</th>
+                          <th className="py-4 px-4 text-center font-bold uppercase tracking-wider text-[11px]">AI Scores</th>
+                          <th className="py-4 px-6 font-bold uppercase tracking-wider text-[11px]">CRM Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {visibleLeads.map((lead) => (
+                          <tr key={lead.id} className="hover:bg-surface-2/30 transition-colors align-top">
+                            <td className="py-5 px-2">
+                              <input type="checkbox" checked={selectedLeadIds.has(lead.id)} onChange={() => toggleLeadSelection(lead.id)} className="w-3.5 h-3.5 rounded accent-brand cursor-pointer" />
+                            </td>
 
-                          {/* Business Info Column */}
-                          <td className="py-5 px-6 max-w-sm">
-                            <div className="flex flex-col gap-1.5">
-                              <div className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
-                                {lead.businessName}
-                                {lead.decisionMakerRole && (
-                                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                    lead.decisionMakerScore && lead.decisionMakerScore >= 85
-                                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                      : lead.decisionMakerScore && lead.decisionMakerScore >= 70
-                                      ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                                      : 'bg-slate-100 dark:bg-slate-900 text-slate-400 border border-slate-300 dark:border-slate-800'
-                                  }`}>
-                                    {lead.decisionMakerRole}
-                                  </span>
-                                )}
-                                {lead.buyerInsights?.linkedinVerified && (
-                                  <a
-                                    href={lead.buyerInsights?.linkedinUrl || '#'}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={`LinkedIn verified: ${lead.buyerInsights?.linkedinConfidence || 'medium'} confidence`}
-                                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
-                                      lead.buyerInsights?.linkedinConfidence === 'high'
-                                        ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                                        : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                                    }`}
-                                  >
-                                    in
+                            {/* Business Details */}
+                            <td className="py-5 px-6 max-w-sm">
+                              <div className="flex flex-col gap-1.5">
+                                <div className="font-bold text-sm text-text flex items-center gap-1.5 flex-wrap">
+                                  {lead.businessName}
+                                  {lead.decisionMakerRole && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                      lead.decisionMakerScore && lead.decisionMakerScore >= 85 ? 'bg-copper/15 text-copper border-copper/30'
+                                        : lead.decisionMakerScore && lead.decisionMakerScore >= 70 ? 'bg-brand/15 text-brand border-brand/30'
+                                        : 'bg-surface-2 text-text-muted border-border'
+                                    }`}>{lead.decisionMakerRole}</span>
+                                  )}
+                                  {lead.buyerInsights?.linkedinVerified && (
+                                    <a href={lead.buyerInsights?.linkedinUrl || '#'} target="_blank" rel="noopener noreferrer" title={`LinkedIn verified: ${lead.buyerInsights?.linkedinConfidence || 'medium'} confidence`} className="px-1.5 py-0.5 rounded text-[9px] font-bold border bg-info/10 text-info border-info/20">in</a>
+                                  )}
+                                  {lead.companySize && lead.companySize !== "Unknown" && (
+                                    <span className="px-1.5 py-0.5 bg-surface-2 border border-border text-text-muted rounded text-[9px]">{lead.companySize}</span>
+                                  )}
+                                </div>
+
+                                {lead.website ? (
+                                  <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-[11px] text-brand hover:text-brand-hover hover:underline flex items-center gap-1 w-fit">
+                                    <Globe className="w-3.5 h-3.5" /><span className="truncate max-w-[200px]">{lead.website}</span><ExternalLink className="w-2.5 h-2.5" />
                                   </a>
+                                ) : (
+                                  <span className="text-[11px] text-text-faint flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> No Website</span>
                                 )}
-                                {lead.companySize && lead.companySize !== "Unknown" && (
-                                  <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-400 rounded text-[9px]">
-                                    {lead.companySize}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* Website link */}
-                              {lead.website ? (
-                                <a
-                                  href={lead.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 w-fit"
-                                >
-                                  <Globe className="w-3.5 h-3.5" />
-                                  <span className="truncate max-w-[200px]">{lead.website}</span>
-                                  <ExternalLink className="w-2.5 h-2.5" />
-                                </a>
-                              ) : (
-                                <span className="text-[11px] text-slate-600 flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> No Website</span>
-                              )}
 
-                              {/* Physical Address */}
-                              {lead.location && (
-                                <span className="text-[10px] text-slate-500 flex items-start gap-1">
-                                  <MapPin className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                                  <span>{lead.location}</span>
-                                </span>
-                              )}
+                                {lead.location && (
+                                  <span className="text-[10px] text-text-muted flex items-start gap-1">
+                                    <MapPin className="w-3.5 h-3.5 text-text-faint shrink-0" /><span>{lead.location}</span>
+                                  </span>
+                                )}
 
-                              {/* Google Maps link */}
-                              {lead.googleMapsLink && (
-                                <a 
-                                  href={lead.googleMapsLink} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-slate-300 underline w-fit"
-                                >
-                                  View on Google Maps
-                                </a>
-                              )}
+                                {lead.googleMapsLink && (
+                                  <a href={lead.googleMapsLink} target="_blank" rel="noreferrer" className="text-[10px] text-text-muted hover:text-text underline w-fit">View on Google Maps</a>
+                                )}
 
-                              <div className="flex flex-wrap gap-1.5 pt-1">
-                                {lead.pipelineStage && (
-                                  <span className="px-2 py-0.5 rounded-full border border-indigo-500/20 bg-indigo-950/20 text-[9px] font-bold text-indigo-300">
-                                    {lead.pipelineStage}
-                                  </span>
-                                )}
-                                {lead.leadStatus && (
-                                  <span className="px-2 py-0.5 rounded-full border border-slate-400 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-[9px] font-bold text-slate-400">
-                                    {lead.leadStatus}
-                                  </span>
-                                )}
-                                {typeof lead.engagementScore === "number" && (
-                                  <span className="px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-950/20 text-[9px] font-bold text-emerald-300">
-                                    {lead.engagementScore}/100
-                                  </span>
-                                )}
-                                {lead.doNotContact && (
-                                  <span className="px-2 py-0.5 rounded-full border border-red-500/20 bg-red-950/20 text-[9px] font-bold text-red-300">
-                                    DNC
-                                  </span>
-                                )}
-                              </div>
-
-                              {lead.tags && lead.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 pt-1">
-                                  {lead.tags.slice(0, 3).map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
+                                  {lead.pipelineStage && (<span className="px-2 py-0.5 rounded-full border border-brand/20 bg-brand/5 text-[9px] font-bold text-brand">{lead.pipelineStage}</span>)}
+                                  {lead.leadStatus && (<span className="px-2 py-0.5 rounded-full border border-border bg-surface-2 text-[9px] font-bold text-text-muted">{lead.leadStatus}</span>)}
+                                  {typeof lead.engagementScore === "number" && (<span className="px-2 py-0.5 rounded-full border border-success/20 bg-success/5 text-[9px] font-bold text-success">{lead.engagementScore}/100</span>)}
+                                  {lead.doNotContact && (<span className="px-2 py-0.5 rounded-full border border-danger/20 bg-danger/5 text-[9px] font-bold text-danger">DNC</span>)}
                                 </div>
-                              )}
-                            </div>
-                          </td>
 
-                          {/* Contact Info Column */}
-                          <td className="py-5 px-4 max-w-xs">
-                            <div className="flex flex-col gap-3">
-
-                              {/* ── Contact Intelligence ── */}
-                              {lead.bestContactChannel && (
-                                <div className="flex flex-col gap-1.5">
-                                  {/* Best channel badge */}
-                                  <div className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-black w-fit ${
-                                    lead.bestContactChannel === 'WHATSAPP' ? 'bg-emerald-500/10 border border-emerald-400/30 text-emerald-400' :
-                                    lead.bestContactChannel === 'EMAIL' ? 'bg-indigo-500/10 border border-indigo-400/30 text-indigo-300' :
-                                    lead.bestContactChannel === 'PHONE' ? 'bg-amber-500/10 border border-amber-400/30 text-amber-300' :
-                                    'bg-slate-500/10 border border-slate-600 text-slate-400'
-                                  }`}>
-                                    <Zap className="w-2.5 h-2.5" />
-                                    {lead.bestContactChannel === 'WHATSAPP' ? 'WhatsApp First' :
-                                     lead.bestContactChannel === 'EMAIL' ? 'Email First' :
-                                     lead.bestContactChannel === 'PHONE' ? 'Call First' : 'Web Form'}
+                                {lead.tags && lead.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {lead.tags.slice(0, 3).map((tag) => (<span key={tag} className="px-1.5 py-0.5 rounded text-[9px] font-bold text-text-muted border border-border bg-surface">{tag}</span>))}
                                   </div>
+                                )}
+                              </div>
+                            </td>
 
-                                  {/* Channel score row */}
-                                  <div className="flex flex-wrap gap-2 text-[10px]">
-                                    {lead.emails.length > 0 && (
-                                      <span className="flex items-center gap-0.5 text-indigo-400">
-                                        <Mail className="w-2.5 h-2.5" />
-                                        Email {lead.contactChannelScores?.email ?? '—'}
-                                      </span>
-                                    )}
-                                    {lead.whatsappScore != null && lead.whatsappScore > 0 && (
-                                      <span className={`flex items-center gap-0.5 ${
-                                        lead.whatsappConfidence === 'HIGH' ? 'text-emerald-400' :
-                                        lead.whatsappConfidence === 'MEDIUM' ? 'text-amber-400' : 'text-slate-500'
-                                      }`}>
-                                        <MessageSquare className="w-2.5 h-2.5" />
-                                        WA {lead.whatsappScore}
-                                        <span className="text-[9px] opacity-70">({lead.whatsappConfidence})</span>
-                                      </span>
-                                    )}
-                                    {lead.phoneNumbers.length > 0 && (
-                                      <span className="flex items-center gap-0.5 text-amber-400">
-                                        <Phone className="w-2.5 h-2.5" />
-                                        Phone {lead.contactChannelScores?.phone ?? '—'}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Emails List */}
-                              {lead.emails.length === 0 ? (
-                                <span className="text-[11px] text-slate-600 italic">No validated email found</span>
-                              ) : (
-                                <div className="flex flex-col gap-1.5">
-                                  {lead.emails.map((e) => (
-                                    <div key={e.id} className="flex items-center gap-1.5 min-w-0">
-                                      <a
-                                        href={`mailto:${e.email}`}
-                                        title={`Send email to ${e.email}`}
-                                        className="flex items-center gap-1 text-slate-700 dark:text-slate-300 hover:text-indigo-300 min-w-0 font-mono text-[11px]"
-                                      >
-                                        <Mail className="w-3 h-3 text-indigo-400 shrink-0" />
-                                        <span className="truncate">{e.email}</span>
-                                      </a>
-                                      <span className={`px-1.5 py-0.2 rounded text-[8px] font-extrabold uppercase tracking-wide ${
-                                        e.status === "VALID"
-                                          ? "bg-emerald-500/10 text-emerald-400"
-                                          : "bg-amber-500/10 text-amber-400"
-                                      }`}>
-                                        {e.status}
-                                      </span>
-                                      {lead.decisionMakerRole && (
-                                        <span className={`px-1.5 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider ${
-                                          lead.decisionMakerScore && lead.decisionMakerScore >= 85
-                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                                        }`}>
-                                          {lead.decisionMakerRole}
+                            {/* Contact Info */}
+                            <td className="py-5 px-4 max-w-xs">
+                              <div className="flex flex-col gap-3">
+                                {lead.bestContactChannel && (
+                                  <div className="flex flex-col gap-1.5">
+                                    <div className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-black w-fit border ${
+                                      lead.bestContactChannel === 'WHATSAPP' ? 'bg-success/10 border-success/30 text-success'
+                                        : lead.bestContactChannel === 'EMAIL' ? 'bg-brand/10 border-brand/30 text-brand'
+                                        : lead.bestContactChannel === 'PHONE' ? 'bg-copper/10 border-copper/30 text-copper'
+                                        : 'bg-surface-2 border-border text-text-muted'
+                                    }`}>
+                                      <Zap className="w-2.5 h-2.5" />
+                                      {lead.bestContactChannel === 'WHATSAPP' ? 'WhatsApp First' : lead.bestContactChannel === 'EMAIL' ? 'Email First' : lead.bestContactChannel === 'PHONE' ? 'Call First' : 'Web Form'}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 text-[10px]">
+                                      {lead.emails.length > 0 && (<span className="flex items-center gap-0.5 text-brand"><Mail className="w-2.5 h-2.5" /> Email {lead.contactChannelScores?.email ?? '—'}</span>)}
+                                      {lead.whatsappScore != null && lead.whatsappScore > 0 && (
+                                        <span className={`flex items-center gap-0.5 ${lead.whatsappConfidence === 'HIGH' ? 'text-success' : lead.whatsappConfidence === 'MEDIUM' ? 'text-copper' : 'text-text-muted'}`}>
+                                          <MessageSquare className="w-2.5 h-2.5" /> WA {lead.whatsappScore}<span className="text-[9px] opacity-70">({lead.whatsappConfidence})</span>
                                         </span>
                                       )}
-                                      <button
-                                        onClick={() => openComposer(e.email, lead)}
-                                        title="Compose & send via Resend"
-                                        className="ml-auto p-1 rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
-                                      >
-                                        <Send className="w-3 h-3" />
-                                      </button>
+                                      {lead.phoneNumbers.length > 0 && (<span className="flex items-center gap-0.5 text-copper"><Phone className="w-2.5 h-2.5" /> Phone {lead.contactChannelScores?.phone ?? '—'}</span>)}
                                     </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Phone Numbers List */}
-                              {lead.phoneNumbers.length > 0 && (
-                                <div className="flex flex-col gap-0.5 text-slate-400 text-[10px]">
-                                  {lead.phoneNumbers.map((phone, i) => (
-                                    <a
-                                      key={i}
-                                      href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                                      className="flex items-center gap-1 hover:text-slate-800 dark:text-slate-200 w-fit"
-                                      title={`Call ${phone}`}
-                                    >
-                                      <Phone className="w-3 h-3 text-slate-500" /> {phone}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Score Column — Domain Match, Priority, Decision Maker */}
-                          <td className="py-5 px-4 text-center">
-                            <div className="inline-flex flex-col items-center gap-1.5 min-w-[80px]">
-                              {/* Priority Score (primary) */}
-                              {lead.priorityScore != null && (
-                                <span className={`text-lg font-extrabold px-3 py-1 rounded-lg ${
-                                  lead.priorityScore >= 85
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                    : lead.priorityScore >= 65
-                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                    : "bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-800"
-                                }`}>
-                                  {lead.priorityScore}
-                                </span>
-                              )}
-
-                              {/* Domain Match Score */}
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                lead.domainMatchScore >= 85
-                                  ? "bg-emerald-950/20 text-emerald-400"
-                                  : lead.domainMatchScore >= 65
-                                  ? "bg-indigo-950/20 text-indigo-400"
-                                  : "bg-slate-100 dark:bg-slate-900 text-slate-500"
-                              }`}>
-                                Match {lead.domainMatchScore}%
-                              </span>
-
-                              {/* Decision Maker */}
-                              {(lead.decisionMakerName || lead.decisionMakerRole) ? (
-                                <div className="flex flex-col items-center border-t border-slate-800/50 pt-1.5 mt-0.5 w-full">
-                                  {lead.decisionMakerName && (
-                                    <span className="text-[11px] font-bold text-slate-200 leading-tight truncate max-w-[90px]">
-                                      {lead.decisionMakerName}
-                                    </span>
-                                  )}
-                                  <span className="text-[9px] text-slate-500 uppercase tracking-wider">{lead.decisionMakerRole || 'Unknown Role'}</span>
-                                  {lead.decisionMakerScore != null && (
-                                    <span className={`text-[10px] font-bold ${
-                                      lead.decisionMakerScore >= 85 ? 'text-amber-400' :
-                                      lead.decisionMakerScore >= 70 ? 'text-indigo-400' : 'text-slate-500'
-                                    }`}>
-                                      DM {lead.decisionMakerScore}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="border-t border-slate-800/50 pt-1.5 mt-0.5 w-full">
-                                  <span className="text-[9px] text-slate-600 italic">No DM identified</span>
-                                </div>
-                              )}
-
-                              {/* Buyer Intent + Domain Fit badges */}
-                              <div className="flex items-center gap-1">
-                                {lead.buyerIntentScore != null && (
-                                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                                    lead.buyerIntentScore >= 65 ? 'bg-red-500/10 text-red-400' :
-                                    lead.buyerIntentScore >= 45 ? 'bg-amber-500/10 text-amber-400' :
-                                    'bg-slate-100 dark:bg-slate-900 text-slate-500'
-                                  }`}>
-                                    BI {lead.buyerIntentScore}
-                                  </span>
+                                  </div>
                                 )}
-                                {lead.domainUpgradeScore != null && (
-                                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                                    lead.domainUpgradeScore >= 60 ? 'bg-cyan-500/10 text-cyan-400' :
-                                    lead.domainUpgradeScore >= 40 ? 'bg-indigo-500/10 text-indigo-400' :
-                                    'bg-slate-100 dark:bg-slate-900 text-slate-500'
-                                  }`}>
-                                    DF {lead.domainUpgradeScore}
-                                  </span>
+
+                                {lead.emails.length === 0 ? (
+                                  <span className="text-[11px] text-text-faint italic">No validated email found</span>
+                                ) : (
+                                  <div className="flex flex-col gap-1.5">
+                                    {lead.emails.map((e) => (
+                                      <div key={e.id} className="flex items-center gap-1.5 min-w-0">
+                                        <a href={`mailto:${e.email}`} title={`Send email to ${e.email}`} className="flex items-center gap-1 text-text hover:text-brand min-w-0 font-mono text-[11px]">
+                                          <Mail className="w-3 h-3 text-brand shrink-0" /><span className="truncate">{e.email}</span>
+                                        </a>
+                                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide ${e.status === "VALID" ? "bg-success/10 text-success" : "bg-copper/10 text-copper"}`}>{e.status}</span>
+                                        {lead.decisionMakerRole && (
+                                          <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider border ${lead.decisionMakerScore && lead.decisionMakerScore >= 85 ? 'bg-copper/20 text-copper border-copper/30' : 'bg-brand/10 text-brand border-brand/20'}`}>{lead.decisionMakerRole}</span>
+                                        )}
+                                        <button onClick={() => openComposer(e.email, lead)} title="Compose & send" className="ml-auto p-1 rounded text-success hover:text-success hover:bg-success/10 transition-colors"><Send className="w-3 h-3" /></button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {lead.phoneNumbers.length > 0 && (
+                                  <div className="flex flex-col gap-0.5 text-text-muted text-[10px]">
+                                    {lead.phoneNumbers.map((phone, i) => (
+                                      <a key={i} href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="flex items-center gap-1 hover:text-text w-fit" title={`Call ${phone}`}><Phone className="w-3 h-3 text-text-faint" /> {phone}</a>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
+                            </td>
 
-                              {/* Contact strategy badge */}
-                              {lead.contactStrategy && (
-                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-800/50 text-slate-400 uppercase tracking-wider">
-                                  {lead.contactStrategy === 'email_decision_maker' ? '📧 DM' :
-                                   lead.contactStrategy === 'email_general' ? '📧 Gen' :
-                                   lead.contactStrategy === 'call_business' ? '📞 Call' : '🌐 Form'}
-                                </span>
-                              )}
+                            {/* AI Scores */}
+                            <td className="py-5 px-4">
+                              <div className="flex items-start justify-center gap-4">
+                                <div className="flex flex-col items-center gap-1">
+                                  <ScoreRing score={lead.priorityScore ?? lead.domainMatchScore} size="lg" />
+                                  <span className="text-[9px] uppercase font-bold tracking-wider text-text-muted">Priority</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5 min-w-[88px]">
+                                  <div className="flex items-center justify-between text-[11px] gap-3">
+                                    <span className="text-text-muted font-bold uppercase">Match</span>
+                                    <span className="font-mono font-bold text-brand">{lead.domainMatchScore}</span>
+                                  </div>
+                                  {lead.buyerIntentScore != null && (
+                                    <div className="flex items-center justify-between text-[11px] gap-3">
+                                      <span className="text-text-muted font-bold uppercase">Intent</span>
+                                      <span className="font-mono font-bold text-copper">{lead.buyerIntentScore}</span>
+                                    </div>
+                                  )}
+                                  {lead.decisionMakerScore != null && (
+                                    <div className="flex items-center justify-between text-[11px] gap-3">
+                                      <span className="text-text-muted font-bold uppercase">DM</span>
+                                      <span className="font-mono font-bold text-success">{lead.decisionMakerScore}</span>
+                                    </div>
+                                  )}
+                                  {lead.domainUpgradeScore != null && (
+                                    <div className="flex items-center justify-between text-[11px] gap-3">
+                                      <span className="text-text-muted font-bold uppercase">Fit</span>
+                                      <span className="font-mono font-bold text-info">{lead.domainUpgradeScore}</span>
+                                    </div>
+                                  )}
+                                  {(lead.decisionMakerName || lead.contactStrategy) && (
+                                    <div className="border-t border-border pt-1.5 mt-0.5">
+                                      {lead.decisionMakerName && (<div className="text-[11px] font-bold text-text leading-tight truncate max-w-[120px]">{lead.decisionMakerName}</div>)}
+                                      {lead.contactStrategy && (
+                                        <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">
+                                          {lead.contactStrategy === 'email_decision_maker' ? '📧 DM' : lead.contactStrategy === 'email_general' ? '📧 Gen' : lead.contactStrategy === 'call_business' ? '📞 Call' : '🌐 Form'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {lead.scoreExplanation && (
+                                    <div className="relative group cursor-help w-fit">
+                                      <HelpCircle className="w-3.5 h-3.5 text-text-faint hover:text-text-muted" />
+                                      <div className="absolute bottom-full right-0 mb-1.5 w-48 glass text-text-muted text-[10px] p-2.5 rounded-lg border border-border hidden group-hover:block shadow-xl leading-relaxed z-10">{lead.scoreExplanation}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
 
-                              {/* WhatsApp reachability score */}
-                              {lead.whatsappScore != null && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
-                                  lead.whatsappConfidence === 'HIGH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                  lead.whatsappConfidence === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                                  'bg-slate-100 dark:bg-slate-900 text-slate-500 border border-slate-300 dark:border-slate-700'
-                                }`}>
-                                  <MessageSquare className="w-2.5 h-2.5" /> {lead.whatsappScore}
-                                </span>
-                              )}
-
-                              {/* Match explanation tooltip helper */}
-                              {lead.scoreExplanation && (
-                                <div className="relative group cursor-help">
-                                  <HelpCircle className="w-3.5 h-3.5 text-slate-600 hover:text-slate-400" />
-                                  <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-1.5 w-48 bg-slate-100 dark:bg-slate-900 text-slate-400 text-[10px] p-2.5 rounded-lg border border-slate-300 dark:border-slate-800 hidden group-hover:block shadow-xl leading-relaxed z-10">
-                                    {lead.scoreExplanation}
+                            {/* CRM Notes */}
+                            <td className="py-5 px-6 max-w-xs">
+                              {editingNotesLeadId === lead.id ? (
+                                <div className="flex flex-col gap-2">
+                                  <textarea value={notesText} onChange={(e) => setNotesText(e.target.value)} className="w-full bg-bg border border-border rounded p-1.5 text-[11px] text-text focus:outline-none focus:border-brand h-16 resize-none" />
+                                  <div className="flex gap-1.5">
+                                    <button onClick={() => handleSaveNotes(lead.id)} className="p-1 bg-brand text-bg rounded hover:bg-brand-hover" title="Save"><Save className="w-3.5 h-3.5" /></button>
+                                    <button onClick={() => setEditingNotesLeadId(null)} className="p-1 px-2 bg-surface-2 text-text-muted rounded hover:bg-surface text-[11px]">Cancel</button>
                                   </div>
                                 </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Notes/CRM Column */}
-                          <td className="py-5 px-6 max-w-xs">
-                            {editingNotesLeadId === lead.id ? (
-                              <div className="flex flex-col gap-2">
-                                <textarea
-                                  value={notesText}
-                                  onChange={(e) => setNotesText(e.target.value)}
-                                  className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded p-1.5 text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 h-16 resize-none"
-                                />
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() => handleSaveNotes(lead.id)}
-                                    className="p-1 bg-indigo-600 text-slate-900 dark:text-white rounded hover:bg-indigo-500"
-                                    title="Save"
-                                  >
-                                    <Save className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingNotesLeadId(null)}
-                                    className="p-1 bg-slate-200 dark:bg-slate-800 text-slate-400 rounded hover:bg-slate-700"
-                                  >
-                                    Cancel
-                                  </button>
+                              ) : (
+                                <div className="group/note">
+                                  <p className="text-[11px] text-text-muted leading-relaxed italic whitespace-pre-wrap">{lead.notes || "No notes added yet."}</p>
+                                  <button onClick={() => handleEditNotes(lead)} className="text-[10px] text-brand hover:underline mt-1 opacity-0 group-hover/note:opacity-100 transition-opacity">Edit Notes</button>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className="group/note">
-                                <p className="text-[11px] text-slate-400 leading-relaxed italic whitespace-pre-wrap">
-                                  {lead.notes || "No notes added yet."}
-                                </p>
-                                <button
-                                  onClick={() => handleEditNotes(lead)}
-                                  className="text-[10px] text-indigo-400 hover:underline mt-1 opacity-0 group-hover/note:opacity-100 transition-opacity"
-                                >
-                                  Edit Notes
-                                </button>
-                              </div>
-                            )}
-                          </td>
-
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Table pagination controls */}
-              {!loading && totalPages > 1 && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-900 flex justify-between items-center text-xs text-slate-500">
-                  <span>Page {page} of {totalPages} ({totalLeadsCount} total leads)</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      disabled={page === 1}
-                      onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                      className="p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-700 dark:text-slate-300"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      disabled={page === totalPages}
-                      onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
-                      className="p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:bg-slate-850 disabled:opacity-30 rounded-lg text-slate-700 dark:text-slate-300"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              )}
+                )}
 
+                {/* Pagination */}
+                {!loading && totalPages > 1 && (
+                  <div className="p-4 bg-surface-2/30 border-t border-border flex justify-between items-center text-xs text-text-muted">
+                    <span>Page {page} of {totalPages} ({totalLeadsCount} total leads)</span>
+                    <div className="flex items-center gap-1.5">
+                      <button disabled={page === 1} onClick={() => setPage(prev => Math.max(1, prev - 1))} className="p-1.5 bg-surface border border-border hover:bg-surface-2 disabled:opacity-30 rounded-lg text-text-muted"><ChevronLeft className="w-4 h-4" /></button>
+                      <button disabled={page === totalPages} onClick={() => setPage(prev => Math.min(totalPages, prev + 1))} className="p-1.5 bg-surface border border-border hover:bg-surface-2 disabled:opacity-30 rounded-lg text-text-muted"><ChevronRight className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
             </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <TrendingUp className="w-12 h-12 text-slate-800 mb-4" />
-            <h3 className="text-base font-bold text-slate-400">Welcome to GeoLead AI</h3>
-            <p className="text-xs text-slate-600 max-w-sm mt-1 leading-relaxed">
-              Generate keyword variations and discover high-intent local buyers for your domain assets. Submit a query in the sidebar.
-            </p>
-          </div>
-        )}
-      </main>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <TrendingUp className="w-12 h-12 text-text-faint mb-4" />
+              <h3 className="text-base font-bold text-text-muted">Welcome to GeoLead AI</h3>
+              <p className="text-xs text-text-faint max-w-sm mt-1 leading-relaxed">Generate keyword variations and discover high-intent local buyers for your domain assets. Submit a query in the rail.</p>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* WhatsApp Validation Panel */}
-      {showWaPanel && (
-        <WaValidationPanel
-          leads={leads}
-          taskId={selectedTask?.id}
-          onClose={() => setShowWaPanel(false)}
-        />
-      )}
+      {showWaPanel && (<WaValidationPanel leads={leads} taskId={selectedTask?.id} onClose={() => setShowWaPanel(false)} />)}
 
       {/* Solo Send Composer Modal */}
       <ComposerModal
@@ -2184,31 +1723,22 @@ export default function DashboardPage() {
       {/* Campaign Creation Modal */}
       {showCampaignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowCampaignModal(false)}>
-          <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
+          <div className="glass border border-border rounded-2xl w-full max-w-md shadow-[0_24px_64px_rgba(0,0,0,.5)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-red-400" /> Create Campaign
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">{selectedLeadIds.size} leads selected</p>
+                <h3 className="text-sm font-bold text-text flex items-center gap-2"><Zap className="w-4 h-4 text-danger" /> Create Campaign</h3>
+                <p className="text-[11px] text-text-muted mt-0.5">{selectedLeadIds.size} leads selected</p>
               </div>
-              <button onClick={() => setShowCampaignModal(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-200 rounded">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setShowCampaignModal(false)} className="p-1.5 text-text-muted hover:text-text rounded"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-5 space-y-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Campaign Name</label>
-                <input value={campaignName} onChange={e => setCampaignName(e.target.value)}
-                  placeholder={`Auto: ${selectedTask?.domainIdea || 'Campaign'}`}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-red-500"
-                />
+                <label className={LABEL}>Campaign Name</label>
+                <input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder={`Auto: ${selectedTask?.domainIdea || 'Campaign'}`} className={INPUT} />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daily Limit</label>
-                <select value={campaignThrottle} onChange={e => setCampaignThrottle(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-red-500"
-                >
+                <label className={LABEL}>Daily Limit</label>
+                <select value={campaignThrottle} onChange={e => setCampaignThrottle(Number(e.target.value))} className={INPUT}>
                   <option value={5}>5 / day (conservative)</option>
                   <option value={10}>10 / day (moderate)</option>
                   <option value={20}>20 / day (aggressive)</option>
@@ -2216,15 +1746,10 @@ export default function DashboardPage() {
                 </select>
               </div>
             </div>
-            <div className="p-5 border-t border-slate-300 dark:border-slate-800 flex justify-end gap-2">
-              <button onClick={() => setShowCampaignModal(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 rounded-lg">Cancel</button>
-              <button
-                onClick={handleCreateCampaign}
-                disabled={campaignCreating}
-                className="px-4 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-900 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                {campaignCreating ? 'Creating...' : 'Create Campaign'}
+            <div className="p-5 border-t border-border flex justify-end gap-2">
+              <button onClick={() => setShowCampaignModal(false)} className="px-3 py-1.5 text-xs font-semibold text-text-muted hover:text-text rounded-lg">Cancel</button>
+              <button onClick={handleCreateCampaign} disabled={campaignCreating} className="px-4 py-1.5 bg-danger hover:opacity-90 disabled:opacity-50 rounded-lg text-xs font-bold text-bg flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5" />{campaignCreating ? 'Creating…' : 'Create Campaign'}
               </button>
             </div>
           </div>
@@ -2234,86 +1759,52 @@ export default function DashboardPage() {
       {/* Export Options Modal */}
       {exportOptionsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setExportOptionsOpen(false)}>
-          <div
-            className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-slate-300 dark:border-slate-800">
+          <div className="glass border border-border rounded-2xl w-full max-w-md shadow-[0_24px_64px_rgba(0,0,0,.5)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-teal-400" /> Export Options
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Format, filters, and column groups</p>
+                <h3 className="text-sm font-bold text-text flex items-center gap-2"><Download className="w-4 h-4 text-brand" /> Export Options</h3>
+                <p className="text-[11px] text-text-muted mt-0.5">Format, filters, and column groups</p>
               </div>
-              <button onClick={() => setExportOptionsOpen(false)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-200 rounded">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setExportOptionsOpen(false)} className="p-1.5 text-text-muted hover:text-text rounded"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Format</label>
+                <label className={LABEL}>Format</label>
                 <div className="flex gap-2">
                   {(['csv', 'xlsx', 'json'] as const).map(fmt => (
-                    <button
-                      key={fmt}
-                      onClick={() => setExportFormat(fmt)}
-                      className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${
-                        exportFormat === fmt
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-white dark:bg-slate-950 text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-800'
-                      }`}
-                    >
-                      {fmt.toUpperCase()}
-                    </button>
+                    <button key={fmt} onClick={() => setExportFormat(fmt)} className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-colors ${exportFormat === fmt ? 'bg-brand text-bg' : 'bg-bg text-text-muted hover:text-text border border-border'}`}>{fmt.toUpperCase()}</button>
                   ))}
                 </div>
               </div>
-              <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Export Mode</p>
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Export Mode</p>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={exportEmailsOnly}
-                    onChange={(e) => setExportEmailsOnly(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">One row per email (flat list)</span>
+                  <input type="checkbox" checked={exportEmailsOnly} onChange={(e) => setExportEmailsOnly(e.target.checked)} className="w-4 h-4 rounded accent-brand" />
+                  <span className="text-xs text-text">One row per email (flat list)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={exportIncludeRisky}
-                    onChange={(e) => setExportIncludeRisky(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-400 dark:border-slate-700 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Include risky (catch-all) emails</span>
+                  <input type="checkbox" checked={exportIncludeRisky} onChange={(e) => setExportIncludeRisky(e.target.checked)} className="w-4 h-4 rounded accent-brand" />
+                  <span className="text-xs text-text">Include risky (catch-all) emails</span>
                 </label>
               </div>
-              <div className="space-y-1.5 border-t border-slate-200 dark:border-slate-800 pt-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Columns Included</p>
-                <p className="text-[9px] text-slate-500 mb-2">Business info, contacts, emails, phone, location, category, rating, and notes are always included.</p>
-                <p className="text-[9px] text-teal-400 font-semibold">+ Decision maker (name, role, score, email)</p>
-                <p className="text-[9px] text-teal-400 font-semibold">+ LinkedIn (URL, verified status)</p>
-                <p className="text-[9px] text-teal-400 font-semibold">+ Buyer scores (intent, fit, quality, priority)</p>
-                <p className="text-[9px] text-teal-400 font-semibold">+ Contact strategy + engagement</p>
-                <p className="text-[9px] text-teal-400 font-semibold">+ Email verification details (provider, MX, confidence)</p>
+              <div className="space-y-1.5 border-t border-border pt-3">
+                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Columns Included</p>
+                <p className="text-[9px] text-text-faint mb-2">Business info, contacts, emails, phone, location, category, rating, and notes are always included.</p>
+                <p className="text-[9px] text-brand font-semibold">+ Decision maker (name, role, score, email)</p>
+                <p className="text-[9px] text-brand font-semibold">+ LinkedIn (URL, verified status)</p>
+                <p className="text-[9px] text-brand font-semibold">+ Buyer scores (intent, fit, quality, priority)</p>
+                <p className="text-[9px] text-brand font-semibold">+ Contact strategy + engagement</p>
+                <p className="text-[9px] text-brand font-semibold">+ Email verification details (provider, MX, confidence)</p>
               </div>
             </div>
-            <div className="p-5 border-t border-slate-300 dark:border-slate-800 flex justify-end gap-2">
-              <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-800 dark:text-slate-200 rounded-lg">Cancel</button>
-              <button
-                onClick={() => { setExportOptionsOpen(false); handleExport(exportFormat); }}
-                className="px-4 py-1.5 bg-teal-600 hover:bg-teal-500 rounded-lg text-xs font-bold text-white flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Export
-              </button>
+            <div className="p-5 border-t border-border flex justify-end gap-2">
+              <button onClick={() => setExportOptionsOpen(false)} className="px-3 py-1.5 text-xs font-semibold text-text-muted hover:text-text rounded-lg">Cancel</button>
+              <button onClick={() => { setExportOptionsOpen(false); handleExport(exportFormat); }} className="px-4 py-1.5 bg-brand hover:bg-brand-hover rounded-lg text-xs font-bold text-bg flex items-center gap-1.5 shadow-[0_0_12px_rgba(20,184,166,0.3)]"><Download className="w-3.5 h-3.5" /> Export</button>
             </div>
           </div>
         </div>
       )}
-
-    </div>
+    </OutboundShell>
   );
 }
 
@@ -2321,18 +1812,15 @@ export default function DashboardPage() {
 
 function waLink(phone: string): string {
   const digits = phone.replace(/[^\d]/g, '');
-  // Prepend country code 1 for plain 10-digit US numbers
   const normalized = digits.length === 10 ? `1${digits}` : digits;
   return `https://wa.me/${normalized}`;
 }
 
 function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?: string; onClose: () => void }) {
   const [allLeads, setAllLeads] = useState<Lead[]>(leads);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!taskId) return;
-    setLoading(true);
     (async () => {
       try {
         const res = await authFetch(`${BACKEND_URL}/api/leads?taskId=${taskId}&hasEmails=false&limit=500&page=1`);
@@ -2341,7 +1829,6 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
           setAllLeads(data.leads || []);
         }
       } catch { /* keep current leads */ }
-      setLoading(false);
     })();
   }, [taskId]);
 
@@ -2349,115 +1836,81 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
     .filter(l => l.phoneNumbers.length > 0)
     .sort((a, b) => (b.whatsappScore ?? 0) - (a.whatsappScore ?? 0));
 
-  const high   = withPhone.filter(l => (l.whatsappScore ?? 0) >= 70).length;
+  const high = withPhone.filter(l => (l.whatsappScore ?? 0) >= 70).length;
   const medium = withPhone.filter(l => { const s = l.whatsappScore ?? 0; return s >= 45 && s < 70; }).length;
-  const low    = withPhone.filter(l => (l.whatsappScore ?? 0) < 45).length;
+  const low = withPhone.filter(l => (l.whatsappScore ?? 0) < 45).length;
 
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const visible = withPhone.filter(l => {
     const s = l.whatsappScore ?? 0;
-    if (filter === 'high')   return s >= 70;
+    if (filter === 'high') return s >= 70;
     if (filter === 'medium') return s >= 45 && s < 70;
-    if (filter === 'low')    return s < 45;
+    if (filter === 'low') return s < 45;
     return true;
   });
 
   const confColor = (conf: string | null | undefined) =>
-    conf === 'HIGH'   ? 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30' :
-    conf === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-400/30' :
-                        'bg-slate-500/10 text-slate-400 border-slate-600';
+    conf === 'HIGH' ? 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30' :
+    conf === 'MEDIUM' ? 'bg-copper/10 text-copper border-copper/30' :
+      'bg-surface-2 text-text-muted border-border';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-10 mb-10 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="w-full max-w-2xl mt-10 mb-10 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 flex items-center justify-center">
               <MessageSquare className="w-4 h-4 text-[#25D366]" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">WhatsApp Validation</h3>
-              <p className="text-[11px] text-slate-500">{withPhone.length} leads with phone numbers</p>
+              <h3 className="text-sm font-black text-text">WhatsApp Validation</h3>
+              <p className="text-[11px] text-text-muted">{withPhone.length} leads with phone numbers</p>
             </div>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg text-text-muted hover:text-text flex items-center justify-center"><X className="w-4 h-4" /></button>
         </div>
 
-        {/* Summary row */}
-        <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-b border-slate-200 dark:border-slate-800">
+        <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           {[
             { label: 'HIGH likelihood', count: high, color: 'text-[#25D366]', filter: 'high' as const },
-            { label: 'MEDIUM likelihood', count: medium, color: 'text-amber-400', filter: 'medium' as const },
-            { label: 'LOW likelihood', count: low, color: 'text-slate-500', filter: 'low' as const },
+            { label: 'MEDIUM likelihood', count: medium, color: 'text-copper', filter: 'medium' as const },
+            { label: 'LOW likelihood', count: low, color: 'text-text-muted', filter: 'low' as const },
           ].map(item => (
-            <button
-              key={item.filter}
-              onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)}
-              className={`py-3 text-center transition-colors ${filter === item.filter ? 'bg-slate-50 dark:bg-slate-900/60' : 'hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
-            >
+            <button key={item.filter} onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)} className={`py-3 text-center transition-colors ${filter === item.filter ? 'bg-surface-2/60' : 'hover:bg-surface-2/40'}`}>
               <div className={`text-xl font-black ${item.color}`}>{item.count}</div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">{item.label}</div>
+              <div className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{item.label}</div>
             </button>
           ))}
         </div>
 
-        {/* Note */}
-        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly — if WhatsApp recognises the number, a chat will open. Scores are AI probability estimates based on phone format, industry, and location signals.
+        <div className="px-6 py-3 bg-surface-2/30 border-b border-border text-[11px] text-text-muted">
+          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly. Scores are AI probability estimates based on phone format, industry, and location signals.
         </div>
 
-        {/* Lead list */}
-        <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[480px] overflow-y-auto">
-          {visible.length === 0 && (
-            <div className="py-12 text-center text-sm text-slate-500">No leads in this category.</div>
-          )}
+        <div className="divide-y divide-border max-h-[480px] overflow-y-auto">
+          {visible.length === 0 && (<div className="py-12 text-center text-sm text-text-muted">No leads in this category.</div>)}
           {visible.map(lead => (
             <div key={lead.id} className="px-6 py-4 flex items-start gap-4">
-              {/* Score badge */}
               <div className={`shrink-0 h-10 w-10 rounded-xl border flex flex-col items-center justify-center ${confColor(lead.whatsappConfidence)}`}>
                 <span className="text-[13px] font-black leading-none">{lead.whatsappScore ?? '?'}</span>
-                <span className="text-[8px] font-bold leading-none mt-0.5 opacity-70">
-                  {lead.whatsappConfidence ?? 'N/A'}
-                </span>
+                <span className="text-[8px] font-bold leading-none mt-0.5 opacity-70">{lead.whatsappConfidence ?? 'N/A'}</span>
               </div>
-
-              {/* Business + phones */}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{lead.businessName}</div>
-                {lead.location && (
-                  <div className="text-[11px] text-slate-500 mt-0.5">{lead.location}</div>
-                )}
+                <div className="text-sm font-bold text-text truncate">{lead.businessName}</div>
+                {lead.location && (<div className="text-[11px] text-text-muted mt-0.5">{lead.location}</div>)}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {lead.phoneNumbers.map((phone, i) => (
-                    <a
-                      key={i}
-                      href={waLink(phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 text-[11px] font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      {phone}
+                    <a key={i} href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 text-[11px] font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors">
+                      <MessageSquare className="w-3 h-3" />{phone}
                     </a>
                   ))}
                 </div>
               </div>
-
-              {/* Best channel hint */}
               {lead.bestContactChannel && (
-                <div className="shrink-0 text-[10px] text-slate-500 text-right">
-                  <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-slate-400'}`}>
-                    {lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}
-                  </div>
+                <div className="shrink-0 text-[10px] text-text-muted text-right">
+                  <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-text-muted'}`}>{lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}</div>
                   {lead.contactChannelScores && (
-                    <div className="mt-0.5 space-y-0.5">
-                      <div>Email {lead.contactChannelScores.email}</div>
-                      <div>Phone {lead.contactChannelScores.phone}</div>
-                    </div>
+                    <div className="mt-0.5 space-y-0.5"><div>Email {lead.contactChannelScores.email}</div><div>Phone {lead.contactChannelScores.phone}</div></div>
                   )}
                 </div>
               )}
@@ -2465,14 +1918,9 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
-            Showing {visible.length} of {withPhone.length} leads with phones
-          </span>
-          <button onClick={onClose} className="h-8 px-4 rounded-lg border border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-            Close
-          </button>
+        <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+          <span className="text-[11px] text-text-muted">Showing {visible.length} of {withPhone.length} leads with phones</span>
+          <button onClick={onClose} className="h-8 px-4 rounded-lg border border-border text-xs text-text-muted hover:text-text">Close</button>
         </div>
       </div>
     </div>

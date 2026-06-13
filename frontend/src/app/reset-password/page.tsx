@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
     <AuthShell
       title="Choose a new password"
       footer={
-        <Link href="/login" className="font-medium text-teal-400 hover:text-teal-300">
+        <Link href="/login" className="font-medium text-brand hover:text-brand-hover">
           Back to sign in
         </Link>
       }
@@ -58,9 +58,9 @@ export default function ResetPasswordPage() {
         <AuthError message={error} />
         <AuthNotice message={notice} />
         {!token ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             This reset link is missing its token. Request a new one from{" "}
-            <Link href="/forgot-password" className="text-teal-400 hover:text-teal-300">
+            <Link href="/forgot-password" className="text-brand hover:text-brand-hover">
               forgot password
             </Link>
             .

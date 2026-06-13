@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bot, Inbox, RefreshCcw, ShieldCheck, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Bot, MapPin, RefreshCcw, ShieldAlert } from "lucide-react";
 import { ClientDate } from "@/lib/ClientDate";
-import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { EmptyState, OutboundShell } from "@/components/OutboundShell";
+import { GlassCard, MetricCard, ScoreRing, Sparkline, StatusBadge } from "@/components/ui";
 import {
   fetchOutbound,
   OUTBOUND_API_BASE,
@@ -101,8 +100,8 @@ const demoOverview: OutboundOverview = {
     },
   ],
   activity: [
-    { id: "a1", type: "OPENED", campaignName: "Texas car-domain buyers", occurredAt: "2026-05-23T09:45:00.000Z" },
-    { id: "a2", type: "REPLIED", campaignName: "Texas car-domain buyers", occurredAt: "2026-05-23T09:30:00.000Z" },
+    { id: "a1", type: "OPENED", campaignName: "Texas car-domain buyers", businessName: "Texas Auto Sales", toEmail: "sales@texasautosales.example", subject: "Re: TexasCarVendor.com", variant: "A", occurredAt: "2026-05-23T09:45:00.000Z" },
+    { id: "a2", type: "REPLIED", campaignName: "Texas car-domain buyers", businessName: "Lone Star Motors", toEmail: "owner@lonestarmotors.example", subject: "Re: domain offer", variant: "B", occurredAt: "2026-05-23T09:30:00.000Z" },
   ],
   topLeads: [
     {
@@ -120,6 +119,25 @@ const demoOverview: OutboundOverview = {
     "Warm-up is enabled and daily volume is still below the safe campaign cap.",
   ],
 };
+
+function eventTone(type?: string) {
+  switch ((type || "").toUpperCase()) {
+    case "OPENED":
+    case "DELIVERED":
+      return { color: "text-success", bg: "bg-success/10", border: "border-success/20" };
+    case "CLICKED":
+      return { color: "text-info", bg: "bg-info/10", border: "border-info/20" };
+    case "REPLIED":
+    case "SENT":
+      return { color: "text-brand", bg: "bg-brand/10", border: "border-brand/20" };
+    case "BOUNCED":
+      return { color: "text-danger", bg: "bg-danger/10", border: "border-danger/20" };
+    case "UNSUBSCRIBED":
+      return { color: "text-copper", bg: "bg-copper/10", border: "border-copper/20" };
+    default:
+      return { color: "text-text-muted", bg: "bg-surface-2", border: "border-border" };
+  }
+}
 
 export default function HomePage() {
   const [overview, setOverview] = useState<OutboundOverview>(demoOverview);
@@ -195,7 +213,6 @@ export default function HomePage() {
           /* malformed message, ignore */
         }
       };
-      // Silently handle errors — the user is on a local app, the WS is best-effort
       socket.onerror = () => { /* expected when backend is offline */ };
       socket.onclose = () => { socket = null; };
     } catch {
@@ -213,10 +230,27 @@ export default function HomePage() {
     [overview.campaigns]
   );
 
+  const engagement = overview.campaigns.length
+    ? Math.round(overview.campaigns.reduce((s, c) => s + (c.engagementScore || 0), 0) / overview.campaigns.length)
+    : Math.round(metrics.openRate);
+
+  const sparkData = overview.campaigns.length >= 2
+    ? overview.campaigns.map((c) => c.engagementScore || 0)
+    : [42, 55, 48, 63, 58, 72, engagement];
+
+  const geoPulse = useMemo(
+    () =>
+      overview.campaigns
+        .filter((c) => c.cityState)
+        .slice(0, 4)
+        .map((c) => ({ loc: c.cityState as string, count: c.recipients ?? 0, active: c.status === "ACTIVE" })),
+    [overview.campaigns]
+  );
+
   return (
     <OutboundShell
-      title="Outbound Command Center"
-      subtitle="Generate compliant AI emails, run geo-domain campaigns, watch replies, and keep sender health under control."
+      title="Command Center"
+      subtitle="Live operation status"
       actions={
         <>
           <button
@@ -224,14 +258,14 @@ export default function HomePage() {
               setLoading(true);
               void loadOverview();
             }}
-            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+            className="h-9 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center gap-2 transition-colors"
           >
             <RefreshCcw className="h-4 w-4" />
             Refresh
           </button>
           <Link
             href="/ai-email-generator"
-            className="h-10 px-4 rounded-lg bg-teal-600 text-sm font-bold text-white hover:bg-teal-500 inline-flex items-center gap-2"
+            className="h-9 px-4 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover inline-flex items-center gap-2 shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors"
           >
             <Bot className="h-4 w-4" />
             Write Email
@@ -240,190 +274,216 @@ export default function HomePage() {
       }
     >
       {offline ? (
-        <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-100">
+        <div className="mb-6 rounded-lg border border-copper/20 bg-copper/10 px-4 py-3 text-sm text-copper">
           Backend offline. Showing seeded workspace data until {OUTBOUND_API_BASE} is available.
         </div>
       ) : null}
 
-      <section className="grid grid-cols-2 xl:grid-cols-6 gap-3">
-        <MetricCard label="Campaigns" value={metrics.campaigns} helper={`${metrics.activeCampaigns} active`} />
-        <MetricCard label="Queued" value={metrics.queued} helper="scheduled sends" />
-        <MetricCard label="Sent" value={metrics.sent} helper="all campaigns" />
-        <MetricCard label="Open rate" value={`${metrics.openRate}%`} helper="tracked pixels" />
-        <MetricCard label="CTR" value={`${metrics.clickRate}%`} helper="tracked links" />
-        <MetricCard label="Reply rate" value={`${metrics.replyRate}%`} helper="positive/negative tagged" />
-      </section>
-
-      <section className="mt-6 grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-5">
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Operating View</h2>
-              <p className="mt-1 text-sm text-slate-500">Status, sender health, and conversion signals in one place.</p>
-            </div>
-            <Link href="/campaigns" className="text-sm text-teal-700 dark:text-teal-300 hover:text-teal-600 dark:hover:text-teal-200 inline-flex items-center gap-1">
-              Open campaigns <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {hottestCampaign ? (
-            <div className="mt-5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{hottestCampaign.name}</div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {hottestCampaign.geoDomain} for {hottestCampaign.niche}
-                  </div>
-                </div>
-                <StatusBadge status={hottestCampaign.status} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Metric row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard
+              title="Campaigns"
+              value={String(metrics.campaigns)}
+              trend={`${metrics.activeCampaigns} active`}
+              trendUp
+            />
+            <MetricCard title="Active" value={String(metrics.activeCampaigns)} />
+            <MetricCard title="Queued" value={metrics.queued.toLocaleString()} />
+            <GlassCard className="flex flex-col gap-2 p-5 relative overflow-hidden">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-text-muted font-bold z-10">
+                Engagement
               </div>
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div>
-                  <div className="text-slate-500">Recipients</div>
-                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.recipients}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">Opens</div>
-                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.opens}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">Replies</div>
-                  <div className="font-black text-slate-900 dark:text-slate-100">{hottestCampaign.replies}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">Engagement</div>
-                  <div className="font-black text-emerald-300">{hottestCampaign.engagementScore}/100</div>
-                </div>
+              <div className="text-[28px] font-[800] font-mono tabular-nums leading-none z-10">
+                {engagement}%
               </div>
-            </div>
-          ) : (
-            <EmptyState title="No campaign data yet" body="Create a campaign to start scheduling respectful outreach." />
-          )}
-
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[
-              { href: "/ai-email-generator", label: "Generate personalized email", icon: Sparkles },
-              { href: "/inbox", label: "Review AI-categorized replies", icon: Inbox },
-              { href: "/analytics", label: "Inspect deliverability alerts", icon: ShieldCheck },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/35 p-4 text-sm font-bold text-slate-800 dark:text-slate-200 hover:border-teal-400/40 hover:text-teal-100 transition-colors"
-                >
-                  <Icon className="h-5 w-5 text-teal-300 mb-3" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="glass-card rounded-lg p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-black text-text">Live Activity</h2>
-              <p className="mt-1 text-sm text-text-muted">{loading ? "Connecting..." : "WebSocket feed plus latest events"}</p>
-            </div>
-            <StatusBadge status={offline ? "Demo" : "Live"} />
-          </div>
-          <div className="mt-4 space-y-3">
-            {events.length === 0 ? (
-              <EmptyState title="No recent events" body="Open, click, reply, bounce, and unsubscribe events will appear here." />
-            ) : (
-              events.map((event) => (
-                <div key={event.id} className={`rounded-lg border p-3 ${
-                  event.type === 'OPENED' ? 'border-emerald-500/20 bg-emerald-500/[0.03]' :
-                  event.type === 'CLICKED' ? 'border-teal-500/20 bg-teal-500/[0.03]' :
-                  event.type === 'REPLIED' ? 'border-teal-500/20 bg-teal-500/[0.03]' :
-                  event.type === 'BOUNCED' ? 'border-red-500/20 bg-red-500/[0.03]' :
-                  'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40'
-                }`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
-                        event.type === 'OPENED' ? 'bg-emerald-500/10 text-emerald-400' :
-                        event.type === 'CLICKED' ? 'bg-teal-500/10 text-teal-400' :
-                        event.type === 'REPLIED' ? 'bg-teal-500/10 text-teal-400' :
-                        event.type === 'BOUNCED' ? 'bg-red-500/10 text-red-400' :
-                        event.type === 'UNSUBSCRIBED' ? 'bg-amber-500/10 text-amber-400' :
-                        event.type === 'SENT' ? 'bg-slate-500/10 text-slate-400' :
-                        'bg-slate-500/10 text-slate-400'
-                      }`}>{event.type}</span>
-                      {event.variant && <span className="text-[9px] font-black text-teal-400 bg-teal-500/10 px-1 rounded">{event.variant}</span>}
-                      <span className="text-[11px] text-slate-400 truncate">{event.campaignName || 'Outbound'}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 shrink-0">
-                      {event.occurredAt ? <ClientDate value={event.occurredAt} /> : 'now'}
-                    </span>
-                  </div>
-                  {(event.businessName || event.toEmail) && (
-                    <div className="mt-1 text-[11px] text-slate-500 truncate">
-                      {event.businessName && <span className="font-medium text-slate-600 dark:text-slate-400">{event.businessName}</span>}
-                      {event.businessName && event.toEmail && <span className="mx-1 text-slate-600">·</span>}
-                      {event.toEmail && <span className="font-mono">{event.toEmail}</span>}
-                    </div>
-                  )}
-                  {event.subject && (
-                    <div className="mt-0.5 text-[10px] text-slate-500 truncate">{event.subject}</div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Deliverability Alerts</h2>
-          <div className="mt-4 space-y-3">
-            {overview.deliverabilityAlerts.map((alert) => (
-              <div key={alert} className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-100">
-                {alert}
+              <div className="absolute bottom-0 left-0 right-0 z-0 opacity-60">
+                <Sparkline data={sparkData} />
               </div>
-            ))}
+            </GlassCard>
           </div>
-        </div>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Hottest Leads</h2>
-          <div className="mt-4 space-y-3">
-            {overview.topLeads.map((lead) => (
-              <div key={lead.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
-                <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{lead.businessName}</div>
-                <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                  <span>{lead.pipelineStage}</span>
-                  <span className="font-black text-emerald-300">{lead.engagementScore}/100</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Sender Health</h2>
-          <div className="mt-4 space-y-3">
-            {overview.senders.map((sender) => (
-              <div key={sender.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-3">
-                <div className="flex items-center justify-between gap-3">
+          {/* Hottest campaign + Geo pulse */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {hottestCampaign ? (
+              <GlassCard className="flex flex-col gap-4">
+                <div className="flex justify-between items-start">
                   <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{sender.label}</div>
-                    <div className="text-xs text-slate-500">{sender.fromEmail}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold">Hottest Campaign</div>
+                    <div className="text-lg font-bold mt-1">{hottestCampaign.name}</div>
+                    <div className="text-sm text-text-muted">{hottestCampaign.geoDomain}</div>
                   </div>
-                  <StatusBadge status={sender.status} />
+                  <StatusBadge status={hottestCampaign.status} />
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-emerald-400" style={{ width: `${sender.deliverabilityScore}%` }} />
+                <div className="grid grid-cols-3 gap-4 py-4 border-y border-border">
+                  <div>
+                    <div className="text-[10px] text-text-muted uppercase font-bold">Open</div>
+                    <div className="text-xl font-mono font-bold text-success">{hottestCampaign.openRate}%</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-text-muted uppercase font-bold">Click</div>
+                    <div className="text-xl font-mono font-bold text-info">{hottestCampaign.clickRate}%</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-text-muted uppercase font-bold">Reply</div>
+                    <div className="text-xl font-mono font-bold text-brand">{hottestCampaign.replyRate}%</div>
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-slate-500">Deliverability {sender.deliverabilityScore}/100</div>
+                <Link href="/campaigns" className="text-brand text-sm font-bold flex items-center gap-1 hover:text-brand-hover transition-colors">
+                  View Campaign <ArrowRight className="w-4 h-4" />
+                </Link>
+              </GlassCard>
+            ) : (
+              <GlassCard className="flex flex-col justify-center">
+                <EmptyState title="No campaign data yet" body="Create a campaign to start scheduling respectful outreach." />
+              </GlassCard>
+            )}
+
+            <GlassCard className="flex flex-col gap-4 relative">
+              <div className="flex justify-between items-center">
+                <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold flex items-center gap-2">
+                  <MapPin className="w-3 h-3 text-brand" />
+                  Geo Pulse
+                </div>
+                <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
               </div>
-            ))}
+              <div className="space-y-3">
+                {geoPulse.length === 0 ? (
+                  <div className="text-sm text-text-muted py-4">No active geographies yet.</div>
+                ) : (
+                  geoPulse.map((p) => (
+                    <div key={p.loc} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className={p.active ? "w-1.5 h-1.5 rounded-full bg-brand" : "w-1.5 h-1.5 rounded-full bg-surface-2"} />
+                        <span className="text-sm font-medium">{p.loc}</span>
+                      </div>
+                      <span className="text-sm font-mono text-text-muted">{p.count} leads</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </GlassCard>
           </div>
+
+          {/* Top leads */}
+          <GlassCard className="p-0 overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-2/50">
+              <div className="font-bold text-sm">Top Leads</div>
+              <Link href="/dashboard" className="text-brand text-sm font-bold flex items-center gap-1 hover:text-brand-hover transition-colors">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="divide-y divide-border">
+              {overview.topLeads.length === 0 ? (
+                <div className="p-6 text-sm text-text-muted text-center">No qualified leads yet.</div>
+              ) : (
+                overview.topLeads.map((lead) => {
+                  const emails = lead.emails || [];
+                  const valid = emails.filter((e) => String(e.status).toUpperCase() === "VALID").length;
+                  const match = emails.length ? Math.round((valid / emails.length) * 100) : lead.engagementScore;
+                  const tag = lead.tags?.[0] || lead.pipelineStage;
+                  return (
+                    <div key={lead.id} className="p-4 flex items-center justify-between hover:bg-surface-2/30 transition-colors cursor-pointer">
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm flex items-center gap-2">
+                          <span className="truncate">{lead.businessName}</span>
+                          {tag ? <span className="text-[10px] uppercase font-bold bg-copper/10 text-copper px-1.5 rounded shrink-0">{tag}</span> : null}
+                        </div>
+                        <div className="text-[12px] text-text-muted mt-0.5">{emails.length} verified emails found</div>
+                      </div>
+                      <div className="flex gap-4 items-center shrink-0">
+                        <div className="flex flex-col items-center">
+                          <ScoreRing score={match} size="sm" />
+                          <span className="text-[9px] uppercase tracking-wider text-text-muted mt-1">Match</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <ScoreRing score={lead.engagementScore} size="sm" />
+                          <span className="text-[9px] uppercase tracking-wider text-text-muted mt-1">Priority</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </GlassCard>
         </div>
-      </section>
+
+        {/* Right column */}
+        <div className="space-y-6">
+          <GlassCard className="p-0 overflow-hidden flex flex-col h-[500px]">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-2/50 sticky top-0 z-10 backdrop-blur-md">
+              <div className="font-bold text-sm flex items-center gap-2">
+                <Activity className="w-4 h-4 text-brand" />
+                The Trading Floor
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${offline ? "bg-text-faint" : "bg-brand shadow-[0_0_8px_var(--brand)] animate-pulse"}`} />
+                <span className={`text-[11px] uppercase tracking-wider font-bold ${offline ? "text-text-faint" : "text-brand"}`}>
+                  {offline ? "Demo" : loading ? "Connecting" : "Live"}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {events.length === 0 ? (
+                <EmptyState title="No recent events" body="Open, click, reply, bounce, and unsubscribe events will appear here." />
+              ) : (
+                events.map((ev) => {
+                  const tone = eventTone(ev.type);
+                  return (
+                    <div key={ev.id} className="flex gap-3 text-sm row-enter">
+                      <div className={`mt-0.5 w-[72px] shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded border text-center ${tone.color} ${tone.bg} ${tone.border}`}>
+                        {ev.type}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <span className="font-bold truncate pr-2">
+                            {ev.variant ? (
+                              <span className="text-text-muted font-normal mr-1 border border-border rounded px-1 text-[10px]">{ev.variant}</span>
+                            ) : null}
+                            {ev.businessName || ev.campaignName || "Outbound"}
+                          </span>
+                          <span className="text-[11px] text-text-faint whitespace-nowrap">
+                            {ev.occurredAt ? <ClientDate value={ev.occurredAt} format="time" /> : "now"}
+                          </span>
+                        </div>
+                        {ev.toEmail ? <div className="text-[12px] text-text-muted truncate font-mono">{ev.toEmail}</div> : null}
+                        {ev.subject ? <div className="text-[12px] text-text-faint truncate italic">&ldquo;{ev.subject}&rdquo;</div> : null}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </GlassCard>
+
+          {overview.deliverabilityAlerts.length > 0 ? (
+            <GlassCard className="bg-copper/5 border-copper/20">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-copper mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-bold text-sm text-copper">Deliverability Alerts</div>
+                  <ul className="mt-1 space-y-1.5">
+                    {overview.deliverabilityAlerts.map((alert) => (
+                      <li key={alert} className="text-sm text-text-muted">{alert}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 flex gap-2">
+                    <Link href="/sender-accounts" className="px-3 py-1.5 bg-copper/10 text-copper hover:bg-copper/20 transition-colors rounded text-[12px] font-bold border border-copper/20">
+                      Review Senders
+                    </Link>
+                    <Link href="/analytics" className="px-3 py-1.5 bg-surface-2 text-text hover:bg-surface transition-colors rounded text-[12px] font-bold border border-border">
+                      View Details
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ) : null}
+        </div>
+      </div>
     </OutboundShell>
   );
 }

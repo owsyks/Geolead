@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, RefreshCcw } from "lucide-react";
-import { OutboundShell  } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { ArrowRight, ArrowUpRight, RefreshCcw } from "lucide-react";
+import { OutboundShell } from "@/components/OutboundShell";
+import { GlassCard, KanbanColumn, StatusBadge } from "@/components/ui";
 import { useDomainContext } from "@/lib/domainContext";
 import {
   DOMAIN_STATUSES,
@@ -67,50 +66,50 @@ export default function PortfolioKanbanPage() {
   return (
     <OutboundShell
       title="Sales Kanban"
+      eyebrow="Pipeline"
       subtitle="Drag domains across the pipeline. Status changes propagate everywhere — campaigns, dashboards, and recommendations stay in sync."
+      fullBleed
       actions={
         <button
           onClick={() => void load()}
-          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2"
+          className="h-9 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center gap-2 transition-colors"
         >
           <RefreshCcw className="h-4 w-4" /> Refresh
         </button>
       }
     >
-      {message ? (
-        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-          {message}
-        </div>
-      ) : null}
+      <div className="flex flex-col h-full">
+        {message ? (
+          <div className="shrink-0 mx-6 mt-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-muted">
+            {message}
+          </div>
+        ) : null}
 
-      {loading ? (
-        <div className="p-6 text-sm text-slate-500">Loading…</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
-          {DOMAIN_STATUSES.map((status) => (
-            <div
-              key={status}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => onDrop(status)}
-              className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-3 min-h-[320px]"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wide text-slate-700 dark:text-slate-300">{status}</h3>
-                <span className="text-[11px] text-slate-500">{columns[status]?.length || 0}</span>
-              </div>
-              <div className="space-y-2">
+        {loading ? (
+          <div className="p-6 text-sm text-text-muted">Loading…</div>
+        ) : (
+          <div className="flex-1 overflow-x-auto p-6 bg-bg flex gap-6">
+            {DOMAIN_STATUSES.map((status) => (
+              <KanbanColumn
+                key={status}
+                title={status}
+                count={columns[status]?.length || 0}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => onDrop(status)}
+                className="min-h-[320px]"
+              >
                 {(columns[status] || []).map((domain) => (
-                  <div
+                  <GlassCard
                     key={domain.id}
                     draggable
                     onDragStart={() => setDragId(domain.id)}
                     onDragEnd={() => setDragId(null)}
-                    className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 cursor-grab active:cursor-grabbing"
+                    className="p-4 cursor-grab active:cursor-grabbing flex flex-col gap-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         href={`/portfolio/${domain.id}`}
-                        className="font-bold text-slate-900 dark:text-slate-100 hover:text-teal-200 text-sm truncate"
+                        className="font-bold text-text hover:text-brand text-[15px] truncate transition-colors leading-tight"
                       >
                         {domain.name}
                       </Link>
@@ -119,35 +118,41 @@ export default function PortfolioKanbanPage() {
                           setActiveDomainId(domain.id);
                           setMessage(`Active: ${domain.name}`);
                         }}
-                        className="text-[10px] text-teal-300 hover:text-teal-200"
+                        className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold text-brand hover:text-brand-hover"
                         title="Use for workflows"
                       >
-                        Use
+                        <ArrowUpRight className="h-3 w-3" /> Use
                       </button>
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-500">
+                    <div className="text-[12px] text-text-muted truncate">
                       {[domain.niche, [domain.city, domain.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || "Uncategorized"}
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                      <span>${(domain.estimatedValue || 0).toLocaleString()}</span>
-                      <span>B{domain.brandingScore} · D{domain.buyerDemandScore}</span>
+                    <div className="flex items-center justify-between pt-1">
+                      <StatusBadge status={domain.status} />
+                      <span className="font-mono text-[11px] text-text-faint">
+                        B{domain.brandingScore} · D{domain.buyerDemandScore}
+                      </span>
                     </div>
-                  </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted">Est. value</span>
+                      <span className="font-mono font-bold text-brand text-sm">${(domain.estimatedValue || 0).toLocaleString()}</span>
+                    </div>
+                  </GlassCard>
                 ))}
                 {(columns[status]?.length || 0) === 0 ? (
-                  <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-800 p-4 text-center text-[11px] text-slate-600">
+                  <div className="rounded-lg border border-dashed border-border p-4 text-center text-[11px] text-text-muted">
                     Drop here
                   </div>
                 ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              </KanbanColumn>
+            ))}
+          </div>
+        )}
 
-      <div className="mt-6 text-xs text-slate-500 flex items-center gap-2">
-        <ArrowRight className="h-3 w-3" />
-        Hover over a card and drag it to a new column to update its status.
+        <div className="shrink-0 px-6 pb-4 text-xs text-text-muted flex items-center gap-2">
+          <ArrowRight className="h-3 w-3" />
+          Hover over a card and drag it to a new column to update its status.
+        </div>
       </div>
     </OutboundShell>
   );

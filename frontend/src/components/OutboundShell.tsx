@@ -25,6 +25,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "./ThemeProvider";
+import { cn } from "./ui";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -66,11 +67,17 @@ export function OutboundShell({
   title,
   subtitle,
   actions,
+  eyebrow = "✉ AI outbound email automation",
+  fullBleed = false,
+  contentClassName,
 }: {
   children: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   actions?: ReactNode;
+  eyebrow?: string;
+  fullBleed?: boolean;
+  contentClassName?: string;
 }) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
@@ -129,11 +136,11 @@ export function OutboundShell({
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 ml-[288px] flex flex-col min-h-screen">
+      <main className={cn("flex-1 ml-[288px] flex flex-col", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
         {/* Header — EXACT Figma layout */}
-        <header className="h-[72px] sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-8">
+        <header className="h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-8">
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1">✉ AI outbound email automation</div>
+            <div className="text-[11px] uppercase tracking-wider text-text-muted font-bold mb-1">{eyebrow}</div>
             <div className="flex items-baseline gap-3">
               <h1 className="text-[22px] font-black tracking-[-0.02em] text-text">{title}</h1>
               {subtitle && <span className="text-sm text-text-muted">{subtitle}</span>}
@@ -141,6 +148,14 @@ export function OutboundShell({
           </div>
           <div className="flex items-center gap-4">
             {actions}
+            <button
+              type="button"
+              className="hidden md:flex items-center gap-2 bg-surface-2 border border-border rounded-lg px-3 py-1.5 text-sm text-text-muted cursor-pointer hover:border-brand/50 transition-colors"
+            >
+              <Search className="w-4 h-4" />
+              <span>Search or ask AI…</span>
+              <kbd className="ml-4 font-mono text-[10px] bg-bg px-1.5 py-0.5 rounded border border-border text-text-faint">⌘K</kbd>
+            </button>
             <Link
               href="/watchlist?tab=notifications"
               className="relative w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted hover:text-text transition-colors"
@@ -178,7 +193,11 @@ export function OutboundShell({
           })}
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+        {fullBleed ? (
+          <div className={cn("flex-1 min-h-0 overflow-hidden", contentClassName)}>{children}</div>
+        ) : (
+          <div className={cn("px-4 sm:px-6 lg:px-8 py-6", contentClassName)}>{children}</div>
+        )}
       </main>
     </div>
   );

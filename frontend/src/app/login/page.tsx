@@ -37,7 +37,7 @@ export default function LoginPage() {
       footer={
         <>
           New here?{" "}
-          <Link href="/register" className="font-medium text-teal-400 hover:text-teal-300">
+          <Link href="/register" className="font-medium text-brand hover:text-brand-hover">
             Create an account
           </Link>
         </>
@@ -64,16 +64,16 @@ export default function LoginPage() {
           placeholder="••••••••"
         />
         <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-slate-400">
+          <label className="flex items-center gap-2 text-text-muted">
             <input
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-700 bg-slate-950"
+              className="h-4 w-4 rounded border-border bg-bg accent-brand"
             />
             Remember me
           </label>
-          <Link href="/forgot-password" className="font-medium text-teal-400 hover:text-teal-300">
+          <Link href="/forgot-password" className="font-medium text-brand hover:text-brand-hover">
             Forgot password?
           </Link>
         </div>

@@ -155,14 +155,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // chrome for unauthenticated users on protected routes.
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-bg text-text-muted">
         <div className="animate-pulse text-sm">Loading…</div>
       </div>
     );
   }
   if (!user && !isPublic(pathname)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-bg text-text-muted">
         <div className="text-sm">Redirecting to sign in…</div>
       </div>
     );

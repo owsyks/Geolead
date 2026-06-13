@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, RefreshCcw, TrendingUp } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell";
+import { GlassCard, Sparkline, StatusBadge } from "@/components/ui";
 import { ClientDate } from "@/lib/ClientDate";
 import { fetchOutbound, type OutboundAnalytics } from "@/lib/outbound";
 
@@ -123,6 +122,7 @@ export default function AnalyticsPage() {
   return (
     <OutboundShell
       title="Analytics Center"
+      eyebrow="Performance & Forecasting"
       subtitle="Track opens, clicks, replies, bounces, unsubscribes, sender health, and AI campaign recommendations."
       actions={
         <button
@@ -131,14 +131,14 @@ export default function AnalyticsPage() {
             setMessage("");
             void load();
           }}
-          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+          className="h-9 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center gap-2 transition-colors"
         >
           <RefreshCcw className="h-4 w-4" />
           Refresh
         </button>
       }
     >
-      {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}
+      {message ? <div className="mb-4 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-muted">{message}</div> : null}
 
       <section className="grid grid-cols-2 xl:grid-cols-6 gap-3">
         <MetricCard label="Sent" value={analytics.overview.sent} helper={`${analytics.overview.queued} queued`} />
@@ -150,10 +150,19 @@ export default function AnalyticsPage() {
       </section>
 
       <section className="mt-6 grid grid-cols-1 2xl:grid-cols-[1.1fr_0.9fr] gap-5">
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-teal-300" />
-            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Campaign Timeline</h2>
+        <GlassCard className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-brand" />
+              <h2 className="text-base font-black text-text">Campaign Timeline</h2>
+            </div>
+            {analytics.snapshots.length > 0 && (
+              <Sparkline
+                data={analytics.snapshots.map((snapshot) => snapshot.sent)}
+                className="w-28"
+                fill
+              />
+            )}
           </div>
           {analytics.snapshots.length === 0 ? (
             <div className="mt-4">
@@ -163,119 +172,119 @@ export default function AnalyticsPage() {
             <div className="mt-5 space-y-4">
               {analytics.snapshots.slice(0, 12).map((snapshot) => (
                 <div key={snapshot.id} className="grid grid-cols-[90px_1fr_56px] items-center gap-3">
-                  <span className="text-xs text-slate-500"><ClientDate value={snapshot.date} format="date" /></span>
-                  <div className="h-9 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex">
-                    <div className="bg-teal-500/70" style={{ width: `${(snapshot.sent / maxSent) * 100}%` }} />
-                    <div className="bg-emerald-500/70" style={{ width: `${(snapshot.replies / maxSent) * 100}%` }} />
+                  <span className="text-xs text-text-muted"><ClientDate value={snapshot.date} format="date" /></span>
+                  <div className="h-9 rounded-lg bg-bg border border-border overflow-hidden flex">
+                    <div className="bg-brand/70" style={{ width: `${(snapshot.sent / maxSent) * 100}%` }} />
+                    <div className="bg-success/70" style={{ width: `${(snapshot.replies / maxSent) * 100}%` }} />
                   </div>
-                  <span className="text-xs font-black text-slate-700 dark:text-slate-300 text-right">{snapshot.sent}</span>
+                  <span className="text-xs font-black text-text text-right">{snapshot.sent}</span>
                 </div>
               ))}
             </div>
           )}
-          <div className="mt-5 flex flex-wrap gap-3 text-xs text-slate-500">
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Sent</span>
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Replies</span>
+          <div className="mt-5 flex flex-wrap gap-3 text-xs text-text-muted">
+            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-brand" /> Sent</span>
+            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-success" /> Replies</span>
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
+        <GlassCard className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">AI Insights</h2>
-              <p className="mt-1 text-sm text-slate-500">{loading ? "Analyzing..." : "Recommendations from engagement and deliverability data."}</p>
+              <h2 className="text-base font-black text-text">AI Insights</h2>
+              <p className="mt-1 text-sm text-text-muted">{loading ? "Analyzing..." : "Recommendations from engagement and deliverability data."}</p>
             </div>
             <StatusBadge status="Active" />
           </div>
           <div className="mt-4 space-y-3">
             {analytics.insights.map((insight) => (
-              <div key={insight} className="rounded-lg border border-teal-400/20 bg-teal-500/10 p-3 text-sm leading-6 text-teal-100">
+              <div key={insight} className="rounded-lg border border-brand/20 bg-brand-soft p-3 text-sm leading-6 text-text">
                 {insight}
               </div>
             ))}
           </div>
-        </div>
+        </GlassCard>
       </section>
 
       <section className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Best Subject Lines</h2>
+        <GlassCard className="p-5">
+          <h2 className="text-base font-black text-text">Best Subject Lines</h2>
           <div className="mt-4 space-y-3">
             {analytics.bestSubjectLines.length === 0 ? (
               <EmptyState title="No subject data" body="Sent campaign subjects will appear here." />
             ) : (
               analytics.bestSubjectLines.map((subject) => (
-                <div key={subject.subject} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3">
-                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{subject.subject}</div>
-                  <div className="mt-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-cyan-400" style={{ width: `${Math.min(100, subject.sent * 2)}%` }} />
+                <div key={subject.subject} className="rounded-lg border border-border bg-surface-2 p-3">
+                  <div className="text-sm font-bold text-text">{subject.subject}</div>
+                  <div className="mt-2 h-2 rounded-full bg-surface-2">
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, subject.sent * 2)}%` }} />
                   </div>
-                  <div className="mt-2 text-xs text-slate-500">{subject.sent} sends</div>
+                  <div className="mt-2 text-xs text-text-muted">{subject.sent} sends</div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Best Templates</h2>
+        <GlassCard className="p-5">
+          <h2 className="text-base font-black text-text">Best Templates</h2>
           <div className="mt-4 space-y-3">
             {analytics.topTemplates?.length === 0 ? (
               <EmptyState title="No template data" body="Template performance signals will appear after sends." />
             ) : (
               analytics.topTemplates?.map((template) => (
-                <div key={template.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3">
-                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{template.name}</div>
-                  <div className="mt-1 text-xs text-slate-500">{template.subject}</div>
-                  <div className="mt-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-emerald-400" style={{ width: `${template.deliverabilityScore}%` }} />
+                <div key={template.id} className="rounded-lg border border-border bg-surface-2 p-3">
+                  <div className="text-sm font-bold text-text">{template.name}</div>
+                  <div className="mt-1 text-xs text-text-muted">{template.subject}</div>
+                  <div className="mt-2 h-2 rounded-full bg-surface-2">
+                    <div className="h-full rounded-full bg-success" style={{ width: `${template.deliverabilityScore}%` }} />
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                  <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
                     <span>Spam {template.spamScore}/10</span>
-                    <span className="font-black text-emerald-300">{template.deliverabilityScore}/100</span>
+                    <span className="font-black text-success">{template.deliverabilityScore}/100</span>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Best Send Times</h2>
+        <GlassCard className="p-5">
+          <h2 className="text-base font-black text-text">Best Send Times</h2>
           <div className="mt-4 space-y-3">
             {analytics.sendTimeSuggestions.map((slot) => (
-              <div key={slot.label} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-3">
+              <div key={slot.label} className="rounded-lg border border-border bg-surface-2 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{slot.label}</span>
-                  <span className="text-xs font-black text-emerald-300">{slot.confidence}%</span>
+                  <span className="text-sm font-bold text-text">{slot.label}</span>
+                  <span className="text-xs font-black text-success">{slot.confidence}%</span>
                 </div>
-                <div className="mt-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-emerald-400" style={{ width: `${slot.confidence}%` }} />
+                <div className="mt-2 h-2 rounded-full bg-surface-2">
+                  <div className="h-full rounded-full bg-success" style={{ width: `${slot.confidence}%` }} />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5 xl:col-span-3">
+        <GlassCard className="p-5 xl:col-span-3">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-emerald-300" />
-            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Conversion Predictions</h2>
+            <TrendingUp className="h-5 w-5 text-success" />
+            <h2 className="text-base font-black text-text">Conversion Predictions</h2>
           </div>
-          <p className="mt-4 text-sm leading-6 text-slate-400">
+          <p className="mt-4 text-sm leading-6 text-text-muted">
             Campaigns with opens plus clicks are the current highest-probability buyer pool. Prioritize those leads before broad follow-up volume.
           </p>
-          <div className="mt-5 rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-4">
-            <div className="text-xs font-bold uppercase tracking-wide text-emerald-200">Likely buyer score</div>
-            <div className="mt-2 text-4xl font-black text-emerald-200">{Math.max(0, forecast)}/100</div>
+          <div className="mt-5 rounded-lg border border-success/20 bg-success/10 p-4">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-success">Likely buyer score</div>
+            <div className="mt-2 text-4xl font-black font-mono tabular-nums text-success">{Math.max(0, forecast)}/100</div>
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5 xl:col-span-3">
+        <GlassCard className="p-5 xl:col-span-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-slate-100">AI Domain Recommendations</h2>
-              <p className="mt-1 text-sm text-slate-500">Ranked by lead fit, engagement, and active campaign context.</p>
+              <h2 className="text-base font-black text-text">AI Domain Recommendations</h2>
+              <p className="mt-1 text-sm text-text-muted">Ranked by lead fit, engagement, and active campaign context.</p>
             </div>
             <StatusBadge status={`${analytics.domainRecommendations.length} picks`} />
           </div>
@@ -285,30 +294,30 @@ export default function AnalyticsPage() {
               <EmptyState title="No domain recommendations" body="Lead fit recommendations will appear after lead enrichment." />
             ) : (
               analytics.domainRecommendations.map((recommendation) => (
-                <div key={`${recommendation.domain}-${recommendation.niche}`} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45 p-4">
+                <div key={`${recommendation.domain}-${recommendation.niche}`} className="rounded-lg border border-border bg-surface-2 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-slate-900 dark:text-slate-100">{recommendation.domain}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="truncate text-sm font-black text-text">{recommendation.domain}</div>
+                      <div className="mt-1 text-xs text-text-muted">
                         {recommendation.niche} - {recommendation.cityState}
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs font-black text-cyan-300">{recommendation.confidence}%</span>
+                    <span className="shrink-0 text-xs font-black text-brand">{recommendation.confidence}%</span>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                    <div className="h-full rounded-full bg-cyan-400" style={{ width: `${recommendation.confidence}%` }} />
+                  <div className="mt-3 h-2 rounded-full bg-surface-2">
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${recommendation.confidence}%` }} />
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">{recommendation.reason}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <p className="mt-3 text-sm leading-6 text-text-muted">{recommendation.reason}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-muted">
                     <span>{recommendation.leadCount} leads</span>
-                    <span className="text-slate-700">/</span>
+                    <span className="text-text-faint">/</span>
                     <span>Example: {recommendation.exampleLead}</span>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </GlassCard>
       </section>
     </OutboundShell>
   );

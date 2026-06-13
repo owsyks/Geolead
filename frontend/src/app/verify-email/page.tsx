@@ -40,7 +40,7 @@ export default function VerifyEmailPage() {
     <AuthShell
       title="Email verification"
       footer={
-        <Link href="/" className="font-medium text-teal-400 hover:text-teal-300">
+        <Link href="/" className="font-medium text-brand hover:text-brand-hover">
           Go to dashboard
         </Link>
       }
@@ -48,10 +48,10 @@ export default function VerifyEmailPage() {
       <div
         className={`rounded-lg border px-3 py-3 text-sm ${
           status === "success"
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+            ? "border-success/30 bg-success/10 text-success"
             : status === "error"
-            ? "border-red-500/30 bg-red-500/10 text-red-300"
-            : "border-slate-700 bg-slate-950/40 text-slate-300"
+            ? "border-danger/30 bg-danger/10 text-danger"
+            : "border-border bg-surface-2 text-text-muted"
         }`}
       >
         {message}

@@ -12,13 +12,13 @@ import {
   Plus,
   RefreshCcw,
   Search,
+  Sparkles,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell";
+import { GlassCard, ScoreRing, StatusBadge } from "@/components/ui";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import {
@@ -28,6 +28,8 @@ import {
   type PortfolioDomain,
   type PortfolioStatus,
 } from "@/lib/outbound";
+
+const INPUT = "h-10 w-full rounded-md border border-border bg-bg px-3 text-sm text-text focus:border-brand outline-none transition-colors";
 
 type SortKey = "updatedAt" | "name" | "estimatedValue" | "brandingScore" | "buyerDemandScore" | "leadOpportunityScore" | "saleProbability";
 
@@ -243,40 +245,42 @@ export default function PortfolioPage() {
   return (
     <OutboundShell
       title="Domain Portfolio"
-      subtitle="Your central workspace for every owned domain. Add, categorize, analyze, and pipeline domains all the way to sale."
+      eyebrow="Asset Management"
+      subtitle="Add, categorize, analyze, and pipeline domains all the way to sale."
       actions={
         <>
           <button
             onClick={() => setShowImport(true)}
-            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+            className="h-9 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center gap-2 transition-colors"
           >
-            <Upload className="h-4 w-4" /> Bulk import
+            <Upload className="h-4 w-4" /> Import
           </button>
           <button
             onClick={openAdd}
-            className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100 hover:bg-teal-500/25 inline-flex items-center gap-2 dark:text-teal-100"
+            className="h-9 px-4 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover inline-flex items-center gap-2 shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors"
           >
-            <Plus className="h-4 w-4" /> Add domain
+            <Plus className="h-4 w-4" /> Add Domain
           </button>
           <button
             onClick={() => void load()}
-            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+            className="h-9 w-9 rounded-lg border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center justify-center transition-colors"
+            title="Refresh"
           >
-            <RefreshCcw className="h-4 w-4" /> Refresh
+            <RefreshCcw className="h-4 w-4" />
           </button>
         </>
       }
     >
       {message ? (
-        <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 flex items-center justify-between">
+        <div className="mb-6 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-muted flex items-center justify-between">
           <span>{message}</span>
-          <button onClick={() => setMessage("")} className="text-slate-500 hover:text-slate-300">
+          <button onClick={() => setMessage("")} className="text-text-faint hover:text-text">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       ) : null}
 
-      <section className="grid grid-cols-2 xl:grid-cols-7 gap-3">
+      <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
         <MetricCard label="Domains" value={dashboard?.totals.domains ?? domains.length} helper="in portfolio" />
         <MetricCard
           label="Portfolio value"
@@ -294,114 +298,79 @@ export default function PortfolioPage() {
         />
       </section>
 
-      <section className="mt-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35">
-        <div className="flex flex-col xl:flex-row gap-3 p-4 border-b border-slate-200 dark:border-slate-900">
+      <GlassCard className="mt-6 p-0 overflow-hidden">
+        <div className="flex flex-col xl:flex-row gap-3 p-4 border-b border-border bg-surface-2/50">
           <div className="relative flex-1 min-w-0">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by name, niche, city, notes…"
-              className="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 pl-10 pr-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
+              className="h-10 w-full rounded-lg border border-border bg-bg pl-10 pr-3 text-sm text-text outline-none focus:border-brand"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
             <option value="">All statuses</option>
-            {DOMAIN_STATUSES.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
+            {DOMAIN_STATUSES.map((status) => (<option key={status} value={status}>{status}</option>))}
           </select>
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          >
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
             <option value="">All categories</option>
-            {allCategories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
+            {allCategories.map((category) => (<option key={category} value={category}>{category}</option>))}
           </select>
-          <select
-            value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          >
+          <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
             <option value="">All tags</option>
-            {allTags.map((tag) => (
-              <option key={tag} value={tag}>#{tag}</option>
-            ))}
+            {allTags.map((tag) => (<option key={tag} value={tag}>#{tag}</option>))}
           </select>
-          <select
-            value={sortKey}
-            onChange={(event) => setSortKey(event.target.value as SortKey)}
-            className="h-10 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          >
-            {Object.entries(SORT_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
+          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
+            {Object.entries(SORT_LABELS).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
           </select>
-          <button
-            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-700 dark:text-slate-300"
-          >
+          <button onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} className="h-10 px-3 rounded-lg border border-border bg-bg text-sm text-text-muted hover:text-text">
             {sortDir === "asc" ? "Asc" : "Desc"}
           </button>
-          <label className="flex items-center gap-2 text-xs text-slate-400">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-              className="h-4 w-4 accent-teal-500"
-            />
+          <label className="flex items-center gap-2 text-xs text-text-muted whitespace-nowrap">
+            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} className="h-4 w-4 accent-brand" />
             Show archived
           </label>
         </div>
 
         {loading ? (
-          <div className="p-6 text-sm text-slate-500">Loading portfolio…</div>
+          <div className="p-6 text-sm text-text-muted">Loading portfolio…</div>
         ) : filtered.length === 0 ? (
           <div className="p-6">
-            <EmptyState
-              title="No domains match your filters"
-              body="Add a domain manually or bulk import a list to start running campaigns from your portfolio."
-            />
+            <EmptyState title="No domains match your filters" body="Add a domain manually or bulk import a list to start running campaigns from your portfolio." />
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-950/60 text-[11px] uppercase tracking-wide text-slate-500">
+            <table className="min-w-full text-sm border-collapse">
+              <thead className="bg-surface-2/30 text-[11px] uppercase tracking-wider text-text-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left">Domain</th>
-                  <th className="px-4 py-3 text-left">Intelligence</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Est. value</th>
-                  <th className="px-4 py-3 text-center">Scores</th>
-                  <th className="px-4 py-3 text-left">Tags</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 text-left font-bold">Domain</th>
+                  <th className="px-4 py-3 text-left font-bold">Category</th>
+                  <th className="px-4 py-3 text-left font-bold">Status</th>
+                  <th className="px-4 py-3 text-center font-bold">Brand</th>
+                  <th className="px-4 py-3 text-right font-bold">Est. value</th>
+                  <th className="px-4 py-3 text-left font-bold">Tags</th>
+                  <th className="px-4 py-3 text-right font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-900">
+              <tbody className="divide-y divide-border">
                 {filtered.map((domain) => (
-                  <tr key={domain.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                  <tr key={domain.id} className="hover:bg-surface-2/30 transition-colors group">
                     <td className="px-4 py-3 align-top">
-                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-slate-900 dark:text-slate-100 hover:text-teal-200">
+                      <Link href={`/portfolio/${domain.id}`} className="font-bold text-[15px] text-text hover:text-brand transition-colors">
                         {domain.name}
                       </Link>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-text-muted">
                         {domain.registrar ? `Registrar: ${domain.registrar}` : "Unregistered registrar"}
                       </div>
                     </td>
-                    <td className="px-4 py-3 align-top text-slate-700 dark:text-slate-300">
-                      <div>{domain.niche || domain.industry || "Uncategorized"}</div>
-                      <div className="text-[11px] text-slate-500">
+                    <td className="px-4 py-3 align-top text-text-muted">
+                      <div className="text-text">{domain.niche || domain.industry || "Uncategorized"}</div>
+                      <div className="text-[11px] text-text-muted">
                         {[domain.city, domain.state].filter(Boolean).join(", ") || "Geo unknown"}
                       </div>
                       {domain.metadata?.buyerPool?.total ? (
-                        <div className="mt-1 text-[11px] text-teal-400 font-bold">
+                        <div className="mt-1 text-[11px] text-brand font-bold">
                           ~{(domain.metadata.buyerPool.total).toLocaleString()} buyers
                         </div>
                       ) : null}
@@ -409,97 +378,62 @@ export default function PortfolioPage() {
                     <td className="px-4 py-3 align-top">
                       <StatusBadge status={domain.status} />
                     </td>
-                    <td className="px-4 py-3 align-top text-right">
-                      <div className="text-slate-800 dark:text-slate-200 font-bold">
-                        ${(domain.estimatedValue || 0).toLocaleString()}
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        Rec ${(domain.recommendedPrice || 0).toLocaleString()}
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex justify-center">
+                        <ScoreRing score={domain.brandingScore} size="sm" />
                       </div>
                     </td>
-                    <td className="px-4 py-3 align-top text-center">
-                      <div className="inline-flex flex-col gap-1 text-[11px]">
-                        <span className="text-slate-500">Brand <strong className="text-slate-800 dark:text-slate-200">{domain.brandingScore}</strong></span>
-                        <span className="text-slate-500">Demand <strong className="text-slate-800 dark:text-slate-200">{domain.buyerDemandScore}</strong></span>
-                        <span className="text-slate-500">Sale <strong className="text-slate-800 dark:text-slate-200">{domain.saleProbability}%</strong></span>
-                      </div>
+                    <td className="px-4 py-3 align-top text-right">
+                      <div className="font-mono font-bold text-brand">${(domain.estimatedValue || 0).toLocaleString()}</div>
+                      <div className="text-[11px] text-text-muted">Sale {domain.saleProbability}% · Demand {domain.buyerDemandScore}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex flex-wrap gap-1">
                         {domain.tags.length === 0 ? (
-                          <span className="text-[11px] text-slate-500">—</span>
+                          <span className="text-[11px] text-text-faint">—</span>
                         ) : (
                           domain.tags.map((tag) => (
-                            <span key={tag} className="rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300">
-                              #{tag}
-                            </span>
+                            <span key={tag} className="px-1.5 py-0.5 bg-surface border border-border text-[10px] rounded text-text-muted">#{tag}</span>
                           ))
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top text-right">
-                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           title="Use for workflows"
                           onClick={() => {
                             setActiveDomainId(domain.id);
                             setMessage(`Selected ${domain.name} for lead-gen, email, and campaign workflows.`);
                           }}
-                          className="h-7 px-2 rounded-md border border-teal-400/30 bg-teal-500/15 text-[11px] text-teal-100 inline-flex items-center gap-1"
+                          className="h-7 px-2 rounded-md border border-brand/30 bg-brand-soft text-[11px] text-brand inline-flex items-center gap-1 hover:bg-brand/20"
                         >
                           <ArrowUpRight className="h-3 w-3" /> Use
                         </button>
-                        <Link
-                          href={`/portfolio/${domain.id}`}
-                          className="h-7 px-2 rounded-md border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-700 dark:text-slate-300 inline-flex items-center gap-1"
-                        >
+                        <Link href={`/portfolio/${domain.id}`} className="h-7 px-2 rounded-md border border-border bg-surface text-[11px] text-text-muted hover:text-text inline-flex items-center gap-1">
                           <ExternalLink className="h-3 w-3" /> Open
                         </Link>
-                        <button
-                          title="Re-analyze"
-                          onClick={() => void analyzeDomain(domain)}
-                          className="h-7 px-2 rounded-md border border-slate-800 bg-slate-950 text-[11px] text-slate-300"
-                        >
-                          AI
+                        <button title="Re-analyze" onClick={() => void analyzeDomain(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-brand hover:border-brand inline-flex items-center justify-center">
+                          <Sparkles className="h-3 w-3" />
                         </button>
-                        <button
-                          title="Edit"
-                          onClick={() => openEdit(domain)}
-                          className="h-7 w-7 rounded-md border border-slate-800 bg-slate-950 text-slate-300 inline-flex items-center justify-center"
-                        >
+                        <button title="Edit" onClick={() => openEdit(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-text inline-flex items-center justify-center">
                           <Edit3 className="h-3 w-3" />
                         </button>
                         {domain.status !== "Sold" ? (
-                          <button
-                            title="Mark as sold"
-                            onClick={() => setShowSale(domain)}
-                            className="h-7 px-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 text-[11px] text-emerald-200"
-                          >
-                            <Check className="h-3 w-3 inline" /> Sold
+                          <button title="Mark as sold" onClick={() => setShowSale(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-success hover:border-success inline-flex items-center justify-center">
+                            <Check className="h-3 w-3" />
                           </button>
                         ) : null}
                         {domain.archivedAt ? (
-                          <button
-                            title="Restore"
-                            onClick={() => void restoreDomain(domain)}
-                            className="h-7 w-7 rounded-md border border-slate-800 bg-slate-950 text-slate-300 inline-flex items-center justify-center"
-                          >
+                          <button title="Restore" onClick={() => void restoreDomain(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-text inline-flex items-center justify-center">
                             <Download className="h-3 w-3" />
                           </button>
                         ) : (
-                          <button
-                            title="Archive"
-                            onClick={() => void archiveDomain(domain)}
-                            className="h-7 w-7 rounded-md border border-slate-800 bg-slate-950 text-slate-300 inline-flex items-center justify-center"
-                          >
+                          <button title="Archive" onClick={() => void archiveDomain(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-copper hover:border-copper inline-flex items-center justify-center">
                             <Archive className="h-3 w-3" />
                           </button>
                         )}
-                        <button
-                          title="Delete"
-                          onClick={() => void deleteDomain(domain)}
-                          className="h-7 w-7 rounded-md border border-red-400/25 bg-red-500/10 text-red-300 inline-flex items-center justify-center"
-                        >
+                        <button title="Delete" onClick={() => void deleteDomain(domain)} className="h-7 w-7 rounded-md border border-border bg-surface text-text-muted hover:text-danger hover:border-danger inline-flex items-center justify-center">
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
@@ -510,19 +444,17 @@ export default function PortfolioPage() {
             </table>
           </div>
         )}
-      </section>
+      </GlassCard>
 
-      <section className="mt-6">
-        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Active selection</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Whatever you choose here becomes the default for lead generation, AI email generation, and campaign creation.
-          </p>
-          <div className="mt-3">
-            <DomainSelector variant="card" />
-          </div>
+      <GlassCard className="mt-6 p-5">
+        <h2 className="text-base font-black text-text">Active selection</h2>
+        <p className="mt-1 text-xs text-text-muted">
+          Whatever you choose here becomes the default for lead generation, AI email generation, and campaign creation.
+        </p>
+        <div className="mt-3">
+          <DomainSelector variant="card" />
         </div>
-      </section>
+      </GlassCard>
 
       {showAdd ? (
         <DomainFormModal
@@ -579,96 +511,43 @@ function DomainFormModal({
     <Modal title={editing ? `Edit ${editing.name}` : "Add domain"} onClose={onClose}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Domain name" required>
-          <input
-            value={form.name}
-            onChange={(event) => setForm((c) => ({ ...c, name: event.target.value }))}
-            placeholder="TexasCarVendor.com"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 focus:border-teal-400 outline-none"
-          />
+          <input value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} placeholder="TexasCarVendor.com" className={INPUT} />
         </Field>
         <Field label="Status">
-          <select
-            value={form.status}
-            onChange={(event) => setForm((c) => ({ ...c, status: event.target.value as PortfolioStatus }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          >
-            {DOMAIN_STATUSES.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
+          <select value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as PortfolioStatus }))} className={INPUT}>
+            {DOMAIN_STATUSES.map((status) => (<option key={status} value={status}>{status}</option>))}
           </select>
         </Field>
         <Field label="Purchase date">
-          <input
-            type="date"
-            value={form.purchaseDate}
-            onChange={(event) => setForm((c) => ({ ...c, purchaseDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="date" value={form.purchaseDate} onChange={(e) => setForm((c) => ({ ...c, purchaseDate: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Purchase price (USD)">
-          <input
-            type="number"
-            min={0}
-            value={form.purchasePrice}
-            onChange={(event) => setForm((c) => ({ ...c, purchasePrice: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="number" min={0} value={form.purchasePrice} onChange={(e) => setForm((c) => ({ ...c, purchasePrice: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Registrar">
-          <input
-            value={form.registrar}
-            onChange={(event) => setForm((c) => ({ ...c, registrar: event.target.value }))}
-            placeholder="Namecheap, GoDaddy, …"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.registrar} onChange={(e) => setForm((c) => ({ ...c, registrar: e.target.value }))} placeholder="Namecheap, GoDaddy, …" className={INPUT} />
         </Field>
         <Field label="Expiration date">
-          <input
-            type="date"
-            value={form.expirationDate}
-            onChange={(event) => setForm((c) => ({ ...c, expirationDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="date" value={form.expirationDate} onChange={(e) => setForm((c) => ({ ...c, expirationDate: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Tags (comma separated)">
-          <input
-            value={form.tags}
-            onChange={(event) => setForm((c) => ({ ...c, tags: event.target.value }))}
-            placeholder="premium, auto"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.tags} onChange={(e) => setForm((c) => ({ ...c, tags: e.target.value }))} placeholder="premium, auto" className={INPUT} />
         </Field>
         <Field label="Target industries (comma separated)">
-          <input
-            value={form.targetIndustries}
-            onChange={(event) => setForm((c) => ({ ...c, targetIndustries: event.target.value }))}
-            placeholder="Automotive, Marketing"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.targetIndustries} onChange={(e) => setForm((c) => ({ ...c, targetIndustries: e.target.value }))} placeholder="Automotive, Marketing" className={INPUT} />
         </Field>
         <Field label="Target locations (comma separated)">
-          <input
-            value={form.targetLocations}
-            onChange={(event) => setForm((c) => ({ ...c, targetLocations: event.target.value }))}
-            placeholder="Austin TX, Dallas TX"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.targetLocations} onChange={(e) => setForm((c) => ({ ...c, targetLocations: e.target.value }))} placeholder="Austin TX, Dallas TX" className={INPUT} />
         </Field>
         <div className="md:col-span-2">
           <Field label="Notes">
-            <textarea
-              value={form.notes}
-              onChange={(event) => setForm((c) => ({ ...c, notes: event.target.value }))}
-              className="min-h-24 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-            />
+            <textarea value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} className="min-h-24 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-brand" />
           </Field>
         </div>
       </div>
       <div className="mt-5 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
-          Cancel
-        </button>
-        <button onClick={onSave} className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100">
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2">Cancel</button>
+        <button onClick={onSave} className="h-10 px-4 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)]">
           {editing ? "Save changes" : "Add to portfolio"}
         </button>
       </div>
@@ -689,8 +568,6 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
     const reader = new FileReader();
     reader.onload = () => {
       const raw = String(reader.result || "");
-      // CSV: take the first column; TXT: take whole line. Excel files exported
-      // as .xlsx aren't text — we ask the user to save-as-CSV for now.
       const lines = raw.split(/\r?\n/);
       const names = lines
         .map((line) => line.split(/[\t,]/)[0]?.trim())
@@ -723,33 +600,27 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
 
   return (
     <Modal title="Bulk import domains" onClose={onClose}>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-text-muted">
         Upload a CSV/TXT file or paste one domain per line. Excel: export as CSV first. AI categorization runs on every imported row.
       </p>
       <div className="mt-3 flex items-center gap-3">
-        <label className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 inline-flex items-center gap-2 cursor-pointer">
+        <label className="h-10 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text inline-flex items-center gap-2 cursor-pointer">
           <Upload className="h-4 w-4" />
           Choose file
           <input type="file" accept=".csv,.txt,.tsv" hidden onChange={onFile} />
         </label>
-        {fileName ? <span className="text-xs text-slate-500">{fileName}</span> : null}
+        {fileName ? <span className="text-xs text-text-muted">{fileName}</span> : null}
       </div>
       <textarea
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={`TexasCarVendor.com\nMiamiRoofing.com\nDallasPlumber.com`}
-        className="mt-3 min-h-48 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
+        className="mt-3 min-h-48 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-brand"
       />
-      {error ? <div className="mt-2 text-xs text-red-300">{error}</div> : null}
+      {error ? <div className="mt-2 text-xs text-danger">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
-          Cancel
-        </button>
-        <button
-          onClick={() => void submit()}
-          disabled={working}
-          className="h-10 px-3 rounded-lg border border-teal-400/30 bg-teal-500/15 text-sm text-teal-100 disabled:opacity-60"
-        >
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2">Cancel</button>
+        <button onClick={() => void submit()} disabled={working} className="h-10 px-4 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover disabled:opacity-60 shadow-[0_0_12px_rgba(20,184,166,0.3)]">
           {working ? "Importing…" : "Import & categorize"}
         </button>
       </div>
@@ -797,69 +668,33 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
     <Modal title={`Record sale of ${domain.name}`} onClose={onClose}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Buyer name" required>
-          <input
-            value={form.buyerName}
-            onChange={(event) => setForm((c) => ({ ...c, buyerName: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.buyerName} onChange={(e) => setForm((c) => ({ ...c, buyerName: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Buyer email">
-          <input
-            value={form.buyerEmail}
-            onChange={(event) => setForm((c) => ({ ...c, buyerEmail: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.buyerEmail} onChange={(e) => setForm((c) => ({ ...c, buyerEmail: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Sale price (USD)" required>
-          <input
-            type="number"
-            value={form.salePrice}
-            onChange={(event) => setForm((c) => ({ ...c, salePrice: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="number" value={form.salePrice} onChange={(e) => setForm((c) => ({ ...c, salePrice: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Sale date">
-          <input
-            type="date"
-            value={form.saleDate}
-            onChange={(event) => setForm((c) => ({ ...c, saleDate: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="date" value={form.saleDate} onChange={(e) => setForm((c) => ({ ...c, saleDate: e.target.value }))} className={INPUT} />
         </Field>
         <Field label="Marketplace">
-          <input
-            value={form.marketplace}
-            onChange={(event) => setForm((c) => ({ ...c, marketplace: event.target.value }))}
-            placeholder="Dan, Sedo, direct…"
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input value={form.marketplace} onChange={(e) => setForm((c) => ({ ...c, marketplace: e.target.value }))} placeholder="Dan, Sedo, direct…" className={INPUT} />
         </Field>
         <Field label="Fees / commission">
-          <input
-            type="number"
-            value={form.fees}
-            onChange={(event) => setForm((c) => ({ ...c, fees: event.target.value }))}
-            className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100"
-          />
+          <input type="number" value={form.fees} onChange={(e) => setForm((c) => ({ ...c, fees: e.target.value }))} className={INPUT} />
         </Field>
         <div className="md:col-span-2">
           <Field label="Notes">
-            <textarea
-              value={form.notes}
-              onChange={(event) => setForm((c) => ({ ...c, notes: event.target.value }))}
-              className="min-h-20 w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-            />
+            <textarea value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} className="min-h-20 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-brand" />
           </Field>
         </div>
       </div>
-      {error ? <div className="mt-2 text-xs text-red-300">{error}</div> : null}
+      {error ? <div className="mt-2 text-xs text-danger">{error}</div> : null}
       <div className="mt-4 flex items-center justify-end gap-2">
-        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
-          Cancel
-        </button>
-        <button onClick={() => void submit()} className="h-10 px-3 rounded-lg border border-emerald-400/30 bg-emerald-500/15 text-sm text-emerald-200">
-          Mark as sold
-        </button>
+        <button onClick={onClose} className="h-10 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2">Cancel</button>
+        <button onClick={() => void submit()} className="h-10 px-4 rounded-lg bg-success text-sm font-bold text-bg hover:opacity-90">Mark as sold</button>
       </div>
     </Modal>
   );
@@ -867,11 +702,11 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-900 px-5 py-3">
-          <h3 className="text-base font-black text-slate-900 dark:text-slate-100">{title}</h3>
-          <button onClick={onClose} className="h-8 w-8 rounded-md text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 inline-flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-12 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <h3 className="text-base font-black text-text">{title}</h3>
+          <button onClick={onClose} className="h-8 w-8 rounded-md text-text-muted hover:text-text inline-flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -883,9 +718,9 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-bold text-slate-400">
+    <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
       {label}
-      {required ? <span className="text-red-300">*</span> : null}
+      {required ? <span className="text-danger"> *</span> : null}
       <div className="mt-1">{children}</div>
     </label>
   );

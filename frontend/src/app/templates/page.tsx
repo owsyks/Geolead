@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Layers3, RefreshCcw, Save } from "lucide-react";
-import { EmptyState, MetricCard, OutboundShell  } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShell";
+import { GlassCard, ScoreRing, StatusBadge } from "@/components/ui";
 import { fetchOutbound, type OutboundTemplate } from "@/lib/outbound";
+
+const INPUT =
+  "mt-2 h-10 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text outline-none focus:border-brand transition-colors";
+const LABEL = "block text-[11px] font-bold uppercase tracking-wider text-text-muted";
 
 const demoTemplates: OutboundTemplate[] = [
   {
@@ -94,6 +97,7 @@ export default function TemplatesPage() {
   return (
     <OutboundShell
       title="Templates Library"
+      eyebrow="Copy & Deliverability"
       subtitle="Store cold opens, follow-ups, persuasion variants, and localized templates with spam-aware scoring."
       actions={
         <button
@@ -101,14 +105,14 @@ export default function TemplatesPage() {
             setMessage("");
             void load();
           }}
-          className="h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/70 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-2"
+          className="h-9 px-3 rounded-lg border border-border bg-surface text-sm text-text-muted hover:text-text hover:bg-surface-2 inline-flex items-center gap-2 transition-colors"
         >
           <RefreshCcw className="h-4 w-4" />
           Refresh
         </button>
       }
     >
-      {message ? <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{message}</div> : null}
+      {message ? <div className="mb-4 rounded-lg border border-border bg-surface-2 px-4 py-3 text-sm text-text-muted">{message}</div> : null}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard label="Templates" value={templates.length} helper="reusable copy" />
@@ -118,111 +122,115 @@ export default function TemplatesPage() {
       </section>
 
       <section className="mt-6 grid grid-cols-1 xl:grid-cols-[0.8fr_1.2fr] gap-5">
-        <form
-          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveTemplate();
-          }}
-        >
+        <GlassCard className="p-5">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveTemplate();
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Save className="h-5 w-5 text-brand" />
+              <h2 className="text-base font-black text-text">Save Template</h2>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                ["name", "Template name"],
+                ["type", "Type"],
+                ["purpose", "Purpose"],
+                ["language", "Language"],
+                ["tone", "Tone"],
+              ].map(([field, label]) => (
+                <label key={field} className={LABEL}>
+                  {label}
+                  <input
+                    value={form[field as keyof typeof form]}
+                    onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
+                    className={INPUT}
+                  />
+                </label>
+              ))}
+            </div>
+
+            <label className={`mt-4 ${LABEL}`}>
+              Subject
+              <input
+                value={form.subject}
+                onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
+                className={INPUT}
+              />
+            </label>
+
+            <label className={`mt-4 ${LABEL}`}>
+              Preview text
+              <input
+                value={form.previewText}
+                onChange={(event) => setForm((current) => ({ ...current, previewText: event.target.value }))}
+                className={INPUT}
+              />
+            </label>
+
+            <label className={`mt-4 ${LABEL}`}>
+              Body
+              <textarea
+                value={form.body}
+                onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
+                className="mt-2 h-56 w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm leading-6 text-text outline-none focus:border-brand transition-colors"
+              />
+            </label>
+
+            <label className={`mt-4 ${LABEL}`}>
+              Tags
+              <input
+                value={form.tags}
+                onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
+                className={INPUT}
+              />
+            </label>
+
+            <button className="mt-5 h-11 w-full rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)] inline-flex items-center justify-center gap-2 transition-colors">
+              <Save className="h-4 w-4" />
+              Save template
+            </button>
+          </form>
+        </GlassCard>
+
+        <GlassCard className="p-5">
           <div className="flex items-center gap-2">
-            <Save className="h-5 w-5 text-teal-300" />
-            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Save Template</h2>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              ["name", "Template name"],
-              ["type", "Type"],
-              ["purpose", "Purpose"],
-              ["language", "Language"],
-              ["tone", "Tone"],
-            ].map(([field, label]) => (
-              <label key={field} className="text-xs font-bold text-slate-400">
-                {label}
-                <input
-                  value={form[field as keyof typeof form]}
-                  onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
-                  className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
-                />
-              </label>
-            ))}
-          </div>
-
-          <label className="mt-4 block text-xs font-bold text-slate-400">
-            Subject
-            <input
-              value={form.subject}
-              onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
-            />
-          </label>
-
-          <label className="mt-4 block text-xs font-bold text-slate-400">
-            Preview text
-            <input
-              value={form.previewText}
-              onChange={(event) => setForm((current) => ({ ...current, previewText: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
-            />
-          </label>
-
-          <label className="mt-4 block text-xs font-bold text-slate-400">
-            Body
-            <textarea
-              value={form.body}
-              onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-              className="mt-2 h-56 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm leading-6 text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
-            />
-          </label>
-
-          <label className="mt-4 block text-xs font-bold text-slate-400">
-            Tags
-            <input
-              value={form.tags}
-              onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-teal-400"
-            />
-          </label>
-
-          <button className="mt-5 h-11 w-full rounded-lg bg-teal-600 text-sm font-black text-white hover:bg-teal-500 inline-flex items-center justify-center gap-2">
-            <Save className="h-4 w-4" />
-            Save template
-          </button>
-        </form>
-
-        <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/35 p-5">
-          <div className="flex items-center gap-2">
-            <Layers3 className="h-5 w-5 text-teal-300" />
-            <h2 className="text-base font-black text-slate-900 dark:text-slate-100">Template Library</h2>
+            <Layers3 className="h-5 w-5 text-brand" />
+            <h2 className="text-base font-black text-text">Template Library</h2>
           </div>
           <div className="mt-5 space-y-4">
             {templates.length === 0 ? (
               <EmptyState title="No templates" body="Generate a template or save one from the AI writer." />
             ) : (
               templates.map((template) => (
-                <article key={template.id} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-4">
+                <article key={template.id} className="rounded-lg border border-border bg-surface-2 p-4 transition-colors hover:border-brand/40">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{template.name}</h3>
-                      <p className="mt-1 text-xs text-slate-500">{template.subject}</p>
+                      <h3 className="text-sm font-black text-text">{template.name}</h3>
+                      <p className="mt-1 text-xs text-text-muted">{template.subject}</p>
                     </div>
                     <StatusBadge status={template.type} />
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-400 line-clamp-4 whitespace-pre-wrap">{template.body}</p>
+                  <p className="mt-3 text-sm leading-6 text-text-muted line-clamp-4 whitespace-pre-wrap">{template.body}</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
-                      <div className="text-slate-500">Spam score</div>
-                      <div className="mt-1 font-black text-slate-900 dark:text-slate-100">{template.spamScore}/10</div>
+                    <div className="rounded-lg border border-border bg-surface p-3">
+                      <div className="text-text-muted">Spam score</div>
+                      <div className="mt-1 font-black text-text">{template.spamScore}/10</div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 p-3">
-                      <div className="text-slate-500">Deliverability</div>
-                      <div className="mt-1 font-black text-emerald-300">{template.deliverabilityScore}/100</div>
+                    <div className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3">
+                      <ScoreRing score={template.deliverabilityScore} size="sm" />
+                      <div>
+                        <div className="text-text-muted">Deliverability</div>
+                        <div className="mt-1 font-black text-success">{template.deliverabilityScore}/100</div>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {template.tags.map((tag) => (
-                      <span key={tag} className="rounded-full border border-slate-400 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 px-2 py-1 text-[11px] text-slate-400">
+                      <span key={tag} className="rounded-full border border-border bg-surface px-2 py-1 text-[11px] text-text-muted">
                         {tag}
                       </span>
                     ))}
@@ -231,7 +239,7 @@ export default function TemplatesPage() {
               ))
             )}
           </div>
-        </section>
+        </GlassCard>
       </section>
     </OutboundShell>
   );

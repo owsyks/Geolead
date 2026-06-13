@@ -1,27 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { OutboundShell } from "@/components/OutboundShell"
-import { StatusBadge } from "@/components/ui"
-;
+import { OutboundShell } from "@/components/OutboundShell";
+import { GlassCard } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { fetchOutbound, OUTBOUND_API_BASE, getAccessToken } from "@/lib/outbound";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   return (
-    <OutboundShell title="Profile" subtitle="Manage your account, password, and email verification.">
-      {user ? <ProfileBody /> : <p className="text-slate-400">Loading…</p>}
+    <OutboundShell title="Profile" eyebrow="Account" subtitle="Manage your account, password, and email verification.">
+      {user ? <ProfileBody /> : <p className="text-text-muted">Loading…</p>}
     </OutboundShell>
   );
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6 rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-      <h2 className="mb-4 text-sm font-semibold text-white">{title}</h2>
+    <GlassCard className="mb-6 p-5">
+      <h2 className="mb-4 text-sm font-bold text-text">{title}</h2>
       {children}
-    </section>
+    </GlassCard>
   );
 }
 
@@ -29,7 +28,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-teal-500"
+      className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors disabled:opacity-60"
     />
   );
 }
@@ -97,45 +96,45 @@ function ProfileBody() {
       <Card title="Account">
         <form onSubmit={saveProfile} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm text-slate-300">Display name</label>
+            <label className="mb-1.5 block text-sm text-text-faint">Display name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm text-slate-300">Email</label>
+            <label className="mb-1.5 block text-sm text-text-faint">Email</label>
             <Input value={user?.email || ""} disabled />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-text-muted">
               {user?.emailVerified ? (
-                <span className="text-emerald-400">Verified</span>
+                <span className="text-success">Verified</span>
               ) : (
-                <span className="text-amber-400">
+                <span className="text-copper">
                   Not verified.{" "}
-                  <button type="button" onClick={resendVerification} className="underline hover:text-amber-300">
+                  <button type="button" onClick={resendVerification} className="underline hover:text-text">
                     Resend verification email
                   </button>
                 </span>
               )}
-              {verifyMsg ? <span className="ml-2 text-slate-400">{verifyMsg}</span> : null}
+              {verifyMsg ? <span className="ml-2 text-text-muted">{verifyMsg}</span> : null}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1.5 block text-sm text-slate-300">Timezone</label>
+              <label className="mb-1.5 block text-sm text-text-faint">Timezone</label>
               <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="UTC" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm text-slate-300">Language</label>
+              <label className="mb-1.5 block text-sm text-text-faint">Language</label>
               <Input value={locale} onChange={(e) => setLocale(e.target.value)} placeholder="en" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm text-slate-300">Date format</label>
+              <label className="mb-1.5 block text-sm text-text-faint">Date format</label>
               <Input value={dateFormat} onChange={(e) => setDateFormat(e.target.value)} />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-400">
+            <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-bg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors">
               Save profile
             </button>
-            {profileMsg ? <span className="text-sm text-slate-400">{profileMsg}</span> : null}
+            {profileMsg ? <span className="text-sm text-text-muted">{profileMsg}</span> : null}
           </div>
         </form>
       </Card>
@@ -143,27 +142,27 @@ function ProfileBody() {
       <Card title="Change password">
         <form onSubmit={changePassword} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm text-slate-300">Current password</label>
+            <label className="mb-1.5 block text-sm text-text-faint">Current password</label>
             <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm text-slate-300">New password</label>
+            <label className="mb-1.5 block text-sm text-text-faint">New password</label>
             <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
           </div>
           <div className="flex items-center gap-3">
-            <button type="submit" className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+            <button type="submit" className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-text-muted hover:text-text hover:bg-surface-2 transition-colors">
               Update password
             </button>
-            {pwMsg ? <span className="text-sm text-slate-400">{pwMsg}</span> : null}
+            {pwMsg ? <span className="text-sm text-text-muted">{pwMsg}</span> : null}
           </div>
         </form>
       </Card>
 
       <Card title="Plan">
-        <p className="text-sm text-slate-300">
-          Current plan: <span className="font-semibold capitalize text-white">{user?.plan || "free"}</span>
+        <p className="text-sm text-text-faint">
+          Current plan: <span className="font-bold capitalize text-text">{user?.plan || "free"}</span>
         </p>
-        <p className="mt-1 text-xs text-slate-500">Member since {user ? new Date(user.createdAt).toLocaleDateString() : ""}</p>
+        <p className="mt-1 text-xs text-text-muted">Member since {user ? new Date(user.createdAt).toLocaleDateString() : ""}</p>
       </Card>
     </div>
   );

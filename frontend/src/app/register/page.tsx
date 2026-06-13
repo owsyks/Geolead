@@ -36,7 +36,7 @@ export default function RegisterPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-teal-400 hover:text-teal-300">
+          <Link href="/login" className="font-medium text-brand hover:text-brand-hover">
             Sign in
           </Link>
         </>
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters"
         />
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-text-muted">
           Use 8+ characters with upper &amp; lowercase letters and a number.
         </p>
         <SubmitButton loading={loading}>Create account</SubmitButton>
