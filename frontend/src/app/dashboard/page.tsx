@@ -104,6 +104,8 @@ interface SearchTask {
   country?: string;
   cityState?: string;
   searchDepth: number;
+  searchSource?: string;
+  proxyscrapeEnabled?: boolean;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED';
   progress: number;
   totalLeads: number;
@@ -119,9 +121,11 @@ export default function DashboardPage() {
   const { activeDomain } = useDomainContext();
   const [keyword, setKeyword] = useState("");
   const [domainIdea, setDomainIdea] = useState("");
-  const [country] = useState("United States");
+  const [country, setCountry] = useState("United States");
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(10);
+  const [searchSource, setSearchSource] = useState<'combined' | 'web' | 'google_maps'>('combined');
+  const [useFreeProxy, setUseFreeProxy] = useState(true);
   const [railOpen, setRailOpen] = useState(false);
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
@@ -737,7 +741,9 @@ export default function DashboardPage() {
           domainIdea,
           country,
           cityState,
-          searchDepth
+          searchDepth,
+          searchSource,
+          proxyscrapeEnabled: useFreeProxy,
         })
       });
 
@@ -1224,7 +1230,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Keyword Niche</label>
-                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Texas Car Dealership"
+                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Car Dealership"
                   className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
               </div>
               <div>
@@ -1232,6 +1238,18 @@ export default function DashboardPage() {
                 <input type="text" value={cityState} onChange={(e) => setCityState(e.target.value)} placeholder="e.g. Dallas, TX"
                   className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Search Source</label>
+                <select value={searchSource} onChange={(e) => setSearchSource(e.target.value as any)} className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand">
+                  <option value="combined">Combined (Web + Maps)</option>
+                  <option value="web">Web Search Only</option>
+                  <option value="google_maps">Google Maps Only</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={useFreeProxy} onChange={(e) => setUseFreeProxy(e.target.checked)} className="accent-brand w-4 h-4" />
+                <span className="text-[11px] text-text-muted">Free proxy auto-harvest</span>
+              </label>
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Depth</label>
                 <span className="text-[11px] text-text-muted font-mono">{searchDepth}</span>
@@ -1268,24 +1286,38 @@ export default function DashboardPage() {
               </div>
               <div>
                 <label className={LABEL}>Keyword Niche</label>
-                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Texas Car Dealership" className={INPUT} />
+                <input type="text" required value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. Car Dealership" className={INPUT} />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={LABEL}>City / State</label>
-                  <input type="text" value={cityState} onChange={(e) => setCityState(e.target.value)} placeholder="Texas" className={INPUT} />
-                </div>
-                <div>
-                  <label className={LABEL}>Search Depth</label>
-                  <select value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className={INPUT}>
-                    <option value={5}>5 Leads</option>
-                    <option value={10}>10 Leads</option>
-                    <option value={20}>20 Leads</option>
-                    <option value={50}>50 Leads</option>
-                    <option value={100}>100 Leads</option>
-                    <option value={MAX_SEARCH_DEPTH}>{MAX_SEARCH_DEPTH} Leads</option>
-                  </select>
-                </div>
+              <div>
+                <label className={LABEL}>City / State</label>
+                <input type="text" value={cityState} onChange={(e) => setCityState(e.target.value)} placeholder="e.g. Dallas, TX" className={INPUT} />
+              </div>
+              <div>
+                <label className={LABEL}>Country</label>
+                <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States" className={INPUT} />
+              </div>
+              <div>
+                <label className={LABEL}>Search Source</label>
+                <select value={searchSource} onChange={(e) => setSearchSource(e.target.value as any)} className={INPUT}>
+                  <option value="combined">Combined (Web + Maps)</option>
+                  <option value="web">Web Search Only</option>
+                  <option value="google_maps">Google Maps Only</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={useFreeProxy} onChange={(e) => setUseFreeProxy(e.target.checked)} className="accent-brand w-4 h-4" />
+                <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Free proxy auto-harvest</span>
+              </label>
+              <div>
+                <label className={LABEL}>Search Depth</label>
+                <select value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className={INPUT}>
+                  <option value={5}>5 Leads</option>
+                  <option value={10}>10 Leads</option>
+                  <option value={20}>20 Leads</option>
+                  <option value={50}>50 Leads</option>
+                  <option value={100}>100 Leads</option>
+                  <option value={MAX_SEARCH_DEPTH}>{MAX_SEARCH_DEPTH} Leads</option>
+                </select>
               </div>
               <button type="submit" disabled={loading} className="w-full h-10 bg-brand hover:bg-brand-hover text-bg rounded-lg text-xs font-bold transition-all shadow-[0_0_12px_rgba(20,184,166,0.3)] flex items-center justify-center gap-1.5 disabled:opacity-60">
                 <Plus className="w-4 h-4" /> Start Lead Discovery

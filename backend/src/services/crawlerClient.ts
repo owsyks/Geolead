@@ -133,6 +133,7 @@ export async function searchAndCrawl(params: {
   region?: string;
   maxResults?: number;
   source?: 'web' | 'google_maps' | 'combined';
+  proxyscrapeEnabled?: boolean;
   userId?: string | null;
   onProgress?: (processed: number, total: number) => void;
 }): Promise<CrawlerBusiness[]> {
@@ -145,8 +146,9 @@ export async function searchAndCrawl(params: {
   const region = params.region || 'us-en';
   const maxResults = params.maxResults || 20;
   const source = params.source || 'combined';
+  const proxyscrapeEnabled = params.proxyscrapeEnabled ?? true;
 
-  console.log(`[CrawlerClient] Starting search+crawl: keyword="${params.keyword}" region=${region} max=${maxResults} source=${source}`);
+  console.log(`[CrawlerClient] Starting search+crawl: keyword="${params.keyword}" region=${region} max=${maxResults} source=${source} proxies=${proxyscrapeEnabled}`);
 
   const headers = makeHeaders(apiKey);
   const startRes = await axios.post(
@@ -157,6 +159,7 @@ export async function searchAndCrawl(params: {
       region,
       source,
       emails_only: false,
+      proxyscrape_enabled: proxyscrapeEnabled,
     },
     { headers, timeout: 15000 }
   );
