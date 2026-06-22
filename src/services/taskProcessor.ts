@@ -1,6 +1,6 @@
 import prisma from '../config/db.js';
 import { generateQueryVariations } from './queryGenerator.js';
-import { searchGoogle, searchGooglePlaces } from './serper.js';
+import { searchAndCrawl } from './crawlerClient.js';
 import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
@@ -253,96 +253,58 @@ export async function processSearchTask(taskId: string) {
     const discoveredBusinesses = new Map<string, DiscoveredBiz>();
     const searchContext = buildSearchContext(task.keyword, task.cityState || undefined);
 
+    const crawlerQueries = queries.slice(0, 3);
+    console.log(`[Processor] Using ${crawlerQueries.length} of ${queries.length} queries for crawler (each triggers a full search+crawl job).`);
+
     let queryIndex = 0;
-    const pagesPerQuery = task.searchDepth >= 100 ? 3 : task.searchDepth >= 50 ? 2 : 1;
-    for (const query of queries) {
+    for (const query of crawlerQueries) {
       queryIndex++;
-      console.log(`[Processor] Scrape Query [${queryIndex}/${queries.length}]: "${query}"`);
+      console.log(`[Processor] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}"`);
 
-      for (let page = 1; page <= pagesPerQuery; page++) {
-        const places = await searchGooglePlaces(query, { page, num: 20, userId: task.userId });
-        places.forEach((place) => {
-          if (!place.website) return;
-
-          let domainKey = '';
-          try {
-            domainKey = new URL(place.website).hostname.replace(/^www\./i, '').toLowerCase();
-          } catch {
-            return;
-          }
-
-          const discoveredPlace: DiscoveredBiz = {
-            name: place.title,
-            website: place.website,
-            location: place.address,
-            googleMapsLink: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined,
-            category: place.category,
-            rating: place.rating,
-            reviewsCount: place.ratingCount,
-            phoneNumbers: place.phoneNumber ? [place.phoneNumber] : [],
-            snippetEmails: [],
-            snippetPhones: [],
-            source: 'Google Maps',
-          };
-
-          if (shouldSkipDiscoveredBusiness(discoveredPlace, searchContext)) {
-            return;
-          }
-
-          if (!discoveredBusinesses.has(domainKey)) {
-            discoveredBusinesses.set(domainKey, {
-              ...discoveredPlace,
-            });
-          } else if (place.phoneNumber) {
-            discoveredBusinesses.get(domainKey)?.phoneNumbers.push(place.phoneNumber);
-          }
+      try {
+        const crawlerResults = await searchAndCrawl({
+          keyword: query,
+          region: mapCountryToRegion(task.country || undefined),
+          maxResults: 20,
+          source: 'combined',
+          userId: task.userId,
         });
 
-        const searchResults = await searchGoogle(query, { page, num: 20, userId: task.userId });
-        searchResults.forEach((result) => {
-          let domainKey = '';
+        for (const result of crawlerResults) {
+          const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+          if (!domainKey) continue;
 
-          try {
-            domainKey = new URL(result.link).hostname.replace(/^www\./i, '').toLowerCase();
-          } catch {
-            return;
-          }
+          if (isBlockedWebsiteHost(domainKey)) continue;
 
-          if (isBlockedWebsiteHost(domainKey)) {
-            return;
-          }
-
-          const rawTitle = result.title.split(/[-|]/)[0]?.trim() || result.title;
-          const discoveredResult: DiscoveredBiz = {
-            name: rawTitle,
-            website: result.link,
-            phoneNumbers: [],
-            snippetEmails: extractEmails(result.snippet || '', result.link),
-            snippetPhones: extractPhones(result.snippet || ''),
-            snippet: result.snippet || '',
-            source: 'Google Search',
+          const discovered: DiscoveredBiz = {
+            name: result.companyName || result.title || result.domain,
+            website: result.url,
+            location: result.address || undefined,
+            category: undefined,
+            rating: undefined,
+            reviewsCount: undefined,
+            phoneNumbers: result.phones.map(p => p.value),
+            snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
+            snippetPhones: result.phones.map(p => p.value),
+            snippet: '',
+            source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
           };
 
-          if (shouldSkipDiscoveredBusiness(discoveredResult, searchContext)) {
-            return;
-          }
+          if (shouldSkipDiscoveredBusiness(discovered, searchContext)) continue;
 
           if (!discoveredBusinesses.has(domainKey)) {
-            discoveredBusinesses.set(domainKey, {
-              ...discoveredResult,
-            });
+            discoveredBusinesses.set(domainKey, discovered);
           } else {
-            const existing = discoveredBusinesses.get(domainKey);
-            existing?.snippetEmails.push(...extractEmails(result.snippet || '', result.link));
-            existing?.snippetPhones.push(...extractPhones(result.snippet || ''));
-            if (existing && result.snippet) {
-              existing.snippet = [existing.snippet, result.snippet].filter(Boolean).join(' ');
-            }
+            const existing = discoveredBusinesses.get(domainKey)!;
+            existing.snippetEmails.push(...discovered.snippetEmails);
+            existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
           }
-        });
+        }
+      } catch (error: any) {
+        console.error(`[Processor] Crawler query "${query}" failed: ${error.message}`);
       }
 
-      const scrapingProgress = Math.floor(10 + (20 * (queryIndex / queries.length)));
+      const scrapingProgress = Math.floor(10 + (20 * (queryIndex / crawlerQueries.length)));
       await prisma.searchTask.update({
         where: { id: taskId },
         data: { progress: scrapingProgress },
@@ -355,7 +317,7 @@ export async function processSearchTask(taskId: string) {
     console.log(`[Processor] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length}.`);
 
     if (businessList.length === 0) {
-      console.warn(`[Processor] SearchTask ${taskId} completed with no businesses discovered — likely Serper returned empty results.`);
+      console.warn(`[Processor] SearchTask ${taskId} completed with no businesses discovered — crawler returned empty results.`);
       await prisma.searchTask.update({
         where: { id: taskId },
         data: { status: 'COMPLETED', progress: 100, totalLeads: 0, validEmails: 0 },
@@ -689,7 +651,7 @@ function scoreDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext) {
   const haystack = normalizeText(`${biz.name} ${biz.category || ''} ${biz.location || ''} ${biz.website || ''} ${biz.snippet || ''}`);
   const websiteHost = getWebsiteHost(biz.website);
 
-  if (biz.source === 'Google Maps') score += 30;
+  if (biz.source === 'Google Maps' || biz.source === 'Crawler') score += 30;
   if (biz.website) score += 20;
   if (biz.location) score += 12;
   if (biz.category) score += 8;
@@ -824,4 +786,29 @@ function containsPhrase(haystack: string, phrase?: string) {
     .replace(/\s+/g, '\\s+');
 
   return new RegExp(`(^|[\\s,./-])${escapedPhrase}($|[\\s,./-])`, 'i').test(haystack);
+}
+
+function mapCountryToRegion(country?: string): string {
+  if (!country) return 'us-en';
+  const lower = country.toLowerCase().trim();
+  const map: Record<string, string> = {
+    'united states': 'us-en',
+    'usa': 'us-en',
+    'us': 'us-en',
+    'united kingdom': 'uk-en',
+    'uk': 'uk-en',
+    'england': 'uk-en',
+    'canada': 'ca-en',
+    'australia': 'au-en',
+    'germany': 'de-de',
+    'france': 'fr-fr',
+    'spain': 'es-es',
+    'italy': 'it-it',
+    'netherlands': 'nl-nl',
+    'india': 'in-en',
+    'ireland': 'ie-en',
+    'new zealand': 'nz-en',
+    'south africa': 'za-en',
+  };
+  return map[lower] || 'us-en';
 }
