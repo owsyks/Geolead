@@ -257,16 +257,21 @@ export async function processSearchTask(taskId: string) {
     console.log(`[Processor] Using ${crawlerQueries.length} of ${queries.length} queries for crawler (each triggers a full search+crawl job).`);
 
     let queryIndex = 0;
+    const taskMetadata = (task.metadata as any) || {};
+    const searchSource = (taskMetadata.searchSource as string) || 'combined';
+    const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
+
     for (const query of crawlerQueries) {
       queryIndex++;
-      console.log(`[Processor] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}"`);
+      console.log(`[Processor] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}" (source=${searchSource}, proxies=${proxyscrapeEnabled})`);
 
       try {
         const crawlerResults = await searchAndCrawl({
           keyword: query,
           region: mapCountryToRegion(task.country || undefined),
           maxResults: 20,
-          source: 'combined',
+          source: searchSource as 'web' | 'google_maps' | 'combined',
+          proxyscrapeEnabled,
           userId: task.userId,
         });
 

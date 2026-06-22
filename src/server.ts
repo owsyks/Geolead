@@ -78,7 +78,7 @@ app.get('/api/health', (req, res) => {
  * Initiates a lead search task.
  */
 app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
-  const { keyword, domainIdea, country, cityState, searchDepth } = req.body;
+  const { keyword, domainIdea, country, cityState, searchDepth, searchSource, proxyscrapeEnabled } = req.body;
 
   if (!keyword || !domainIdea) {
     return res.status(400).json({ error: 'Keyword and domainIdea are required fields.' });
@@ -99,6 +99,7 @@ app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), as
         searchDepth: depth,
         status: 'PENDING',
         progress: 0,
+        metadata: { searchSource: searchSource || 'combined', proxyscrapeEnabled: proxyscrapeEnabled ?? true } as any,
       },
     });
 
