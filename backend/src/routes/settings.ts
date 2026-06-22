@@ -37,7 +37,7 @@ router.patch('/', wrap(async (req, res) => {
   res.json({ settings: await getSettingsForDisplay(req.userId!) });
 }));
 
-// Live connection test for a provider: nvidia | serper | resend | smtp.
+// Live connection test for a provider: nvidia | crawler | resend | smtp.
 router.post('/test/:provider', wrap(async (req, res) => {
   const result = await testProvider(req.params.provider, req.userId!);
   res.status(result.ok ? 200 : 400).json(result);

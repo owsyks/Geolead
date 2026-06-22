@@ -24,8 +24,9 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'nvidiaApiKey', label: 'NVIDIA API key', category: 'ai', secret: true, envKey: 'NVIDIA_API_KEY', placeholder: 'nvapi-…', hint: 'Powers AI email generation and lead scoring via integrate.api.nvidia.com. Falls back to local templates if empty.' },
   { key: 'nvidiaModel', label: 'NVIDIA model', category: 'ai', envKey: 'NVIDIA_MODEL', placeholder: 'moonshotai/kimi-k2.6', hint: 'Model id on NVIDIA NIM. Defaults to moonshotai/kimi-k2.6.' },
 
-  // Discovery
-  { key: 'serperApiKey', label: 'Serper.dev API key', category: 'discovery', secret: true, envKey: 'SERPER_API_KEY', placeholder: 'Serper key', hint: 'Google Maps / search enrichment for lead discovery.' },
+  // Discovery (self-hosted crawler)
+  { key: 'crawlerBaseUrl', label: 'Crawler URL', category: 'discovery', envKey: 'CRAWLER_BASE_URL', placeholder: 'http://localhost:8000', hint: 'Your self-hosted crawler API address for lead discovery + email extraction.' },
+  { key: 'crawlerApiKey', label: 'Crawler API key', category: 'discovery', secret: true, envKey: 'CRAWLER_API_KEY', placeholder: 'X-API-Key', hint: 'Auth key set in the crawler .env (API_KEY=...).' },
 
   // Email (Resend)
   { key: 'resendApiKey', label: 'Resend API key', category: 'email', secret: true, envKey: 'RESEND_API_KEY', placeholder: 're_…', hint: 'Used to send outbound email via Resend.' },
@@ -156,8 +157,8 @@ export async function testProvider(provider: string, userId: string): Promise<{ 
   switch (provider) {
     case 'nvidia':
       return testNvidia(userId);
-    case 'serper':
-      return testSerper(userId);
+    case 'crawler':
+      return testCrawler(userId);
     case 'resend':
       return testResend(userId);
     case 'smtp':
@@ -186,19 +187,19 @@ async function testNvidia(userId: string): Promise<{ ok: boolean; message: strin
   }
 }
 
-async function testSerper(userId: string): Promise<{ ok: boolean; message: string }> {
-  const key = await getSetting('serperApiKey', userId);
-  if (!key) return { ok: false, message: 'No Serper API key set.' };
+async function testCrawler(userId: string): Promise<{ ok: boolean; message: string }> {
+  const baseUrl = await getSetting('crawlerBaseUrl', userId);
+  if (!baseUrl) return { ok: false, message: 'No crawler URL set.' };
+  const apiKey = await getSetting('crawlerApiKey', userId);
   try {
-    const res = await axios.post(
-      'https://google.serper.dev/search',
-      { q: 'test', num: 1 },
-      { headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' }, timeout: 10000, validateStatus: (s) => s < 500 }
-    );
-    if (res.status === 200) return { ok: true, message: 'Serper key is valid.' };
-    return { ok: false, message: `Serper returned ${res.status}.` };
+    const headers: Record<string, string> = {};
+    if (apiKey) headers['X-API-Key'] = apiKey;
+    const res = await axios.get(`${baseUrl}/health`, { headers, timeout: 8000, validateStatus: (s) => s < 500 });
+    if (res.status === 200) return { ok: true, message: 'Crawler is reachable and healthy.' };
+    if (res.status === 401) return { ok: false, message: 'Crawler API key is invalid (401).' };
+    return { ok: false, message: `Crawler returned ${res.status}.` };
   } catch (err: any) {
-    return { ok: false, message: err?.message || 'Serper request failed.' };
+    return { ok: false, message: err?.message || 'Crawler connection failed.' };
   }
 }
 

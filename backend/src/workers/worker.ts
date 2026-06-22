@@ -5,7 +5,7 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
 import { generateQueryVariations } from '../services/queryGenerator.js';
-import { searchGoogle, searchGooglePlaces } from '../services/serper.js';
+import { searchAndCrawl } from '../services/crawlerClient.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
 import axios from 'axios';
@@ -76,72 +76,60 @@ const worker = new Worker<ScrapingJobData>(
         category?: string;
         rating?: number;
         reviewsCount?: number;
+        phoneNumbers: string[];
+        snippetEmails: { email: string; sourcePage?: string }[];
         source: string;
       }
       
       const discoveredBusinesses = new Map<string, DiscoveredBiz>();
 
-      // Scraping phase progress weight: 10% to 30%
+      const crawlerQueries = queries.slice(0, 3);
+      console.log(`[Worker] Using ${crawlerQueries.length} of ${queries.length} queries for crawler.`);
+
       let queryIndex = 0;
-      for (const query of queries) {
+      for (const query of crawlerQueries) {
         queryIndex++;
-        console.log(`[Worker] Scrape Query [${queryIndex}/${queries.length}]: "${query}"`);
+        console.log(`[Worker] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}"`);
 
-        // Fetch Google Places (Maps)
-        const places = await searchGooglePlaces(query);
-        places.forEach(place => {
-          if (!place.website) return;
-          
-          let domainKey = '';
-          try {
-            domainKey = new URL(place.website).hostname.replace(/^www\./i, '').toLowerCase();
-          } catch {
-            return;
+        try {
+          const crawlerResults = await searchAndCrawl({
+            keyword: query,
+            region: task.country ? mapCountryToRegion(task.country) : 'us-en',
+            maxResults: 20,
+            source: 'combined',
+            userId: task.userId,
+          });
+
+          for (const result of crawlerResults) {
+            const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+            if (!domainKey) continue;
+
+            const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
+            if (skipDomains.some(skip => domainKey.includes(skip))) continue;
+
+            if (!discoveredBusinesses.has(domainKey)) {
+              discoveredBusinesses.set(domainKey, {
+                name: result.companyName || result.title || result.domain,
+                website: result.url,
+                location: result.address || undefined,
+                category: undefined,
+                rating: undefined,
+                reviewsCount: undefined,
+                phoneNumbers: result.phones.map(p => p.value),
+                snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
+                source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
+              });
+            } else {
+              const existing = discoveredBusinesses.get(domainKey)!;
+              existing.snippetEmails.push(...result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })));
+              existing.phoneNumbers.push(...result.phones.map(p => p.value).filter(p => !existing.phoneNumbers.includes(p)));
+            }
           }
+        } catch (error: any) {
+          console.error(`[Worker] Crawler query "${query}" failed: ${error.message}`);
+        }
 
-          if (!discoveredBusinesses.has(domainKey)) {
-            discoveredBusinesses.set(domainKey, {
-              name: place.title,
-              website: place.website,
-              location: place.address,
-              googleMapsLink: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined,
-              category: place.category,
-              rating: place.rating,
-              reviewsCount: place.ratingCount,
-              source: 'Google Maps'
-            });
-          }
-        });
-
-        // Fetch Organic Search
-        const searchResults = await searchGoogle(query);
-        searchResults.forEach(result => {
-          // Skip general directory domains in organic results to find direct business websites
-          const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
-          let domainKey = '';
-          try {
-            domainKey = new URL(result.link).hostname.replace(/^www\./i, '').toLowerCase();
-          } catch {
-            return;
-          }
-
-          if (skipDomains.some(skip => domainKey.includes(skip))) {
-            return;
-          }
-
-          if (!discoveredBusinesses.has(domainKey)) {
-            // Estimate a clean business name from the title
-            const rawTitle = result.title.split(/[-|]/)[0]?.trim() || result.title;
-            discoveredBusinesses.set(domainKey, {
-              name: rawTitle,
-              website: result.link,
-              source: 'Google Search'
-            });
-          }
-        });
-
-        // Update progress during scraping phase (scale up to 30)
-        const scrapingProgress = Math.floor(10 + (20 * (queryIndex / queries.length)));
+        const scrapingProgress = Math.floor(10 + (20 * (queryIndex / crawlerQueries.length)));
         await prisma.searchTask.update({
           where: { id: taskId },
           data: { progress: scrapingProgress },
@@ -152,7 +140,7 @@ const worker = new Worker<ScrapingJobData>(
       console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length} based on depth limit.`);
 
       if (businessList.length === 0) {
-        console.log('[Worker] No businesses discovered.');
+        console.log('[Worker] No businesses discovered — crawler returned empty results.');
         await prisma.searchTask.update({
           where: { id: taskId },
           data: { status: 'COMPLETED', progress: 100, totalLeads: 0, validEmails: 0 },
@@ -186,13 +174,25 @@ const worker = new Worker<ScrapingJobData>(
         console.log(`[Worker] [${processedCount}/${businessList.length}] Crawling site: ${biz.website}`);
 
         try {
-          // Crawl website
+          // Crawl website (for companySize, notes/pageText, and backup email extraction)
           const crawlData = biz.website 
             ? await crawlWebsite(biz.website)
             : { emails: [], phones: [], socials: [], companySize: 'Unknown', hasContactForm: false, notes: 'No website available' };
 
+          // Combine crawler-extracted emails with crawlWebsite emails
+          const allEmailCandidates = [...biz.snippetEmails, ...crawlData.emails];
+          const seenEmails = new Set<string>();
+          const uniqueEmailCandidates = allEmailCandidates.filter(e => {
+            const key = e.email.toLowerCase();
+            if (seenEmails.has(key)) return false;
+            seenEmails.add(key);
+            return true;
+          });
+          const allPhones = [...biz.phoneNumbers, ...crawlData.phones];
+          const uniquePhones = [...new Set(allPhones)];
+
           // Email validation
-          const validatedEmails = await validateAndCleanEmails(crawlData.emails);
+          const validatedEmails = await validateAndCleanEmails(uniqueEmailCandidates);
 
           // Domain AI Relevance Scoring
           const scoreData = await calculateMatchScore(
@@ -202,8 +202,7 @@ const worker = new Worker<ScrapingJobData>(
             biz.location || undefined
           );
 
-          // Build explanation and summary tags
-          const finalPhones = [...(biz.location ? [] : []), ...crawlData.phones];
+          const finalPhones = uniquePhones;
           
           // Save Lead to DB
           const createdLead = await prisma.lead.create({
@@ -381,7 +380,7 @@ Write a concise insight explaining why this lead matters and how to approach the
                 if (dm.name && dm.role) {
                   (async () => {
                     try {
-                      const li = await verifyDecisionMakerViaLinkedIn(biz.name, dm.name, dm.role);
+                      const li = await verifyDecisionMakerViaLinkedIn(biz.name, dm.name, dm.role, task.userId);
                       if (wasLinkedInVerified(li)) {
                         const dmConfidence = li.confidence === 'high' ? 'high' : 'medium';
                         await prisma.lead.update({
@@ -567,3 +566,17 @@ emailVerificationWorker.on('failed', async (job, err) => {
 
 console.log('[Worker] Worker process initialized and waiting for jobs.');
 export default worker;
+
+function mapCountryToRegion(country?: string): string {
+  if (!country) return 'us-en';
+  const lower = country.toLowerCase().trim();
+  const map: Record<string, string> = {
+    'united states': 'us-en', 'usa': 'us-en', 'us': 'us-en',
+    'united kingdom': 'uk-en', 'uk': 'uk-en', 'england': 'uk-en',
+    'canada': 'ca-en', 'australia': 'au-en',
+    'germany': 'de-de', 'france': 'fr-fr', 'spain': 'es-es',
+    'italy': 'it-it', 'netherlands': 'nl-nl', 'india': 'in-en',
+    'ireland': 'ie-en', 'new zealand': 'nz-en', 'south africa': 'za-en',
+  };
+  return map[lower] || 'us-en';
+}

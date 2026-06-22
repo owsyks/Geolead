@@ -1,10 +1,9 @@
 // Domain Intelligence Analysis Engine
-// Orchestrates DNS TLD checks, Serper business discovery,
+// Orchestrates DNS TLD checks, crawler business discovery,
 // similar-domain generation, brand/geo/competition scoring, and
 // an NVIDIA-powered executive report. Called from reanalyzeDomain().
 import { promises as dnsPromises } from 'dns';
-import axios from 'axios';
-import { getSetting } from './settings.js';
+import { searchMaps } from './crawlerClient.js';
 import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -320,14 +319,6 @@ async function checkSimilarDomains(
 
 // ─── Step 3 – Serper business discovery ──────────────────────────────────────
 
-interface SerperPlace {
-  title?: string;
-  address?: string;
-  website?: string;
-  rating?: number;
-  type?: string;
-}
-
 async function discoverBusinesses(
   niche: string | null,
   city: string | null,
@@ -336,37 +327,20 @@ async function discoverBusinesses(
 ): Promise<DiscoveredBusiness[]> {
   if (!niche && !city && !state) return [];
 
-  const serperKey = await getSetting('serperApiKey', userId).catch(() => undefined);
-  if (!serperKey) return [];
-
   const geoStr = city ? `${city}, ${state || ''}` : state || '';
   const query = `${niche || 'business'} in ${geoStr || 'USA'}`.trim();
 
   try {
-    const response = await axios.post(
-      'https://google.serper.dev/maps',
-      { q: query, num: 10 },
-      {
-        headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
-        timeout: 10000,
-      }
-    );
-
-    const places: SerperPlace[] = response.data?.places || [];
-    return places.map((p): DiscoveredBusiness => {
-      const hasWebsite = Boolean(p.website);
-      const rating = p.rating || 0;
+    const crawlerResults = await searchMaps(query, userId, 10);
+    return crawlerResults.map((r): DiscoveredBusiness => {
+      const hasWebsite = Boolean(r.url) && !r.domain.endsWith('.maps.local');
       let buyerScore = 50;
-      if (!hasWebsite) buyerScore += 20;  // weak online presence = needs domain
-      if (rating < 3.5 && rating > 0) buyerScore += 10;  // low-rated = may want rebrand
-      if (rating >= 4.5) buyerScore += 5;  // thriving = may want premium domain
+      if (!hasWebsite) buyerScore += 20;
       buyerScore = Math.min(100, buyerScore);
       return {
-        name: p.title || 'Unknown',
-        website: p.website,
-        address: p.address,
-        rating: p.rating,
-        type: p.type,
+        name: r.companyName || r.title || r.domain,
+        website: hasWebsite ? r.url : undefined,
+        address: r.address || undefined,
         buyerScore,
         priority: buyerScore >= 70 ? 'high' : buyerScore >= 50 ? 'medium' : 'low',
       };

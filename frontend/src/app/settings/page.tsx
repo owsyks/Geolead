@@ -69,7 +69,7 @@ const SECTION_META: Record<
   { title: string; description: string; icon: typeof Bot; provider?: string }
 > = {
   ai: { title: "AI (NVIDIA / Kimi)", description: "Email generation and AI lead scoring via NVIDIA NIM.", icon: Bot, provider: "nvidia" },
-  discovery: { title: "Lead Discovery (Serper.dev)", description: "Google Maps & search enrichment for finding businesses.", icon: Search, provider: "serper" },
+  discovery: { title: "Search Provider (Crawler)", description: "Self-hosted crawler for lead discovery + email extraction.", icon: Search, provider: "crawler" },
   email: { title: "Email Sending (Resend)", description: "Outbound email delivery and reply routing.", icon: Mail, provider: "resend" },
   smtp: { title: "SMTP Server", description: "Reusable SMTP credentials for a custom sending server.", icon: Server, provider: "smtp" },
   inbound: { title: "Inbound Webhook", description: "Secret that protects the inbound reply webhook.", icon: Webhook },
