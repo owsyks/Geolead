@@ -128,7 +128,14 @@ async function pollJob(
     }
 
     await new Promise((r) => setTimeout(r, intervalMs));
-    const res = await axios.get(`${baseUrl}/api/jobs/${jobId}`, { headers, timeout: 10000 });
+    let res;
+    try {
+      res = await axios.get(`${baseUrl}/api/jobs/${jobId}`, { headers, timeout: 15000 });
+    } catch (pollErr: any) {
+      // Transient errors (502, 504, ECONNRESET) — retry instead of failing
+      console.warn(`[CrawlerClient] Poll error for job ${jobId}: ${pollErr.message} — retrying...`);
+      continue;
+    }
     const job: CrawlerJobResponse = res.data;
 
     if (onProgress && job.totalUrls > 0) {
@@ -150,33 +157,43 @@ async function fetchResults(jobId: number, baseUrl: string, apiKey: string | und
   const all: CrawlerBusiness[] = [];
   let page = 1;
   const pageSize = 100;
+  let lastError: any = null;
 
-  while (true) {
-    const res = await axios.get<CrawlerResultsResponse>(
-      `${baseUrl}/api/searches/${jobId}/results`,
-      { headers, params: { page, page_size: pageSize }, timeout: 15000 }
-    );
-    const data = res.data;
-    for (const item of data.items) {
-      all.push({
-        domain: item.domain,
-        url: item.url,
-        title: item.title,
-        companyName: item.company_name,
-        address: item.address,
-        contactPage: item.contact_page,
-        source: item.source || 'web',
-        relevance: item.relevance || 0,
-        emails: (item.emails || []).map((e) => ({ value: e.value, sourceUrl: e.source_url })),
-        phones: (item.phones || []).map((p) => ({ value: p.value, sourceUrl: p.source_url })),
-        socials: (item.socials || []).map((s) => ({ value: s.value, platform: s.platform, sourceUrl: s.source_url })),
-        contactForms: (item.contact_forms || []).map((f) => ({ value: f.value, sourceUrl: f.source_url })),
-      });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      while (true) {
+        const res = await axios.get<CrawlerResultsResponse>(
+          `${baseUrl}/api/searches/${jobId}/results`,
+          { headers, params: { page, page_size: pageSize }, timeout: 20000 }
+        );
+        const data = res.data;
+        for (const item of data.items) {
+          all.push({
+            domain: item.domain,
+            url: item.url,
+            title: item.title,
+            companyName: item.company_name,
+            address: item.address,
+            contactPage: item.contact_page,
+            source: item.source || 'web',
+            relevance: item.relevance || 0,
+            emails: (item.emails || []).map((e) => ({ value: e.value, sourceUrl: e.source_url })),
+            phones: (item.phones || []).map((p) => ({ value: p.value, sourceUrl: p.source_url })),
+            socials: (item.socials || []).map((s) => ({ value: s.value, platform: s.platform, sourceUrl: s.source_url })),
+            contactForms: (item.contact_forms || []).map((f) => ({ value: f.value, sourceUrl: f.source_url })),
+          });
+        }
+        if (page >= data.pages) break;
+        page++;
+      }
+      return all;
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[CrawlerClient] fetchResults attempt ${attempt + 1} failed: ${err.message}`);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
     }
-    if (page >= data.pages) break;
-    page++;
   }
-  return all;
+  throw lastError || new Error('fetchResults failed');
 }
 
 export async function searchAndCrawl(params: {
@@ -257,11 +274,11 @@ export async function searchMaps(
   userId?: string | null,
   maxResults?: number
 ): Promise<CrawlerBusiness[]> {
-  const { result } = await searchAndCrawl({
+  const { results } = await searchAndCrawl({
     keyword: query,
     source: 'google_maps',
     maxResults: maxResults || 10,
     userId,
-  }).then(r => ({ result: r.results }));
-  return result;
+  });
+  return results;
 }
