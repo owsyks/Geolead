@@ -100,7 +100,7 @@ app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), as
         searchDepth: depth,
         status: 'PENDING',
         progress: 0,
-        metadata: { searchSource: searchSource || 'combined', proxyscrapeEnabled: proxyscrapeEnabled ?? true } as any,
+        metadata: { searchSource: searchSource || 'web', proxyscrapeEnabled: proxyscrapeEnabled ?? false } as any,
       },
     });
 

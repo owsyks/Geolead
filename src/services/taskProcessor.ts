@@ -243,8 +243,8 @@ export async function processSearchTask(taskId: string) {
     const searchContext = buildSearchContext(task.keyword, task.cityState || undefined);
 
     const taskMetadata = (task.metadata as any) || {};
-    const searchSource = (taskMetadata.searchSource as string) || 'combined';
-    const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
+    const searchSource = (taskMetadata.searchSource as string) || 'web';
+    const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled === true;
 
     // shouldCancel callback — checks DB task status on every poll iteration
     const shouldCancel = async (): Promise<boolean> => {
@@ -267,7 +267,7 @@ export async function processSearchTask(taskId: string) {
       const crawlResult = await searchAndCrawl({
         keyword: searchQuery,
         region: mapCountryToRegion(task.country || undefined),
-        maxResults: Math.max(task.searchDepth, 20),
+        maxResults: Math.max(task.searchDepth, 10),
         source: searchSource as 'web' | 'google_maps' | 'combined',
         proxyscrapeEnabled,
         userId: task.userId,
@@ -319,6 +319,14 @@ export async function processSearchTask(taskId: string) {
         await prisma.searchTask.update({
           where: { id: taskId },
           data: { status: 'CANCELLED', progress: 100 },
+        });
+        return;
+      }
+      if (error.message?.includes('Crawler is offline')) {
+        console.error(`[Processor] SearchTask ${taskId} FAILED — crawler offline: ${error.message}`);
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: { status: 'FAILED', progress: 100, metadata: { ...taskMetadata, error: error.message } as any },
         });
         return;
       }

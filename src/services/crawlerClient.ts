@@ -113,7 +113,7 @@ async function pollJob(
   shouldCancel?: () => Promise<boolean>,
 ): Promise<void> {
   const headers = makeHeaders(apiKey);
-  const maxWaitMs = 15 * 60 * 1000;
+  const maxWaitMs = 10 * 60 * 1000;
   const intervalMs = 3000;
   const start = Date.now();
 
@@ -212,14 +212,21 @@ export async function searchAndCrawl(params: {
     return { results: [], jobId: 0 };
   }
 
+  // Health check — fail fast if crawler is offline (tunnel down, PC off, etc.)
+  const headers = makeHeaders(apiKey);
+  try {
+    await axios.get(`${baseUrl}/health`, { headers, timeout: 8000, validateStatus: (s) => s < 500 });
+  } catch (healthErr: any) {
+    console.error(`[CrawlerClient] Crawler offline at ${baseUrl}: ${healthErr.message}`);
+    throw new Error(`Crawler is offline. Start the crawler on your PC/VPS. (${healthErr.message})`);
+  }
+
   const region = params.region || 'us-en';
-  const maxResults = params.maxResults || 20;
-  const source = params.source || 'combined';
-  const proxyscrapeEnabled = params.proxyscrapeEnabled ?? true;
+  const maxResults = params.maxResults || 10;
+  const source = params.source || 'web';
+  const proxyscrapeEnabled = params.proxyscrapeEnabled ?? false;
 
   console.log(`[CrawlerClient] Starting search+crawl: keyword="${params.keyword}" region=${region} max=${maxResults} source=${source} proxies=${proxyscrapeEnabled}`);
-
-  const headers = makeHeaders(apiKey);
   const startRes = await axios.post(
     `${baseUrl}/api/search`,
     {
