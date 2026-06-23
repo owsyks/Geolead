@@ -22,6 +22,11 @@ export interface CrawlerSearchResult {
   snippet: string;
 }
 
+export interface SearchAndCrawlResult {
+  results: CrawlerBusiness[];
+  jobId: number;
+}
+
 interface CrawlerJobResponse {
   id: number;
   keyword: string;
@@ -66,18 +71,62 @@ function makeHeaders(apiKey?: string) {
   return headers;
 }
 
+export async function stopCrawlerJob(jobId: number, userId?: string | null): Promise<void> {
+  try {
+    const { baseUrl, apiKey } = await getConfig(userId);
+    if (!baseUrl) return;
+    const headers = makeHeaders(apiKey);
+    await axios.post(`${baseUrl}/api/jobs/${jobId}/stop`, {}, { headers, timeout: 10000 });
+    console.log(`[CrawlerClient] Stopped crawler job ${jobId}`);
+  } catch (err: any) {
+    console.error(`[CrawlerClient] Failed to stop crawler job ${jobId}: ${err.message}`);
+  }
+}
+
+export async function stopAllCrawlerJobs(userId?: string | null): Promise<void> {
+  try {
+    const { baseUrl, apiKey } = await getConfig(userId);
+    if (!baseUrl) return;
+    const headers = makeHeaders(apiKey);
+    const res = await axios.get(`${baseUrl}/api/jobs?limit=50`, { headers, timeout: 10000 });
+    const jobs: CrawlerJobResponse[] = res.data;
+    const running = jobs.filter(j => j.status === 'running' || j.status === 'pending' || j.status === 'paused');
+    for (const job of running) {
+      try {
+        await axios.post(`${baseUrl}/api/jobs/${job.id}/stop`, {}, { headers, timeout: 10000 });
+        console.log(`[CrawlerClient] Stopped crawler job ${job.id} (${job.keyword})`);
+      } catch { /* ignore individual failures */ }
+    }
+    if (running.length > 0) {
+      console.log(`[CrawlerClient] Stopped ${running.length} running crawler job(s).`);
+    }
+  } catch (err: any) {
+    console.error(`[CrawlerClient] stopAllCrawlerJobs failed: ${err.message}`);
+  }
+}
+
 async function pollJob(
   jobId: number,
   baseUrl: string,
   apiKey: string | undefined,
-  onProgress?: (processed: number, total: number) => void
+  onProgress?: (processed: number, total: number) => void,
+  shouldCancel?: () => Promise<boolean>,
 ): Promise<void> {
   const headers = makeHeaders(apiKey);
-  const maxWaitMs = 5 * 60 * 1000;
+  const maxWaitMs = 15 * 60 * 1000;
   const intervalMs = 3000;
   const start = Date.now();
 
   while (Date.now() - start < maxWaitMs) {
+    if (shouldCancel) {
+      const cancelled = await shouldCancel();
+      if (cancelled) {
+        console.log(`[CrawlerClient] Cancel requested — stopping crawler job ${jobId}`);
+        try { await axios.post(`${baseUrl}/api/jobs/${jobId}/stop`, {}, { headers, timeout: 10000 }); } catch { /* ignore */ }
+        throw new Error(`Crawler job ${jobId} cancelled by user`);
+      }
+    }
+
     await new Promise((r) => setTimeout(r, intervalMs));
     const res = await axios.get(`${baseUrl}/api/jobs/${jobId}`, { headers, timeout: 10000 });
     const job: CrawlerJobResponse = res.data;
@@ -91,7 +140,9 @@ async function pollJob(
       throw new Error(`Crawler job ${jobId} ${job.status}: ${job.error || 'unknown error'}`);
     }
   }
-  throw new Error(`Crawler job ${jobId} timed out after 5 minutes`);
+
+  try { await axios.post(`${baseUrl}/api/jobs/${jobId}/stop`, {}, { headers, timeout: 10000 }); } catch { /* ignore */ }
+  throw new Error(`Crawler job ${jobId} timed out after 15 minutes`);
 }
 
 async function fetchResults(jobId: number, baseUrl: string, apiKey: string | undefined): Promise<CrawlerBusiness[]> {
@@ -136,11 +187,12 @@ export async function searchAndCrawl(params: {
   proxyscrapeEnabled?: boolean;
   userId?: string | null;
   onProgress?: (processed: number, total: number) => void;
-}): Promise<CrawlerBusiness[]> {
+  shouldCancel?: () => Promise<boolean>;
+}): Promise<SearchAndCrawlResult> {
   const { baseUrl, apiKey } = await getConfig(params.userId);
   if (!baseUrl) {
     console.warn('[CrawlerClient] No crawlerBaseUrl set — returning empty results.');
-    return [];
+    return { results: [], jobId: 0 };
   }
 
   const region = params.region || 'us-en';
@@ -166,11 +218,11 @@ export async function searchAndCrawl(params: {
   const jobId: number = startRes.data.id;
   console.log(`[CrawlerClient] Crawler job ${jobId} started for "${params.keyword}"`);
 
-  await pollJob(jobId, baseUrl, apiKey, params.onProgress);
+  await pollJob(jobId, baseUrl, apiKey, params.onProgress, params.shouldCancel);
   const results = await fetchResults(jobId, baseUrl, apiKey);
   console.log(`[CrawlerClient] Job ${jobId} complete — ${results.length} businesses with contacts`);
 
-  return results;
+  return { results, jobId };
 }
 
 export async function searchWeb(
@@ -205,10 +257,11 @@ export async function searchMaps(
   userId?: string | null,
   maxResults?: number
 ): Promise<CrawlerBusiness[]> {
-  return searchAndCrawl({
+  const { result } = await searchAndCrawl({
     keyword: query,
     source: 'google_maps',
     maxResults: maxResults || 10,
     userId,
-  });
+  }).then(r => ({ result: r.results }));
+  return result;
 }

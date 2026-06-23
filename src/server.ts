@@ -7,6 +7,7 @@ import cors from 'cors';
 import prisma from './config/db.js';
 import * as xlsx from 'xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
+import { stopCrawlerJob, stopAllCrawlerJobs } from './services/crawlerClient.js';
 import { isPlaceholderEmail, normalizeEmail, normalizePhoneList } from './services/contactUtils.js';
 import outboundRouter from './routes/outbound.js';
 import emailRouter from './routes/email.js';
@@ -185,6 +186,14 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Cannot ${status} a ${task.status} task.` });
     }
 
+    // If cancelling, also stop the crawler job on the VPS
+    if (status === 'CANCELLED') {
+      const metadata = (task.metadata as any) || {};
+      if (metadata.crawlerJobId) {
+        stopCrawlerJob(metadata.crawlerJobId, task.userId).catch(() => undefined);
+      }
+    }
+
     const updated = await prisma.searchTask.update({
       where: { id },
       data: { status, progress: status === 'CANCELLED' ? 100 : task.progress },
@@ -194,6 +203,32 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[Server] Update task status error:', error);
     return res.status(500).json({ error: 'Failed to update task status.' });
+  }
+});
+
+/**
+ * POST /api/search/cleanup
+ * Force-cancel all stuck PENDING/PROCESSING tasks + stop all crawler VPS jobs.
+ */
+app.post('/api/search/cleanup', requireAuth, async (req, res) => {
+  try {
+    // Stop all crawler jobs on the VPS
+    await stopAllCrawlerJobs(req.userId);
+
+    // Cancel all PENDING and PROCESSING tasks for this user
+    const result = await prisma.searchTask.updateMany({
+      where: {
+        userId: req.userId!,
+        status: { in: ['PENDING', 'PROCESSING'] },
+      },
+      data: { status: 'CANCELLED', progress: 100 },
+    });
+
+    console.log(`[Server] Cleanup: cancelled ${result.count} task(s) for user ${req.userId}`);
+    return res.json({ ok: true, cancelled: result.count });
+  } catch (error: any) {
+    console.error('[Server] Cleanup error:', error);
+    return res.status(500).json({ error: 'Cleanup failed.' });
   }
 });
 

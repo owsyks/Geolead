@@ -1,6 +1,5 @@
 import prisma from '../config/db.js';
-import { generateQueryVariations } from './queryGenerator.js';
-import { searchAndCrawl } from './crawlerClient.js';
+import { searchAndCrawl, stopCrawlerJob, stopAllCrawlerJobs } from './crawlerClient.js';
 import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
@@ -191,32 +190,26 @@ function drainSearchQueue() {
 
 export async function resumePendingSearchTasks() {
   try {
-    // Tasks left in PROCESSING were interrupted by a dyno restart. We cannot
-    // safely resume them: processSearchTask restarts from scratch and would
-    // re-create every lead (duplicates), and a too-slow task would stay
-    // PROCESSING and get relaunched on every restart — a load spiral that locks
-    // the dyno. Mark them FAILED so they're visible and the user can retry.
-    const stale = await prisma.searchTask.updateMany({
+    // Stop any zombie crawler jobs still running on the VPS from a previous session.
+    await stopAllCrawlerJobs();
+
+    // Mark ALL interrupted tasks (PROCESSING and PENDING) as CANCELLED.
+    // PENDING tasks from a previous dyno lifecycle are stale — the crawler
+    // job they would have started no longer corresponds to anything.
+    const staleProcessing = await prisma.searchTask.updateMany({
       where: { status: 'PROCESSING' },
       data: { status: 'FAILED' },
     });
-    if (stale.count > 0) {
-      console.log(`[Processor] Marked ${stale.count} interrupted PROCESSING task(s) as FAILED.`);
-    }
-
-    const tasks = await prisma.searchTask.findMany({
+    const stalePending = await prisma.searchTask.updateMany({
       where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' },
-      take: 10,
+      data: { status: 'CANCELLED' },
     });
-
-    tasks.forEach((task) => startSearchTaskProcessing(task.id));
-
-    if (tasks.length > 0) {
-      console.log(`[Processor] Resumed ${tasks.length} pending search task(s) (max ${MAX_CONCURRENT_SEARCHES} concurrent).`);
+    const totalStale = staleProcessing.count + stalePending.count;
+    if (totalStale > 0) {
+      console.log(`[Processor] Cleaned up ${totalStale} stale task(s) (${staleProcessing.count} PROCESSING→FAILED, ${stalePending.count} PENDING→CANCELLED).`);
     }
   } catch (error) {
-    console.error('[Processor] Failed to resume pending tasks:', error);
+    console.error('[Processor] Failed to cleanup stale tasks:', error);
   }
 }
 
@@ -237,13 +230,9 @@ export async function processSearchTask(taskId: string) {
       data: { status: 'PROCESSING', progress: 5 },
     });
 
-    const queries = generateQueryVariations(
-      task.keyword,
-      task.country || undefined,
-      task.cityState || undefined,
-      task.searchDepth
-    );
-    console.log(`[Processor] Generated ${queries.length} query variations:`, queries);
+    // Build a single focused query: keyword + city/state (e.g. "marketing agencies Indianapolis")
+    const searchQuery = [task.keyword, task.cityState].filter(Boolean).join(' ').trim();
+    console.log(`[Processor] Search query: "${searchQuery}"`);
 
     await prisma.searchTask.update({
       where: { id: taskId },
@@ -253,68 +242,93 @@ export async function processSearchTask(taskId: string) {
     const discoveredBusinesses = new Map<string, DiscoveredBiz>();
     const searchContext = buildSearchContext(task.keyword, task.cityState || undefined);
 
-    const crawlerQueries = queries.slice(0, 3);
-    console.log(`[Processor] Using ${crawlerQueries.length} of ${queries.length} queries for crawler (each triggers a full search+crawl job).`);
-
-    let queryIndex = 0;
     const taskMetadata = (task.metadata as any) || {};
     const searchSource = (taskMetadata.searchSource as string) || 'combined';
     const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
 
-    for (const query of crawlerQueries) {
-      queryIndex++;
-      console.log(`[Processor] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}" (source=${searchSource}, proxies=${proxyscrapeEnabled})`);
+    // shouldCancel callback — checks DB task status on every poll iteration
+    const shouldCancel = async (): Promise<boolean> => {
+      const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+      return current?.status === 'CANCELLED' || current?.status === 'PAUSED';
+    };
 
-      try {
-        const crawlerResults = await searchAndCrawl({
-          keyword: query,
-          region: mapCountryToRegion(task.country || undefined),
-          maxResults: 20,
-          source: searchSource as 'web' | 'google_maps' | 'combined',
-          proxyscrapeEnabled,
-          userId: task.userId,
-        });
-
-        for (const result of crawlerResults) {
-          const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
-          if (!domainKey) continue;
-
-          if (isBlockedWebsiteHost(domainKey)) continue;
-
-          const discovered: DiscoveredBiz = {
-            name: result.companyName || result.title || result.domain,
-            website: result.url,
-            location: result.address || undefined,
-            category: undefined,
-            rating: undefined,
-            reviewsCount: undefined,
-            phoneNumbers: result.phones.map(p => p.value),
-            snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
-            snippetPhones: result.phones.map(p => p.value),
-            snippet: '',
-            source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
-          };
-
-          if (shouldSkipDiscoveredBusiness(discovered, searchContext)) continue;
-
-          if (!discoveredBusinesses.has(domainKey)) {
-            discoveredBusinesses.set(domainKey, discovered);
-          } else {
-            const existing = discoveredBusinesses.get(domainKey)!;
-            existing.snippetEmails.push(...discovered.snippetEmails);
-            existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
-          }
-        }
-      } catch (error: any) {
-        console.error(`[Processor] Crawler query "${query}" failed: ${error.message}`);
-      }
-
-      const scrapingProgress = Math.floor(10 + (20 * (queryIndex / crawlerQueries.length)));
+    // onProgress callback — update task progress during crawler search phase
+    const onCrawlerProgress = async (processed: number, total: number) => {
+      const pct = Math.floor(10 + (20 * (processed / Math.max(total, 1))));
       await prisma.searchTask.update({
         where: { id: taskId },
-        data: { progress: scrapingProgress },
+        data: { progress: Math.min(pct, 30) },
+      }).catch(() => undefined);
+    };
+
+    console.log(`[Processor] Calling crawler: query="${searchQuery}" source=${searchSource} proxies=${proxyscrapeEnabled}`);
+
+    try {
+      const crawlResult = await searchAndCrawl({
+        keyword: searchQuery,
+        region: mapCountryToRegion(task.country || undefined),
+        maxResults: Math.max(task.searchDepth, 20),
+        source: searchSource as 'web' | 'google_maps' | 'combined',
+        proxyscrapeEnabled,
+        userId: task.userId,
+        onProgress: onCrawlerProgress,
+        shouldCancel,
       });
+
+      // Store crawler jobId in task metadata so Stop button can kill it
+      if (crawlResult.jobId) {
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: { metadata: { ...taskMetadata, crawlerJobId: crawlResult.jobId } as any },
+        }).catch(() => undefined);
+      }
+
+      for (const result of crawlResult.results) {
+        const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+        if (!domainKey) continue;
+
+        if (isBlockedWebsiteHost(domainKey)) continue;
+
+        const discovered: DiscoveredBiz = {
+          name: result.companyName || result.title || result.domain,
+          website: result.url,
+          location: result.address || undefined,
+          category: undefined,
+          rating: undefined,
+          reviewsCount: undefined,
+          phoneNumbers: result.phones.map(p => p.value),
+          snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
+          snippetPhones: result.phones.map(p => p.value),
+          snippet: '',
+          source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
+        };
+
+        if (shouldSkipDiscoveredBusiness(discovered, searchContext)) continue;
+
+        if (!discoveredBusinesses.has(domainKey)) {
+          discoveredBusinesses.set(domainKey, discovered);
+        } else {
+          const existing = discoveredBusinesses.get(domainKey)!;
+          existing.snippetEmails.push(...discovered.snippetEmails);
+          existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
+        }
+      }
+    } catch (error: any) {
+      if (error.message?.includes('cancelled by user')) {
+        console.log(`[Processor] SearchTask ${taskId} cancelled during crawler search.`);
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: { status: 'CANCELLED', progress: 100 },
+        });
+        return;
+      }
+      console.error(`[Processor] Crawler search failed: ${error.message}`);
     }
+
+    await prisma.searchTask.update({
+      where: { id: taskId },
+      data: { progress: 30 },
+    });
 
     const businessList = Array.from(discoveredBusinesses.values())
       .sort((a, b) => scoreDiscoveredBusiness(b, searchContext) - scoreDiscoveredBusiness(a, searchContext))
