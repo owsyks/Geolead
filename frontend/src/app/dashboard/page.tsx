@@ -1416,7 +1416,12 @@ export default function DashboardPage() {
                       <Database className="w-5 h-5 text-brand animate-pulse" />
                       <div>
                         <h4 className="text-sm font-bold text-text">Active Crawl & Extraction Pipeline</h4>
-                        <p className="text-[10px] text-text-muted mt-0.5">Searching maps, reading contacts, and evaluating matches.</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">
+                          {selectedTask.progress < 10 ? "Initializing search…" :
+                           selectedTask.progress < 30 ? "Searching for businesses via stealth browser…" :
+                           selectedTask.progress < 80 ? "Crawling websites & extracting contacts…" :
+                           "Running AI intelligence pipeline…"}
+                        </p>
                       </div>
                     </div>
                     <span className="text-sm font-black text-brand">{selectedTask.progress}%</span>

@@ -4,8 +4,7 @@ dotenv.config();
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
-import { generateQueryVariations } from '../services/queryGenerator.js';
-import { searchAndCrawl } from '../services/crawlerClient.js';
+import { searchAndCrawl, stopCrawlerJob, stopAllCrawlerJobs } from '../services/crawlerClient.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
 import axios from 'axios';
@@ -54,13 +53,9 @@ const worker = new Worker<ScrapingJobData>(
         data: { status: 'PROCESSING', progress: 5 },
       });
 
-      // 2. Generate Query Variations
-      const queries = generateQueryVariations(
-        task.keyword,
-        task.country || undefined,
-        task.cityState || undefined
-      );
-      console.log(`[Worker] Generated ${queries.length} query variations:`, queries);
+      // 2. Build single focused query: keyword + city/state
+      const searchQuery = [task.keyword, task.cityState].filter(Boolean).join(' ').trim();
+      console.log(`[Worker] Search query: "${searchQuery}"`);
 
       await prisma.searchTask.update({
         where: { id: taskId },
@@ -82,59 +77,85 @@ const worker = new Worker<ScrapingJobData>(
       }
       
       const discoveredBusinesses = new Map<string, DiscoveredBiz>();
+      const taskMetadata = (task.metadata as any) || {};
+      const searchSource = (taskMetadata.searchSource as string) || 'combined';
+      const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
 
-      const crawlerQueries = queries.slice(0, 3);
-      console.log(`[Worker] Using ${crawlerQueries.length} of ${queries.length} queries for crawler.`);
+      const shouldCancel = async (): Promise<boolean> => {
+        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+        return current?.status === 'CANCELLED' || current?.status === 'PAUSED';
+      };
 
-      let queryIndex = 0;
-      for (const query of crawlerQueries) {
-        queryIndex++;
-        console.log(`[Worker] Crawler Query [${queryIndex}/${crawlerQueries.length}]: "${query}"`);
-
-        try {
-          const crawlerResults = await searchAndCrawl({
-            keyword: query,
-            region: task.country ? mapCountryToRegion(task.country) : 'us-en',
-            maxResults: 20,
-            source: 'combined',
-            userId: task.userId,
-          });
-
-          for (const result of crawlerResults) {
-            const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
-            if (!domainKey) continue;
-
-            const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
-            if (skipDomains.some(skip => domainKey.includes(skip))) continue;
-
-            if (!discoveredBusinesses.has(domainKey)) {
-              discoveredBusinesses.set(domainKey, {
-                name: result.companyName || result.title || result.domain,
-                website: result.url,
-                location: result.address || undefined,
-                category: undefined,
-                rating: undefined,
-                reviewsCount: undefined,
-                phoneNumbers: result.phones.map(p => p.value),
-                snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
-                source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
-              });
-            } else {
-              const existing = discoveredBusinesses.get(domainKey)!;
-              existing.snippetEmails.push(...result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })));
-              existing.phoneNumbers.push(...result.phones.map(p => p.value).filter(p => !existing.phoneNumbers.includes(p)));
-            }
-          }
-        } catch (error: any) {
-          console.error(`[Worker] Crawler query "${query}" failed: ${error.message}`);
-        }
-
-        const scrapingProgress = Math.floor(10 + (20 * (queryIndex / crawlerQueries.length)));
+      const onCrawlerProgress = async (processed: number, total: number) => {
+        const pct = Math.floor(10 + (20 * (processed / Math.max(total, 1))));
         await prisma.searchTask.update({
           where: { id: taskId },
-          data: { progress: scrapingProgress },
+          data: { progress: Math.min(pct, 30) },
+        }).catch(() => undefined);
+      };
+
+      console.log(`[Worker] Calling crawler: query="${searchQuery}" source=${searchSource} proxies=${proxyscrapeEnabled}`);
+
+      try {
+        const crawlResult = await searchAndCrawl({
+          keyword: searchQuery,
+          region: task.country ? mapCountryToRegion(task.country) : 'us-en',
+          maxResults: Math.max(task.searchDepth, 20),
+          source: searchSource as 'web' | 'google_maps' | 'combined',
+          proxyscrapeEnabled,
+          userId: task.userId,
+          onProgress: onCrawlerProgress,
+          shouldCancel,
         });
+
+        if (crawlResult.jobId) {
+          await prisma.searchTask.update({
+            where: { id: taskId },
+            data: { metadata: { ...taskMetadata, crawlerJobId: crawlResult.jobId } as any },
+          }).catch(() => undefined);
+        }
+
+        for (const result of crawlResult.results) {
+          const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+          if (!domainKey) continue;
+
+          const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
+          if (skipDomains.some(skip => domainKey.includes(skip))) continue;
+
+          if (!discoveredBusinesses.has(domainKey)) {
+            discoveredBusinesses.set(domainKey, {
+              name: result.companyName || result.title || result.domain,
+              website: result.url,
+              location: result.address || undefined,
+              category: undefined,
+              rating: undefined,
+              reviewsCount: undefined,
+              phoneNumbers: result.phones.map(p => p.value),
+              snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
+              source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
+            });
+          } else {
+            const existing = discoveredBusinesses.get(domainKey)!;
+            existing.snippetEmails.push(...result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })));
+            existing.phoneNumbers.push(...result.phones.map(p => p.value).filter(p => !existing.phoneNumbers.includes(p)));
+          }
+        }
+      } catch (error: any) {
+        if (error.message?.includes('cancelled by user')) {
+          console.log(`[Worker] SearchTask ${taskId} cancelled during crawler search.`);
+          await prisma.searchTask.update({
+            where: { id: taskId },
+            data: { status: 'CANCELLED', progress: 100 },
+          });
+          return;
+        }
+        console.error(`[Worker] Crawler search failed: ${error.message}`);
       }
+
+      await prisma.searchTask.update({
+        where: { id: taskId },
+        data: { progress: 30 },
+      });
 
       const businessList = Array.from(discoveredBusinesses.values()).slice(0, task.searchDepth);
       console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length} based on depth limit.`);
