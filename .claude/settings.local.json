@@ -38,7 +38,9 @@
       "Bash(vercel link *)",
       "Bash(vercel env *)",
       "Bash(vercel --prod --yes)",
-      "Bash(heroku config:set CORS_ORIGIN=\"https://geoai-ashen.vercel.app\" -a geolead-ai-api)"
+      "Bash(heroku config:set CORS_ORIGIN=\"https://geoai-ashen.vercel.app\" -a geolead-ai-api)",
+      "Bash(git -C frontend rev-parse --show-toplevel)",
+      "Bash(git -C frontend status --short)"
     ]
   }
 }

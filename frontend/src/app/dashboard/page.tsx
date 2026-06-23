@@ -124,7 +124,7 @@ export default function DashboardPage() {
   const [country, setCountry] = useState("United States");
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(10);
-  const [searchSource, setSearchSource] = useState<'combined' | 'web' | 'google_maps'>('combined');
+  const [searchSource, setSearchSource] = useState<'combined' | 'web' | 'google_maps'>('web');
   const [useFreeProxy, setUseFreeProxy] = useState(true);
   const [railOpen, setRailOpen] = useState(false);
 

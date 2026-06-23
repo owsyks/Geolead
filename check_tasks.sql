@@ -1,0 +1,1 @@
+SELECT id, status, progress, "totalLeads", "validEmails", "domainIdea", keyword, "searchDepth", "updatedAt" FROM "SearchTask" WHERE status IN ('PROCESSING', 'PENDING') ORDER BY "updatedAt" DESC LIMIT 5;

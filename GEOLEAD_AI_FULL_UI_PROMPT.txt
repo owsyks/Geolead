@@ -1,0 +1,477 @@
+# GeoLead AI — Complete UI Design Prompt
+
+> Build a full-stack SaaS dashboard for geo-domain investors. This prompt describes every screen, component, color, interaction, and data flow. Hand this to a designer or AI agent to reconstruct the entire interface.
+
+---
+
+## 1. PRODUCT SUMMARY
+
+**GeoLead AI — "Find. Connect. Close."**
+
+An AI-powered platform for geo-domain investors: discover local businesses (leads), enrich them with AI + LinkedIn intelligence, run compliant cold-email campaigns with rotating A/B variants, triage replies in a unified inbox, and manage a domain portfolio from acquisition to sale.
+
+**Audience:** Domain investors owning hundreds to thousands of geo domains (e.g., MiamiRoofing.com, DallasPlumber.com).
+
+---
+
+## 2. DESIGN LANGUAGE
+
+- **Style:** Modern dark-first SaaS dashboard. Clean, technical, "fintech / investment platform" energy.
+- **Mood:** Confident, premium, data-dense but breathable. Subtle teal + copper accent glows, glassmorphism, rounded corners. Never playful or skeuomorphic.
+- **Density:** High information density — small text sizes (10–14px), compact rows, many KPI tiles — organized into clearly bordered cards with generous internal padding.
+- **Light & dark mode:** Both fully supported, dark mode is the hero. Theme toggle persists to localStorage.
+
+### Colors
+
+| Layer | Dark Mode | Light Mode |
+|---|---|---|
+| App background | `#0c0a09` warm coffee-black | `#ffffff` |
+| Card/panel bg | `#1c1917` / `stone-900` glassy | `#fafaf9` warm cream |
+| Borders | `#292524` subtle | `#e7e5e4` |
+| Primary text | `#fafaf9` | `#0c0a09` |
+| Muted text | `#a8a29e` | `#78716c` |
+| **Brand accent** | **Teal** `#0d9488` → hover `#0f766e` | Same |
+| **Secondary** | **Copper** `#d97706` | Same |
+| **Gradient** | `linear-gradient(to right, #0d9488, #d97706)` | Same |
+| **Glow** | `rgba(13, 148, 136, 0.15)` blurred | Same |
+| Success / verified | Emerald `#059669` | Same |
+| Warning / paused | Copper `#d97706` | Same |
+| Danger / failed | Red `#dc2626` | Same |
+
+### Typography
+
+- **Font:** Geist (sans) for all UI; Geist Mono for code/emails.
+- **Page titles:** `font-black` (900), 20–24px.
+- **Body:** 14px default; 11–13px for metadata, labels, table cells.
+- **Labels/eyebrows:** 11px, UPPERCASE, letter-spaced, muted.
+- Antialiased, with stylistic ligature features enabled.
+
+### Shape, Depth & Motion
+
+- **Corners:** `rounded-lg` (8px) for cards/buttons, `rounded-2xl` (16px) for modals, `rounded-full` for pills.
+- **Glassmorphism:** `.glass-card` — translucent bg + 16px backdrop blur + soft large shadow. Hover lifts with teal glow ring.
+- **Shadows:** Soft and large (`0 8px 32px rgba(0,0,0,.37)`).
+- **Ambient glow:** Blurred circular teal "glow-bg" blobs pulse slowly (8s ease-in-out).
+- **Premium buttons:** Gradient border trick (dark fill + teal→copper border).
+- **Transitions:** 0.3s cubic-bezier on hover.
+
+---
+
+## 3. LAYOUT SYSTEM
+
+**Two-zone app frame (`OutboundShell`)**, present on every logged-in page:
+
+```
+┌────────────┬─────────────────────────────────────────────┐
+│  SIDEBAR   │  HEADER (sticky, blurred)                     │
+│  (fixed,   │   eyebrow: "✉ AI outbound email automation"   │
+│   288px)   │   H1 Page Title (font-black)                  │
+│            │   subtitle (muted)      [actions][🔔][☀/🌙]  │
+│            │  ─────────────────────────────────────────────│
+│  • [GL]    │                                               │
+│  • 14 nav  │   MAIN CONTENT                                │
+│    items   │   (px responsive, py-6)                       │
+│  • theme   │   grids of cards / tables / KPI tiles         │
+│  • user    │                                               │
+│    card    │                                               │
+└────────────┴─────────────────────────────────────────────┘
+```
+
+### Sidebar (288px, w-72)
+- **Brand block:** `[GL]` logo badge (teal bg, 36px rounded square) + "GeoLead AI" (black weight) + "Find. Connect. Close." (11px muted).
+- **Nav list:** 14 items — 40px rows: icon (16px lucide) + label. Active = teal-tinted bg + teal border. Inactive = muted, hover lightens.
+- **Footer:** Theme toggle, "Compliance Guardrails" card (emerald-tinted, shield icon), user card (avatar + name + email + sign out).
+
+### Navigation Items
+
+| # | Label | Icon | Route |
+|---|---|---|---|
+| 1 | Overview | layout-dashboard | `/` |
+| 2 | Portfolio | globe | `/portfolio` |
+| 3 | Sales Kanban | kanban | `/portfolio/kanban` |
+| 4 | Acquisition Advisor | shopping-cart | `/acquisition` |
+| 5 | Watchlist | star | `/watchlist` |
+| 6 | Lead Explorer | search | `/dashboard` |
+| 7 | Campaigns | layout-dashboard | `/campaigns` |
+| 8 | Quick Send | mail | `/quick-send` |
+| 9 | AI Generator | bot | `/ai-email-generator` |
+| 10 | Inbox | inbox | `/inbox` |
+| 11 | Analytics | bar-chart | `/analytics` |
+| 12 | Senders | send | `/sender-accounts` |
+| 13 | Templates | layers | `/templates` |
+| 14 | Settings | settings | `/settings` |
+
+### Header
+- Sticky, semi-transparent with backdrop blur.
+- **Left:** Eyebrow "✉ AI outbound email automation" + H1 title + subtitle.
+- **Right:** Page-specific action buttons, notification bell (red unread badge), theme toggle.
+- **Mobile:** Horizontal scrolling chip bar replaces sidebar under header.
+
+### Auth Screens (`AuthShell`)
+- Centered card on plain slate background.
+- Logo + "GeoLead AI" centered at top.
+- Rounded-2xl card with soft shadow + backdrop blur.
+- Title + muted subtitle, stacked labeled fields, full-width teal submit button.
+- Footer: "Don't have an account? Sign up" link.
+- Pages: Login, Register, Forgot Password, Reset Password, Verify Email, Profile.
+
+---
+
+## 4. CORE COMPONENT LIBRARY
+
+| Component | Description |
+|---|---|
+| **MetricCard** | Bordered card → 11px uppercase muted label → big `font-black` number (24px) → optional helper line. 2–4 col grids. |
+| **StatusBadge** | `rounded-full` pill, 11px bold, semantic tinted (emerald/amber/red) per status keyword. |
+| **EmptyState** | Centered card, bold title + muted body — "No campaign data yet", etc. |
+| **Modal** | Centered `rounded-2xl` panel over dim backdrop; titled; close button. Max-w-2xl for regular, max-w-4xl for events. |
+| **Glass Card** | Translucent bg + 16px blur + soft shadow. Hover: teal border + glow ring. |
+| **Table rows** | Compact lead/recipient lists with inline badges, small circular icon-buttons on hover. |
+| **Form inputs** | Labeled, rounded, slate bg, teal focus ring; full-width teal submit button. |
+| **Filter bar** | Horizontal row of select dropdowns + toggle buttons + search input. |
+| **Tabs** | Pill tabs for page sections (Watchlist tabs, Inbox filters). |
+
+---
+
+## 5. PAGE-BY-PAGE SPECIFICATION
+
+### 5.1 Overview (`/`) — "Outbound Command Center"
+
+**Layout:** 3-column grid.
+
+**Left column (2/3):**
+- **Stats row:** 4 MetricCards — Campaigns, Active, Queued, Engagement Score %.
+- **Hottest campaign card:** Name, domain, open rate %, click rate %, reply rate %. Link to Campaigns.
+- **Top leads card:** 8 rows — business name, email count, domain match %, priority score. Link to Lead Explorer.
+
+**Right column (1/3):**
+- **Live Activity feed:** Real-time WebSocket + REST events. Each card shows:
+  - Color-coded event type badge (OPENED = emerald, BOUNCED = red, CLICKED = teal, UNSUBSCRIBED = amber)
+  - Variant letter (A-E in teal badge)
+  - Campaign name
+  - Business name · email address
+  - Subject line (truncated)
+  - Timestamp (relative)
+  - Max 8 items, newest first.
+- **Deliverability Alerts:** Amber-tinted cards with actionable warnings (SPF/DKIM needed, bounce rate high).
+
+**Empty state:** "No campaigns yet. Create one to start scheduling respectful outreach."
+
+### 5.2 Portfolio (`/portfolio`)
+
+**Header:** "Domain Portfolio" + [Add Domain] [Import] [Export] buttons.
+
+**Stats row:** Total domains, Portfolio value, Investment, Revenue, Profit, ROI, Expiring, Active campaigns, Leads, Replies, Domains sold.
+
+**Domain list:** Filterable table with columns:
+- Domain name (bold), Status (pill badge), Purchase date/price, Registrar, Expiration, Category, Niche, Branding score, Estimated value, Buyer demand, Tags.
+- Row actions: Edit (inline), Archive, Record sale.
+- Bulk actions: select multiple → change status, add tag.
+
+**Add/Edit Domain modal:** Name, Status dropdown (Available/Prospecting/Contacting Buyers/Negotiating/Sold/Archived), Purchase date, Purchase price, Registrar, Expiration date, Category, Niche, Industry, City/State/Country, Tags, Target industries, Target locations, Notes.
+
+**Import:** CSV/TXT/JSON upload with field mapping.
+
+**Filters:** Search (name/tags), Status dropdown, Category dropdown, Sort by (name, value, date, score).
+
+### 5.3 Sales Kanban (`/portfolio/kanban`)
+
+**6 drag-and-drop columns:** Available → Prospecting → Contacting Buyers → Negotiating → Sold → Archived.
+
+Each card shows: domain name, niche, estimated value badge, lead count.
+
+Drag a card to move it; status syncs across the entire app.
+
+### 5.4 Acquisition Advisor (`/acquisition`)
+
+**Input:** Paste domain list (newline/comma separated, max 100). Bulk scan button.
+
+**Results:** 5 tiers color-coded — STRONG_BUY (emerald), BUY (teal), WATCHLIST (amber), SPECULATIVE (slate), AVOID (red).
+
+Each result card: domain name, tier badge, AI reasoning paragraph. Expand for full analysis. Action buttons: Add to portfolio, Add to watchlist.
+
+**Investor Chat:** Per-domain AI chat input — ask "What's this domain worth?", "Who would buy this?", "What's the exit strategy?"
+
+### 5.5 Watchlist (`/watchlist`)
+
+**Tabs:** All / Available / High Priority / Reminders / Notifications.
+
+**Domain list:** domain name, priority (CRITICAL/HIGH/MEDIUM/LOW) color-coded dot, AI recommendation (BUY_NOW/WAIT/MONITOR/AVOID) badge, registration status, registrar, expiration date, last checked.
+
+**Actions per domain:** Check DNS now, Add reminder, Move to portfolio.
+
+**Reminders panel:** Configure triggers (time-based days, status change, availability). Notify via IN_APP/EMAIL/BOTH.
+
+**Notifications panel:** Read/unread list, priority levels (URGENT/HIGH/NORMAL), mark all read button.
+
+### 5.6 Lead Explorer (`/dashboard`)
+
+**Three-zone layout:** Left sidebar + main content area.
+
+#### Left Sidebar (Search History + New Search)
+
+**Top: Search form**
+- Domain Idea input (auto-filled from portfolio domain selector)
+- Keyword Niche input
+- City/State input
+- Search Depth slider (1–200)
+- [Start Lead Discovery] button (teal)
+
+**Domain Selector dropdown:** Shows portfolio domains with name, niche, city/state, status badge. Clicking one auto-fills the search form.
+
+**Bottom: Task History list**
+- Each card: Domain name, Keyword, Status badge (PROCESSING=amber pulse, COMPLETED=emerald, FAILED=red, PAUSED=amber, CANCELLED=slate).
+- PROCESSING cards show progress bar.
+- PENDING/PROCESSING cards show [Pause] [Stop] buttons.
+- PAUSED cards show [Resume] [Stop] buttons.
+- Clicking a task selects it and loads its leads.
+
+**Main Content Area**
+
+**Header:** ← [GL] badge + "Campaign: {domain}" + subtitle "Target Keyword: ... · Search depth: X sites"
+
+**Active scraping progress bar** (when PENDING/PROCESSING): animated teal progress bar with % and status text.
+
+**Completed task stats:** Total Prospects, Validated Emails, Average Match Score, High Priority Leads.
+
+**Filter bar (horizontal):**
+- Search input: "Filter by business name, keyword, city..."
+- Min Score dropdown: All / >50% / >75% / >90%
+- Has Email toggle button
+- Channel filter: All / WhatsApp High / Email / Phone / Multi
+- Role filter: All / CEOs & Founders / Founders Only / Directors
+- Buyer Intent dropdown: Any / High (≥65) / Moderate (≥45)
+- Priority dropdown: All / High (≥75) / Medium (≥50)
+- [Not Contacted] toggle button
+- [Bulk (N)] button when leads selected → dropdown: Set Stage, Mark Contacted
+
+**Header buttons:** [Verify Emails] (emerald) [Validate WA] (green) [Export Data] (teal) [Create Campaign (N)] (red).
+
+**Lead table:**
+| Column | Content |
+|---|---|
+| ☐ | Multi-select checkbox + select-all header checkbox |
+| Business Details | Business name (bold), [CEO] badge (amber if score≥85, teal if≥70, else slate), [in] LinkedIn badge (blue if verified, links to profile), company size badge, website link, location, Google Maps link, pipeline stage badge, tags |
+| Contact Info | Best channel badge (WhatsApp First/Email First/Call First/Web Form), Email row: mailto link + VALID/RISKY pill + [CEO] badge if DM + Send button (opens composer), Phone numbers |
+| Score | **Priority Score** (large, amber≥85/emerald≥65), Domain Match % (small), Decision Maker card: name (bold), role, DM score. Then buyer intent (BI) + domain fit (DF) mini badges. Contact strategy badge (📧 DM/📧 Gen/📞 Call/🌐 Form). WhatsApp score |
+| CRM Notes | Inline editable textarea |
+
+**Pagination:** Page N of M, ← → arrows.
+
+**Verification Modal:** Overlay showing progress bar + scrolling list of each email with status icons (✅ Valid / ⚠️ Risky / ❌ Invalid) + spinning "Verifying N emails..." while loading. Shows "Checking MX records, SPF/DMARC, and SMTP handshake" subtitle.
+
+**WhatsApp Validation Panel:** Overlay modal. Summary row: HIGH/MEDIUM/LOW likelihood counts. Filterable list of leads with phone numbers, score badge, WhatsApp deep-link buttons per number. Loads ALL leads for the task (not just current page).
+
+**Export Options Modal:** Format selector (CSV/XLSX/JSON). Export mode: "One row per email" checkbox. "Include risky emails" checkbox. Shows included column groups: Decision maker, LinkedIn, Buyer scores, Contact strategy, Email verification details, CRM notes.
+
+**Solo-send Composer Modal:** Recipient (pre-filled), sender selector, subject input, body textarea, Send/Cancel buttons.
+
+**Campaign Creation Modal (from selected leads):** Campaign name (auto: domain name), Daily limit dropdown (5/10/20/50). Create/Cancel.
+
+### 5.7 Campaigns (`/campaigns`)
+
+**Two-column layout:** Create form (left) + Kanban board (right).
+
+#### Create Campaign Form
+- Domain Selector (from portfolio)
+- Campaign name (auto: domain name + " Outreach")
+- Geo domain (auto-filled)
+- Niche / Category (auto-filled)
+- City/State (auto-filled)
+- Tone dropdown: Professional / Friendly / Persuasive
+- Objective textarea
+- **Throttle presets:** 8 buttons — Instant, Every 1min, Every 5min, Every 15min, Every 30min, Every 1hr, Every 4hr, Custom. Daily limit cap.
+- Sender selector dropdown
+- Template selector (optional)
+- **Lead selection:** Domain-scope toggle, checkbox list of leads with business name, location, match %, email count. [Select all] / [Clear all] buttons. CSV email upload alternative.
+- [Create campaign] teal button.
+
+#### Kanban Board
+**4 columns:** DRAFT / ACTIVE / PAUSED / COMPLETED.
+
+**Each campaign card:**
+- Campaign name (bold), geo domain, engagement score.
+- Stats grid (3 cols): sent, open, reply counts.
+- Engagement bar (teal progress).
+- **Next follow-up countdown:** "Next follow-up: 2d 14h" (amber if <24h, green if now).
+- Action buttons:
+  - ACTIVE: [Pause] (amber) [Queue] (slate) [Force] (red) [Variants] (amber) [Events] (emerald) [Delete] (red)
+  - PAUSED: [Resume] (emerald) [Queue] [Force] [Variants] [Events] [Delete]
+  - DRAFT: [Activate] (emerald) [Delete]
+  - COMPLETED: [Delete]
+
+#### Variants Modal
+- Shows 5 variant cards (A-E), each with: key badge, style name, subject line, body preview, spam score, approved/rejected badge.
+- [Generate/Regenerate] amber button calls AI to create 5 distinct cold-email variants with different subjects, greetings, CTAs, and signatures.
+
+#### Events Modal (full-detail)
+- **Stats bar (6 cols):** 📨 sent / ✅ delivered / 👁 opened / 🖱 clicked / ❌ bounced / 🔕 unsub — with counts.
+- **Filter chips:** All / Opened / Bounced / Unsub / Clicked.
+- **Event cards (expandable):**
+  - **Compact row:** Business name, variant letter badge, status pill (color-coded), email, subject, open count (👁 3×), sent date, expand arrow.
+  - **Expanded detail:** 4-col timeline grid — Sent (time + date), Delivered (time + ✓), Opened (time + count + "last:" if multiple), Clicked (time + count). Bounce detail (red box, timestamp, error message). IP addresses, From address.
+
+### 5.8 Quick Send (`/quick-send`)
+
+Clean single-form page: From (sender dropdown), To (email input), Subject, Body textarea. [Send] button. Result banner (success/failure).
+
+### 5.9 AI Email Generator (`/ai-email-generator`)
+
+**Form:** Domain (auto-filled from portfolio), Category, Niche, City/State, Sender name, Website, Pain points (textarea), Tone dropdown, Language dropdown, Variant dropdown (cold/follow_up/short/long/persuasive/friendly).
+
+**[Generate Email]** button → shows generated email: subject line, preview text, body, 3 follow-ups, 3 A/B subject alternatives, spam score, deliverability score, compliance notes.
+
+**Rewrite actions:** "Make shorter", "More professional", "More persuasive", "More friendly" — each calls AI rewrite.
+
+**Copy buttons** for subject, body, full email. **Save as template** button.
+
+### 5.10 Inbox (`/inbox`)
+
+**Filters:** All / Unread / Interested / Negotiating / Not Interested / Archived / Sold.
+
+**Reply list:** Each row shows: business name, sent from email, subject, AI category badge (color-coded: Interested=emerald, Negotiating=teal, Spam=red, Unsubscribe=amber), sentiment, intent score, received time.
+
+**Reply detail panel (click to expand):**
+- Full thread view (email logs + replies + events).
+- AI summary: category, sentiment, intent score, tags.
+- AI suggested response (editable).
+- Action buttons: Mark Interested, Mark Not Interested, Archive, Create Reminder.
+
+**IMAP mailbox config:** Sync settings (host, port, SSL, username, app password), last sync status, manual [Sync Now] button.
+
+**WebSocket:** Live updates for NEW_REPLY and INBOX_SYNCED events. Desktop notification via Web Notification API.
+
+### 5.11 Analytics (`/analytics`)
+
+**Overview metrics:** Campaigns, Active, Queued, Sent, Open/Click/Reply/Bounce rates.
+
+**Daily snapshots chart:** Sent, delivered, opens, clicks, replies, bounces by day.
+
+**Top templates:** Ranked by deliverability score.
+
+**Best subject lines:** Ranked by send count.
+
+**Send time suggestions:** AI-recommended optimal send windows with confidence scores.
+
+**Domain recommendations:** Suggested domains to target based on performance.
+
+**AI insights:** Natural language actionable recommendations.
+
+### 5.12 Senders (`/sender-accounts`)
+
+**Sender list:** Label, Provider (DRY_RUN/RESEND/SMTP/SENDGRID), From name, From email, Reply-to, Status (active/inactive/pending), Daily/Hourly limits, Warmup progress, SPF/DKIM/DMARC status (verified/pending/unknown), Deliverability score bar, Bounce rate, Spam complaint rate.
+
+**Add/Edit Sender modal:** Label, Provider dropdown, From name, From email, Reply-to, Daily limit, Hourly limit, Timezone, Send window start/end, Provider config (encrypted — Resend API key, SMTP host/port/user/pass, etc.), Warmup enabled toggle.
+
+**[Verify DNS]** button per sender — checks SPF/DKIM/DMARC TXT records and returns deliverability score.
+
+### 5.13 Templates (`/templates`)
+
+**Template list:** Name, Type (cold/follow_up), Language, Tone, Spam score, Deliverability score, Tags.
+
+**Template form:** Name, Type, Purpose, Language, Tone, Subject (with merge tokens like `{{businessName}}`, `{{geoDomain}}`, `{{decisionMakerName}}`), Preview text, Body (textarea), Follow-up body, Tags input.
+
+**Aggregate stats:** Avg spam score, Avg deliverability, AI-ready count.
+
+### 5.14 Settings (`/settings`)
+
+**Sectioned page:** General, AI, Discovery, Email, SMTP, Branding, Notifications, Integrations.
+
+Each section: icon + title + description. Provider name display.
+
+**Secret fields:** Masked values; only send changes for fields the user actually touched (doesn't overwrite stored secrets with dots).
+
+**[Test]** button per provider — live connection test.
+
+**Last 5 audit logs:** Entity type, action, user, timestamp.
+
+**Recent webhook events:** Provider, type, processed status, summary.
+
+**Suppression list:** Manual email suppression entries with reason and source.
+
+### 5.15 Portfolio Detail (`/portfolio/[id]`)
+
+**Two tabs:** Overview + Intelligence.
+
+**Overview:** Status dropdown, purchase info, registrar, expiration. Buyer list with add new. Offer log with record offer form. Sale record. Linked campaigns list.
+
+**Intelligence:** AI domain analysis: keyword parsing, brand breakdown (memorability/relevance/commercial/geo scores), competition score, estimated buyer pool, domain value range (conservative/expected/premium), AI recommendation (hold/contact_buyers/increase_price/reduce_price).
+
+**Investor Chat:** AI-powered domain investment advisor — ask questions about the domain.
+
+---
+
+## 6. GLOBAL BEHAVIORS
+
+### Notifications
+- Bell icon in header with red unread count badge.
+- Polls `/api/watchlist/notifications/unread-count` every 60s.
+- Desktop notifications via Web Notification API for new replies.
+
+### WebSocket (`/ws/outbound`)
+- Custom raw WebSocket implementation (no library).
+- Events broadcast: CAMPAIGN_STATUS, CAMPAIGN_DELETED, EMAILS_QUEUED, INBOX_SYNCED, NEW_REPLY, SENT, OPENED, CLICKED, BOUNCED.
+- Each event carries: emailLogId, campaignId, toEmail, subject, variant, businessName.
+- Frontend merges WS events into Live Activity feed (capped at 8).
+- Overview page connects on mount, auto-reconnects on error.
+
+### Polling
+- Lead search task progress: polls every 3s while PENDING/PROCESSING.
+- Email verification progress: polls every 300ms for streaming token.
+- Email verification job: polls every 2s for queued jobs.
+- Acquisition scan: polls every 3s for up to 4 min.
+- Watchlist notifications: polls every 60s.
+
+### Offline/Demo Fallback
+- Every data-fetching page catches errors and falls back to hardcoded demo data.
+- Amber banner: "Backend offline. Showing demo data."
+- [Retry Connection] button re-fetches.
+
+### Rate Limiting
+- In-memory fixed-window per-endpoint buckets.
+- `/api/leads`: 300/10min. `/api/export`: 20/10min. `/api/email/verify`: 120/10min.
+- Frontend respects limits by reducing polling frequency.
+
+### Compliance
+- Every outgoing email includes: physical mailing address, unsubscribe link, truthful sender identity.
+- Opt-out tracking: unsubscribe tokens in every email.
+- Suppression list: bounced and unsubscribed emails are permanently blocked.
+- Campaign guardrails card in sidebar: "Opt-outs, sender limits, suppression checks, and truthful cold-email copy are enforced by default."
+
+---
+
+## 7. DATA MODELS (Key Fields)
+
+### Lead
+```
+businessName, website, location, googleMapsLink, category, rating, reviewsCount,
+phoneNumbers, socialLinks, domainMatchScore (0-100), scoreExplanation,
+decisionMakerName, decisionMakerRole, decisionMakerScore (0-100), decisionMakerEmail,
+buyerIntentScore (0-100), domainUpgradeScore (0-100), businessQualityScore (0-100),
+priorityScore (0-100), contactStrategy, buyerInsights (JSON: linkedinUrl, linkedinVerified,
+linkedinConfidence, aiSummary), engagementScore, openCount, replyCount, clickCount,
+whatsappScore, whatsappConfidence, bestContactChannel, contactChannelScores,
+leadStatus, pipelineStage, tags[], notes, companySize, lastContactedAt, doNotContact, unsubscribed
+```
+
+### Campaign
+```
+name, geoDomain, niche, cityState, objective, tone, language, status (DRAFT/ACTIVE/PAUSED/COMPLETED),
+dailyLimit, smartDelayMin, smartDelayMax, sendWindowStart, sendWindowEnd, timezone,
+metadata (JSON: variants bundle, compliance, instant flag, senderAccountId)
+```
+
+### EmailLog
+```
+toEmail, fromEmail, subject, bodyText, bodyHtml, variant (A/B/C/D/E), status
+(QUEUED/SENT/DELIVERED/OPENED/CLICKED/REPLIED/BOUNCED/UNSUBSCRIBED/COMPLAINT),
+trackingToken, unsubscribeToken, scheduledAt, sentAt, deliveredAt, openedAt,
+clickedAt, bouncedAt, unsubscribedAt, errorMessage, metadata (JSON)
+```
+
+### Campaign Variants
+```
+5 variants (A-E) stored in campaign.metadata.variants:
+  key, style (Direct/Consultative/Branding/SEO/Opportunity),
+  subject, greeting, body, cta, signature, spamScore (0-10), approved (boolean), flags[]
+```
