@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { ComposerModal } from "./ComposerModal";
 import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
@@ -567,11 +567,19 @@ export default function DashboardPage() {
     }
   }, [page, searchFilter, minScore, hasEmailsOnly, sortField, sortOrder, limit]);
 
-  // Polling status updates for live scraping progress
+  // Polling status updates for live scraping progress.
+  // Self-scheduling with backoff (3s → 30s) and PAUSES while the tab is hidden,
+  // so a long scrape in a background tab doesn't hammer /api/tasks forever.
   const startPolling = (taskId: string) => {
     stopPolling();
     console.log(`[Dashboard] Starting task polling for ${taskId}...`);
-    pollingInterval.current = setInterval(async () => {
+    let delay = 3000;
+    const tick = async () => {
+      if (!mounted.current) { stopPolling(); return; }
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        pollingInterval.current = setTimeout(tick, delay);
+        return;
+      }
       try {
         const response = await authFetch(`${BACKEND_URL}/api/tasks/${taskId}`);
         if (!response.ok) throw new Error();
@@ -584,16 +592,21 @@ export default function DashboardPage() {
         if (["COMPLETED", "FAILED", "PAUSED", "CANCELLED"].includes(updatedTask.status)) {
           stopPolling();
           fetchHistory();
+          return;
         }
       } catch {
         stopPolling();
+        return;
       }
-    }, 3000);
+      delay = Math.min(30000, Math.round(delay * 1.5));
+      pollingInterval.current = setTimeout(tick, delay);
+    };
+    pollingInterval.current = setTimeout(tick, delay);
   };
 
   const stopPolling = () => {
     if (pollingInterval.current) {
-      clearInterval(pollingInterval.current);
+      clearTimeout(pollingInterval.current);
       pollingInterval.current = null;
     }
   };
@@ -1171,7 +1184,9 @@ export default function DashboardPage() {
     }
   };
 
-  const visibleLeads = leads.filter(lead => {
+  // Memoized so the list filter + summary metrics only recompute when the leads or
+  // the active filter change — not on every unrelated re-render (polling, typing, etc.).
+  const visibleLeads = useMemo(() => leads.filter(lead => {
     if (channelFilter === 'whatsapp_high') return (lead.whatsappScore ?? 0) >= 70;
     if (channelFilter === 'email_available') return lead.emails.length > 0;
     if (channelFilter === 'phone_available') return lead.phoneNumbers.length > 0;
@@ -1183,11 +1198,13 @@ export default function DashboardPage() {
       return c >= 2;
     }
     return true;
-  });
+  }), [leads, channelFilter]);
 
   const selectedTerminal = !!selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status);
-  const highPriorityCount = leads.filter(l => (l.priorityScore ?? l.domainMatchScore) >= 75).length;
-  const avgMatch = leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.domainMatchScore, 0) / leads.length) : 0;
+  const { highPriorityCount, avgMatch } = useMemo(() => ({
+    highPriorityCount: leads.filter(l => (l.priorityScore ?? l.domainMatchScore) >= 75).length,
+    avgMatch: leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.domainMatchScore, 0) / leads.length) : 0,
+  }), [leads]);
 
   return (
     <OutboundShell

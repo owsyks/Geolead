@@ -82,7 +82,26 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchOutbound<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
+// Coalesce identical in-flight GETs so multiple components mounting / polling the
+// same endpoint at once share ONE network request. No TTL caching — responses stay
+// fresh (we keep `no-store`); we only de-duplicate requests that overlap in time.
+const inFlightGets = new Map<string, Promise<unknown>>();
+
+export function fetchOutbound<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (method !== "GET" || _retried) {
+    return doFetchOutbound<T>(path, init, _retried);
+  }
+  const existing = inFlightGets.get(path) as Promise<T> | undefined;
+  if (existing) return existing;
+  const pending = doFetchOutbound<T>(path, init, _retried).finally(() => {
+    inFlightGets.delete(path);
+  });
+  inFlightGets.set(path, pending);
+  return pending;
+}
+
+async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
   const token = getAccessToken();
   const response = await fetch(`${OUTBOUND_API_BASE}${path}`, {
     cache: "no-store",

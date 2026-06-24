@@ -7,7 +7,7 @@ import cors from 'cors';
 import prisma from './config/db.js';
 import * as xlsx from 'xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
-import { stopCrawlerJob, stopAllCrawlerJobs } from './services/crawlerClient.js';
+import { stopCrawlerJob, stopCrawlerJobs } from './services/crawlerClient.js';
 import { isPlaceholderEmail, normalizeEmail, normalizePhoneList } from './services/contactUtils.js';
 import outboundRouter from './routes/outbound.js';
 import emailRouter from './routes/email.js';
@@ -212,8 +212,16 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
  */
 app.post('/api/search/cleanup', requireAuth, async (req, res) => {
   try {
-    // Stop all crawler jobs on the VPS
-    await stopAllCrawlerJobs(req.userId);
+    // Stop only the crawler jobs THIS user actually started (scoped — never
+    // enumerate the shared crawler, which would kill other users' jobs).
+    const active = await prisma.searchTask.findMany({
+      where: { userId: req.userId!, status: { in: ['PENDING', 'PROCESSING'] } },
+      select: { metadata: true },
+    });
+    const jobIds = active
+      .map((t) => (t.metadata as any)?.crawlerJobId)
+      .filter((id): id is number => typeof id === 'number');
+    await stopCrawlerJobs(jobIds, req.userId);
 
     // Cancel all PENDING and PROCESSING tasks for this user
     const result = await prisma.searchTask.updateMany({
