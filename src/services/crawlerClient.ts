@@ -83,6 +83,23 @@ export async function stopCrawlerJob(jobId: number, userId?: string | null): Pro
   }
 }
 
+/**
+ * Stop a specific, known set of crawler jobs by id. Scoped and safe for a SHARED
+ * crawler: it never enumerates the crawler's global job list, so it can only ever
+ * stop jobs this GeoLead deployment actually started (ids come from our own DB).
+ */
+export async function stopCrawlerJobs(jobIds: number[], userId?: string | null): Promise<void> {
+  const unique = Array.from(new Set(jobIds.filter((id) => typeof id === 'number')));
+  for (const id of unique) {
+    await stopCrawlerJob(id, userId);
+  }
+}
+
+/**
+ * @deprecated DANGEROUS on a shared crawler — enumerates and stops EVERY running
+ * job, including other users'/instances' jobs. Use `stopCrawlerJobs(jobIds)` with
+ * ids from our own DB instead. Retained only for the legacy worker import.
+ */
 export async function stopAllCrawlerJobs(userId?: string | null): Promise<void> {
   try {
     const { baseUrl, apiKey } = await getConfig(userId);

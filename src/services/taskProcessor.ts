@@ -1,5 +1,5 @@
 import prisma from '../config/db.js';
-import { searchAndCrawl, stopCrawlerJob, stopAllCrawlerJobs } from './crawlerClient.js';
+import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs } from './crawlerClient.js';
 import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
@@ -24,6 +24,7 @@ interface DiscoveredBiz {
   snippetPhones: string[];
   snippet?: string;
   source: string;
+  relevance?: number; // crawler-supplied 0..1 relevance (Google Maps = 1.0); undefined = unknown
 }
 
 interface SearchContext {
@@ -190,26 +191,48 @@ function drainSearchQueue() {
 
 export async function resumePendingSearchTasks() {
   try {
-    // Stop any zombie crawler jobs still running on the VPS from a previous session.
-    await stopAllCrawlerJobs();
+    // Reconcile ONLY the crawler jobs this GeoLead DB actually started. Never
+    // enumerate the shared crawler's global job list — that would stop other
+    // users'/instances' running jobs (the cross-user kill bug).
+    const interrupted = await prisma.searchTask.findMany({
+      where: { status: 'PROCESSING' },
+      select: { userId: true, metadata: true },
+    });
+    // Group owned job ids by userId so each stop uses that user's crawler config.
+    const jobsByUser = new Map<string | null, number[]>();
+    for (const t of interrupted) {
+      const jobId = (t.metadata as any)?.crawlerJobId;
+      if (typeof jobId === 'number') {
+        const key = t.userId ?? null;
+        jobsByUser.set(key, [...(jobsByUser.get(key) ?? []), jobId]);
+      }
+    }
+    let stoppedJobs = 0;
+    for (const [uid, jobIds] of jobsByUser) {
+      await stopCrawlerJobs(jobIds, uid);
+      stoppedJobs += jobIds.length;
+    }
 
-    // Mark ALL interrupted tasks (PROCESSING and PENDING) as CANCELLED.
-    // PENDING tasks from a previous dyno lifecycle are stale — the crawler
-    // job they would have started no longer corresponds to anything.
-    const staleProcessing = await prisma.searchTask.updateMany({
+    // Interrupted in-flight searches can't be resumed (the in-memory poller died
+    // with the process) — fail them so the user can retry.
+    const failedProcessing = await prisma.searchTask.updateMany({
       where: { status: 'PROCESSING' },
       data: { status: 'FAILED' },
     });
-    const stalePending = await prisma.searchTask.updateMany({
+
+    // PENDING tasks never started a crawler job — re-enqueue instead of cancelling,
+    // so work queued just before a restart isn't silently lost.
+    const pending = await prisma.searchTask.findMany({
       where: { status: 'PENDING' },
-      data: { status: 'CANCELLED' },
+      select: { id: true },
     });
-    const totalStale = staleProcessing.count + stalePending.count;
-    if (totalStale > 0) {
-      console.log(`[Processor] Cleaned up ${totalStale} stale task(s) (${staleProcessing.count} PROCESSING→FAILED, ${stalePending.count} PENDING→CANCELLED).`);
+    for (const t of pending) startSearchTaskProcessing(t.id);
+
+    if (failedProcessing.count > 0 || pending.length > 0 || stoppedJobs > 0) {
+      console.log(`[Processor] Startup reconcile: ${failedProcessing.count} interrupted→FAILED, ${pending.length} pending re-enqueued, ${stoppedJobs} owned crawler job(s) stopped.`);
     }
   } catch (error) {
-    console.error('[Processor] Failed to cleanup stale tasks:', error);
+    console.error('[Processor] Failed to reconcile tasks on startup:', error);
   }
 }
 
@@ -241,6 +264,13 @@ export async function processSearchTask(taskId: string) {
 
     const discoveredBusinesses = new Map<string, DiscoveredBiz>();
     const searchContext = buildSearchContext(task.keyword, task.cityState || undefined);
+
+    // Funnel diagnostics — so a future "0 leads" run tells us whether the crawler
+    // returned nothing vs. whether our own filtering dropped everything.
+    let rawResultCount = 0;
+    let droppedNoDomain = 0;
+    let droppedBlockedHost = 0;
+    let droppedFiltered = 0;
 
     const taskMetadata = (task.metadata as any) || {};
     const searchSource = (taskMetadata.searchSource as string) || 'web';
@@ -283,11 +313,12 @@ export async function processSearchTask(taskId: string) {
         }).catch(() => undefined);
       }
 
+      rawResultCount = crawlResult.results.length;
       for (const result of crawlResult.results) {
         const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
-        if (!domainKey) continue;
+        if (!domainKey) { droppedNoDomain++; continue; }
 
-        if (isBlockedWebsiteHost(domainKey)) continue;
+        if (isBlockedWebsiteHost(domainKey)) { droppedBlockedHost++; continue; }
 
         const discovered: DiscoveredBiz = {
           name: result.companyName || result.title || result.domain,
@@ -301,9 +332,10 @@ export async function processSearchTask(taskId: string) {
           snippetPhones: result.phones.map(p => p.value),
           snippet: '',
           source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
+          relevance: typeof result.relevance === 'number' ? result.relevance : undefined,
         };
 
-        if (shouldSkipDiscoveredBusiness(discovered, searchContext)) continue;
+        if (shouldSkipDiscoveredBusiness(discovered, searchContext)) { droppedFiltered++; continue; }
 
         if (!discoveredBusinesses.has(domainKey)) {
           discoveredBusinesses.set(domainKey, discovered);
@@ -341,13 +373,32 @@ export async function processSearchTask(taskId: string) {
     const businessList = Array.from(discoveredBusinesses.values())
       .sort((a, b) => scoreDiscoveredBusiness(b, searchContext) - scoreDiscoveredBusiness(a, searchContext))
       .slice(0, task.searchDepth);
-    console.log(`[Processor] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length}.`);
+    console.log(
+      `[Processor] Funnel: raw=${rawResultCount} -> unique=${discoveredBusinesses.size} -> processing=${businessList.length} ` +
+      `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} filtered:${droppedFiltered})`,
+    );
 
     if (businessList.length === 0) {
-      console.warn(`[Processor] SearchTask ${taskId} completed with no businesses discovered — crawler returned empty results.`);
+      const zeroLeadsReason = rawResultCount === 0 ? 'crawler_returned_zero' : 'all_results_filtered';
+      console.warn(
+        `[Processor] SearchTask ${taskId} produced 0 leads. raw=${rawResultCount} ` +
+        `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, filtered:${droppedFiltered}} ` +
+        `unique=${discoveredBusinesses.size} reason=${zeroLeadsReason}`,
+      );
       await prisma.searchTask.update({
         where: { id: taskId },
-        data: { status: 'COMPLETED', progress: 100, totalLeads: 0, validEmails: 0 },
+        data: {
+          status: 'COMPLETED',
+          progress: 100,
+          totalLeads: 0,
+          validEmails: 0,
+          metadata: {
+            ...taskMetadata,
+            zeroLeadsReason,
+            rawResultCount,
+            droppedCounts: { droppedNoDomain, droppedBlockedHost, droppedFiltered },
+          } as any,
+        },
       });
       return;
     }
@@ -649,36 +700,59 @@ function buildSearchContext(keyword: string, cityState?: string): SearchContext 
   };
 }
 
+// The crawler already filters 50+ directory domains and scores relevance
+// (accuracy.py), so this is a light, high-precision safety net — NOT a relevance
+// re-derivation. It must default to KEEP: requiring the search keyword or the city
+// to appear in a brand name/domain wrongly drops legitimate businesses (real brands
+// rarely contain the keyword, and web results carry no address). We only drop on
+// strong evidence: a known directory host, an explicit wrong-region match, or a
+// near-zero crawler relevance.
 function shouldSkipDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext) {
+  // 1. Known directory/aggregator hosts, .gov, .edu — always drop.
   const websiteHost = getWebsiteHost(biz.website);
   if (websiteHost && isBlockedWebsiteHost(websiteHost)) {
     return true;
   }
 
   const haystack = normalizeText(`${biz.name} ${biz.category || ''} ${biz.location || ''} ${biz.website || ''} ${biz.snippet || ''}`);
-  const hasKeyword = context.keywordTerms.length === 0 || context.keywordTerms.some((term) => haystack.includes(term));
-  const hasRelatedKeyword = /(handyman|repair|maintenance|contractor|construction|home service|home improvement|fix|remodel|renovation|property)/i.test(haystack);
-  const hasWrongRegion = context.wrongRegionNeedles.some((needle) => needle && haystack.includes(needle));
-  const hasExactRegion = context.regionNeedles.some((needle) => needle && haystack.includes(needle));
-  const hasCityRegion = containsPhrase(haystack, context.city);
-  const hasRegion = context.regionNeedles.length === 0 || hasExactRegion || hasCityRegion;
 
+  // 2. Explicit WRONG-region: a *different* US state literally named in the text
+  //    (e.g. searching "Indianapolis, IN" but the text says "Indianapolis, OH").
+  //    Positive-match only, so address-less web results are never affected.
+  if (context.wrongRegionNeedles.some((needle) => needle && haystack.includes(needle))) {
+    return true;
+  }
+
+  // 3. Near-zero relevance floor. The crawler already scored & filtered; only drop
+  //    obvious junk. Maps = 1.0; undefined relevance is treated as PASS.
+  if (typeof biz.relevance === 'number' && biz.relevance < 0.1) {
+    return true;
+  }
+
+  // 4. Handyman niche: preserve the tighter home-service gating ONLY for handyman
+  //    searches so that niche doesn't regress (region is NOT required — web results
+  //    have no address, and wrong-region is already handled in step 2).
   if (context.primaryKeyword.includes('handyman')) {
     const isHomeServiceRelated = HOME_SERVICE_RELATED_PATTERN.test(haystack);
     const isNonHomeRepair = NON_HOME_REPAIR_PATTERN.test(haystack) && !/(home|property|contractor|construction|remodel|handyman)/i.test(haystack);
-
-    return hasWrongRegion || isNonHomeRepair || !(isHomeServiceRelated && hasRegion);
+    return isNonHomeRepair || !isHomeServiceRelated;
   }
 
-  return hasWrongRegion || !((hasKeyword || hasRelatedKeyword) && hasRegion);
+  // 5. Default: trust the crawler. Keep the result.
+  return false;
 }
 
+// Used only to sort then slice to task.searchDepth. Additive-only: off-topic /
+// wrong-region / directory rows are already removed by shouldSkipDiscoveredBusiness,
+// so negative penalties here would only risk pushing a valid lead past the slice
+// boundary. The crawler's relevance drives the primary ordering.
 function scoreDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext) {
   let score = 0;
   const haystack = normalizeText(`${biz.name} ${biz.category || ''} ${biz.location || ''} ${biz.website || ''} ${biz.snippet || ''}`);
-  const websiteHost = getWebsiteHost(biz.website);
 
-  if (biz.source === 'Google Maps' || biz.source === 'Crawler') score += 30;
+  if (typeof biz.relevance === 'number') score += Math.round(biz.relevance * 40);
+  if (biz.source === 'Google Maps') score += 35;
+  else if (biz.source === 'Crawler') score += 25;
   if (biz.website) score += 20;
   if (biz.location) score += 12;
   if (biz.category) score += 8;
@@ -687,9 +761,6 @@ function scoreDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext) {
   if (HOME_SERVICE_RELATED_PATTERN.test(haystack)) score += 15;
   if (context.regionNeedles.some((needle) => haystack.includes(needle))) score += 18;
   if (containsPhrase(haystack, context.city)) score += 10;
-  if (context.wrongRegionNeedles.some((needle) => haystack.includes(needle))) score -= 100;
-  if (context.primaryKeyword.includes('handyman') && NON_HOME_REPAIR_PATTERN.test(haystack)) score -= 50;
-  if (isBlockedWebsiteHost(websiteHost)) score -= 60;
 
   return score;
 }
