@@ -127,7 +127,6 @@ export default function DashboardPage() {
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(10);
   const [searchSource, setSearchSource] = useState<'combined' | 'web' | 'google_maps'>('web');
-  const [useFreeProxy, setUseFreeProxy] = useState(true);
   const [railOpen, setRailOpen] = useState(false);
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
@@ -758,7 +757,6 @@ export default function DashboardPage() {
           cityState,
           searchDepth,
           searchSource,
-          proxyscrapeEnabled: useFreeProxy,
         })
       });
 
@@ -1267,10 +1265,6 @@ export default function DashboardPage() {
                   <option value="google_maps">Google Maps Only</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={useFreeProxy} onChange={(e) => setUseFreeProxy(e.target.checked)} className="accent-brand w-4 h-4" />
-                <span className="text-[11px] text-text-muted">Free proxy auto-harvest</span>
-              </label>
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Depth</label>
                 <span className="text-[11px] text-text-muted font-mono">{searchDepth}</span>
@@ -1325,10 +1319,6 @@ export default function DashboardPage() {
                   <option value="google_maps">Google Maps Only</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={useFreeProxy} onChange={(e) => setUseFreeProxy(e.target.checked)} className="accent-brand w-4 h-4" />
-                <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Free proxy auto-harvest</span>
-              </label>
               <div>
                 <label className={LABEL}>Search Depth</label>
                 <select value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className={INPUT}>

@@ -79,7 +79,7 @@ const worker = new Worker<ScrapingJobData>(
       const discoveredBusinesses = new Map<string, DiscoveredBiz>();
       const taskMetadata = (task.metadata as any) || {};
       const searchSource = (taskMetadata.searchSource as string) || 'web';
-      const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled === true;
+      const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
 
       const shouldCancel = async (): Promise<boolean> => {
         const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
