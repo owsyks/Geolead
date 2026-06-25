@@ -1,0 +1,381 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/app/acquisition/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/acquisition/page.tsx",
+      "summary": "Acquisition Advisor page that runs bulk acquisition scans over the domain portfolio, renders tiered domain recommendation cards, and hosts an AI investor-chat modal for deal analysis.",
+      "tags": ["page", "component", "acquisition", "ai-chat", "next-app-router"],
+      "complexity": "complex",
+      "languageNotes": "Next.js App Router client page composed of several local sub-components (DomainCard, modals) within a single file."
+    },
+    {
+      "id": "function:frontend/src/app/acquisition/page.tsx:AcquisitionAdvisorPage",
+      "type": "function",
+      "name": "AcquisitionAdvisorPage",
+      "filePath": "frontend/src/app/acquisition/page.tsx",
+      "lineRange": [56, 364],
+      "summary": "Top-level page component that fetches acquisition scan results, manages tier filtering and scan state, and orchestrates the advisor UI.",
+      "tags": ["page", "component", "acquisition", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/acquisition/page.tsx:DomainCard",
+      "type": "function",
+      "name": "DomainCard",
+      "filePath": "frontend/src/app/acquisition/page.tsx",
+      "lineRange": [368, 543],
+      "summary": "Renders a single domain's acquisition recommendation with tier, score metrics, and rationale details.",
+      "tags": ["component", "card", "acquisition", "presentation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/acquisition/page.tsx:ArchiveHistoryModal",
+      "type": "function",
+      "name": "ArchiveHistoryModal",
+      "filePath": "frontend/src/app/acquisition/page.tsx",
+      "lineRange": [572, 716],
+      "summary": "Modal displaying the historical archive of past acquisition scans and their outcomes.",
+      "tags": ["component", "modal", "history", "acquisition"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/acquisition/page.tsx:InvestorChatModal",
+      "type": "function",
+      "name": "InvestorChatModal",
+      "filePath": "frontend/src/app/acquisition/page.tsx",
+      "lineRange": [720, 851],
+      "summary": "Modal hosting an AI investor-chat conversation for analyzing a domain's acquisition potential.",
+      "tags": ["component", "modal", "ai-chat", "acquisition"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/ai-email-generator/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/ai-email-generator/page.tsx",
+      "summary": "AI email generator page that lets users pick a domain context and generate or rewrite outbound email copy through the backend AI endpoints.",
+      "tags": ["page", "component", "ai-email", "outbound", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/ai-email-generator/page.tsx:AiEmailGeneratorPage",
+      "type": "function",
+      "name": "AiEmailGeneratorPage",
+      "filePath": "frontend/src/app/ai-email-generator/page.tsx",
+      "lineRange": [21, 437],
+      "summary": "Page component managing the email-generation form, domain selection, and AI-generated/rewritten email output state.",
+      "tags": ["page", "component", "ai-email", "form"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/analytics/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/analytics/page.tsx",
+      "summary": "Analytics dashboard page that fetches outbound campaign metrics and renders performance charts and summary statistics.",
+      "tags": ["page", "component", "analytics", "dashboard", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/analytics/page.tsx:AnalyticsPage",
+      "type": "function",
+      "name": "AnalyticsPage",
+      "filePath": "frontend/src/app/analytics/page.tsx",
+      "lineRange": [68, 324],
+      "summary": "Page component that loads analytics data from the outbound API and renders metric cards and trend visualizations.",
+      "tags": ["page", "component", "analytics", "data-fetching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/campaigns/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/campaigns/page.tsx",
+      "summary": "Campaigns management page for creating, listing, and inspecting outbound email campaigns, including variant comparison and per-campaign event modals.",
+      "tags": ["page", "component", "campaigns", "outbound", "next-app-router"],
+      "complexity": "complex",
+      "languageNotes": "Largest campaign UI file in the batch; bundles several local modal components and date/time formatting helpers."
+    },
+    {
+      "id": "function:frontend/src/app/campaigns/page.tsx:CampaignsPage",
+      "type": "function",
+      "name": "CampaignsPage",
+      "filePath": "frontend/src/app/campaigns/page.tsx",
+      "lineRange": [103, 700],
+      "summary": "Top-level campaigns page managing campaign lists, creation flow, domain context, and modal orchestration.",
+      "tags": ["page", "component", "campaigns", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/campaigns/page.tsx:VariantsModal",
+      "type": "function",
+      "name": "VariantsModal",
+      "filePath": "frontend/src/app/campaigns/page.tsx",
+      "lineRange": [736, 837],
+      "summary": "Modal showing generated email variants for a campaign with per-variant stats and selection.",
+      "tags": ["component", "modal", "campaigns", "variants"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/campaigns/page.tsx:EventsModal",
+      "type": "function",
+      "name": "EventsModal",
+      "filePath": "frontend/src/app/campaigns/page.tsx",
+      "lineRange": [892, 1046],
+      "summary": "Modal listing send/open/click/reply events for a selected campaign.",
+      "tags": ["component", "modal", "campaigns", "events"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/dashboard/ComposerModal.tsx",
+      "type": "file",
+      "name": "ComposerModal.tsx",
+      "filePath": "frontend/src/app/dashboard/ComposerModal.tsx",
+      "summary": "Reusable composer modal used by the dashboard to draft and send an outbound email to a selected lead.",
+      "tags": ["component", "modal", "composer", "outbound"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/dashboard/ComposerModal.tsx:ComposerModal",
+      "type": "function",
+      "name": "ComposerModal",
+      "filePath": "frontend/src/app/dashboard/ComposerModal.tsx",
+      "lineRange": [41, 111],
+      "summary": "Modal component rendering an email composition form with subject/body fields and send action.",
+      "tags": ["component", "modal", "composer", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/dashboard/VerificationModal.tsx",
+      "type": "file",
+      "name": "VerificationModal.tsx",
+      "filePath": "frontend/src/app/dashboard/VerificationModal.tsx",
+      "summary": "Dashboard modal that displays email verification results for a contact, surfacing deliverability and validity status.",
+      "tags": ["component", "modal", "verification", "deliverability"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/dashboard/VerificationModal.tsx:VerificationModal",
+      "type": "function",
+      "name": "VerificationModal",
+      "filePath": "frontend/src/app/dashboard/VerificationModal.tsx",
+      "lineRange": [21, 118],
+      "summary": "Modal component presenting email verification status, score, and provider details for a lead.",
+      "tags": ["component", "modal", "verification", "presentation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/dashboard/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/dashboard/page.tsx",
+      "summary": "Primary dashboard page driving lead search, crawling, scoring, and outbound actions; the largest UI surface in the application.",
+      "tags": ["page", "component", "dashboard", "entry-point", "lead-management"],
+      "complexity": "complex",
+      "languageNotes": "Very large App Router client page (~2000 lines) coordinating search tasks, results tables, and composer/verification modals."
+    },
+    {
+      "id": "function:frontend/src/app/dashboard/page.tsx:DashboardPage",
+      "type": "function",
+      "name": "DashboardPage",
+      "filePath": "frontend/src/app/dashboard/page.tsx",
+      "lineRange": [119, 1897],
+      "summary": "Monolithic dashboard component managing search state, polling task progress, rendering lead results, and triggering outbound and verification flows.",
+      "tags": ["page", "component", "dashboard", "state-management", "lead-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/dashboard/page.tsx:WaValidationPanel",
+      "type": "function",
+      "name": "WaValidationPanel",
+      "filePath": "frontend/src/app/dashboard/page.tsx",
+      "lineRange": [1907, 2016],
+      "summary": "Panel component validating WhatsApp contact links and surfacing reachable numbers for leads.",
+      "tags": ["component", "panel", "whatsapp", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/forgot-password/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/forgot-password/page.tsx",
+      "summary": "Forgot-password page that collects the user's email and requests a password reset link via the auth API.",
+      "tags": ["page", "component", "auth", "password-reset"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/forgot-password/page.tsx:ForgotPasswordPage",
+      "type": "function",
+      "name": "ForgotPasswordPage",
+      "filePath": "frontend/src/app/forgot-password/page.tsx",
+      "lineRange": [8, 61],
+      "summary": "Component rendering the forgot-password form and submitting reset requests to the backend.",
+      "tags": ["page", "component", "auth", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/inbox/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/inbox/page.tsx",
+      "summary": "Inbox page that lists synced reply threads, categorizes replies, and lets the user view and act on incoming messages.",
+      "tags": ["page", "component", "inbox", "replies", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/inbox/page.tsx:InboxPage",
+      "type": "function",
+      "name": "InboxPage",
+      "filePath": "frontend/src/app/inbox/page.tsx",
+      "lineRange": [72, 359],
+      "summary": "Page component loading inbox threads, managing selection and category filters, and rendering the reply list.",
+      "tags": ["page", "component", "inbox", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/inbox/page.tsx:ReplyDetail",
+      "type": "function",
+      "name": "ReplyDetail",
+      "filePath": "frontend/src/app/inbox/page.tsx",
+      "lineRange": [361, 518],
+      "summary": "Detail pane rendering a selected reply thread with message history and action controls.",
+      "tags": ["component", "inbox", "detail", "presentation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/inbox/page.tsx:MailboxStatusBanner",
+      "type": "function",
+      "name": "MailboxStatusBanner",
+      "filePath": "frontend/src/app/inbox/page.tsx",
+      "lineRange": [531, 610],
+      "summary": "Banner component surfacing the connection/sync status of the configured mailbox.",
+      "tags": ["component", "inbox", "status", "banner"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/layout.tsx",
+      "type": "file",
+      "name": "layout.tsx",
+      "filePath": "frontend/src/app/layout.tsx",
+      "summary": "Root App Router layout that wires global styles and wraps the app in theme, auth, and domain-context providers.",
+      "tags": ["layout", "entry-point", "providers", "next-app-router"],
+      "complexity": "moderate",
+      "languageNotes": "Next.js root layout exporting metadata and composing context providers around all routes."
+    },
+    {
+      "id": "function:frontend/src/app/layout.tsx:RootLayout",
+      "type": "function",
+      "name": "RootLayout",
+      "filePath": "frontend/src/app/layout.tsx",
+      "lineRange": [70, 103],
+      "summary": "Root layout component rendering the HTML shell and nesting theme, auth, and domain providers around page children.",
+      "tags": ["layout", "component", "providers"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/login/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/login/page.tsx",
+      "summary": "Login page rendering the credentials form and delegating authentication to the shared auth provider.",
+      "tags": ["page", "component", "auth", "login"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/login/page.tsx:LoginPage",
+      "type": "function",
+      "name": "LoginPage",
+      "filePath": "frontend/src/app/login/page.tsx",
+      "lineRange": [9, 84],
+      "summary": "Component managing login form state and invoking the auth context's sign-in flow.",
+      "tags": ["page", "component", "auth", "form"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "function:frontend/src/app/acquisition/page.tsx:AcquisitionAdvisorPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "function:frontend/src/app/acquisition/page.tsx:DomainCard", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "function:frontend/src/app/acquisition/page.tsx:ArchiveHistoryModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "function:frontend/src/app/acquisition/page.tsx:InvestorChatModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "function:frontend/src/app/acquisition/page.tsx:AcquisitionAdvisorPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/acquisition/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/components/DomainSelector.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "function:frontend/src/app/ai-email-generator/page.tsx:AiEmailGeneratorPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "function:frontend/src/app/ai-email-generator/page.tsx:AiEmailGeneratorPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/ai-email-generator/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "file:frontend/src/lib/ClientDate.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "function:frontend/src/app/analytics/page.tsx:AnalyticsPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "function:frontend/src/app/analytics/page.tsx:AnalyticsPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/analytics/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/components/DomainSelector.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "function:frontend/src/app/campaigns/page.tsx:CampaignsPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "function:frontend/src/app/campaigns/page.tsx:VariantsModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "function:frontend/src/app/campaigns/page.tsx:EventsModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "function:frontend/src/app/campaigns/page.tsx:CampaignsPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/campaigns/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/dashboard/ComposerModal.tsx", "target": "function:frontend/src/app/dashboard/ComposerModal.tsx:ComposerModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/dashboard/ComposerModal.tsx", "target": "function:frontend/src/app/dashboard/ComposerModal.tsx:ComposerModal", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/dashboard/VerificationModal.tsx", "target": "function:frontend/src/app/dashboard/VerificationModal.tsx:VerificationModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/dashboard/VerificationModal.tsx", "target": "function:frontend/src/app/dashboard/VerificationModal.tsx:VerificationModal", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/app/dashboard/ComposerModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/app/dashboard/VerificationModal.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/components/DomainSelector.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "function:frontend/src/app/dashboard/page.tsx:DashboardPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "function:frontend/src/app/dashboard/page.tsx:WaValidationPanel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "function:frontend/src/app/dashboard/page.tsx:DashboardPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/dashboard/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/forgot-password/page.tsx", "target": "file:frontend/src/components/AuthShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/forgot-password/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/forgot-password/page.tsx", "target": "function:frontend/src/app/forgot-password/page.tsx:ForgotPasswordPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/forgot-password/page.tsx", "target": "function:frontend/src/app/forgot-password/page.tsx:ForgotPasswordPage", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "file:frontend/src/lib/ClientDate.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "function:frontend/src/app/inbox/page.tsx:InboxPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "function:frontend/src/app/inbox/page.tsx:ReplyDetail", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "function:frontend/src/app/inbox/page.tsx:MailboxStatusBanner", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "function:frontend/src/app/inbox/page.tsx:InboxPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/inbox/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/layout.tsx", "target": "file:frontend/src/app/globals.css", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/layout.tsx", "target": "file:frontend/src/components/ThemeProvider.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/layout.tsx", "target": "file:frontend/src/lib/auth.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/layout.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/layout.tsx", "target": "function:frontend/src/app/layout.tsx:RootLayout", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/layout.tsx", "target": "function:frontend/src/app/layout.tsx:RootLayout", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/login/page.tsx", "target": "file:frontend/src/components/AuthShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/login/page.tsx", "target": "file:frontend/src/lib/auth.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/login/page.tsx", "target": "function:frontend/src/app/login/page.tsx:LoginPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/login/page.tsx", "target": "function:frontend/src/app/login/page.tsx:LoginPage", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}

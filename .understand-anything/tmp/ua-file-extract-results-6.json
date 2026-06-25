@@ -1,0 +1,604 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 10,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "Design Front End UI_UX/src/app/App.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 12,
+      "nonEmptyLines": 10,
+      "functions": [
+        {
+          "name": "App",
+          "startLine": 5,
+          "endLine": 12,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "App",
+          "line": 5,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "App",
+          "callee": "useEffect",
+          "lineNumber": 6
+        },
+        {
+          "caller": "App",
+          "callee": "document.documentElement.classList.add",
+          "lineNumber": 8
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/layout.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 113,
+      "nonEmptyLines": 107,
+      "functions": [
+        {
+          "name": "Sidebar",
+          "startLine": 34,
+          "endLine": 88,
+          "params": []
+        },
+        {
+          "name": "Header",
+          "startLine": 90,
+          "endLine": 113,
+          "params": [
+            "{ title, subtitle, eyebrow }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Sidebar",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "Header",
+          "line": 90,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Sidebar",
+          "callee": "useLocation",
+          "lineNumber": 35
+        },
+        {
+          "caller": "Sidebar",
+          "callee": "navItems.map",
+          "lineNumber": 52
+        },
+        {
+          "caller": "Sidebar",
+          "callee": "cn",
+          "lineNumber": 58
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 148,
+      "nonEmptyLines": 139,
+      "functions": [
+        {
+          "name": "cn",
+          "startLine": 6,
+          "endLine": 8,
+          "params": [
+            "...inputs"
+          ]
+        },
+        {
+          "name": "GlassCard",
+          "startLine": 10,
+          "endLine": 22,
+          "params": [
+            "{ children, className, ...props }"
+          ]
+        },
+        {
+          "name": "StatusBadge",
+          "startLine": 24,
+          "endLine": 64,
+          "params": [
+            "{ status }"
+          ]
+        },
+        {
+          "name": "MetricCard",
+          "startLine": 66,
+          "endLine": 97,
+          "params": [
+            "{\n  title,\n  value,\n  trend,\n  trendUp\n}"
+          ]
+        },
+        {
+          "name": "ScoreRing",
+          "startLine": 99,
+          "endLine": 148,
+          "params": [
+            "{ score, size = \"md\" }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "cn",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "GlassCard",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "StatusBadge",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "MetricCard",
+          "line": 66,
+          "isDefault": false
+        },
+        {
+          "name": "ScoreRing",
+          "line": 99,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "cn",
+          "callee": "twMerge",
+          "lineNumber": 7
+        },
+        {
+          "caller": "cn",
+          "callee": "clsx",
+          "lineNumber": 7
+        },
+        {
+          "caller": "GlassCard",
+          "callee": "cn",
+          "lineNumber": 13
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "status.toLowerCase",
+          "lineNumber": 29
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 30
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 30
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 30
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 30
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 34
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 34
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 38
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 38
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 42
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 42
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 42
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 46
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 46
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 46
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "lower.includes",
+          "lineNumber": 46
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "cn",
+          "lineNumber": 54
+        },
+        {
+          "caller": "StatusBadge",
+          "callee": "status.toUpperCase",
+          "lineNumber": 61
+        },
+        {
+          "caller": "MetricCard",
+          "callee": "cn",
+          "lineNumber": 87
+        },
+        {
+          "caller": "ScoreRing",
+          "callee": "cn",
+          "lineNumber": 138
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 139,
+      "nonEmptyLines": 126,
+      "functions": [
+        {
+          "name": "Campaigns",
+          "startLine": 12,
+          "endLine": 139,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Campaigns",
+          "line": 12,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Campaigns",
+          "callee": "[\"5\", \"10\", \"20\", \"50\"].map",
+          "lineNumber": 49
+        },
+        {
+          "caller": "Campaigns",
+          "callee": "[\"DRAFT\", \"ACTIVE\", \"PAUSED\", \"COMPLETED\"].map",
+          "lineNumber": 74
+        },
+        {
+          "caller": "Campaigns",
+          "callee": "campaigns.filter",
+          "lineNumber": 79
+        },
+        {
+          "caller": "Campaigns",
+          "callee": "campaigns.filter(c => c.status === colStatus).map",
+          "lineNumber": 84
+        },
+        {
+          "caller": "Campaigns",
+          "callee": "campaigns.filter",
+          "lineNumber": 84
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 164,
+      "nonEmptyLines": 156,
+      "functions": [
+        {
+          "name": "Inbox",
+          "startLine": 13,
+          "endLine": 164,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Inbox",
+          "line": 13,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Inbox",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "Inbox",
+          "callee": "[\"All\", \"Unread\", \"Interested\", \"Negotiating\"].map",
+          "lineNumber": 32
+        },
+        {
+          "caller": "Inbox",
+          "callee": "cn",
+          "lineNumber": 33
+        },
+        {
+          "caller": "Inbox",
+          "callee": "replies.map",
+          "lineNumber": 44
+        },
+        {
+          "caller": "Inbox",
+          "callee": "setActiveReply",
+          "lineNumber": 47
+        },
+        {
+          "caller": "Inbox",
+          "callee": "cn",
+          "lineNumber": 48
+        },
+        {
+          "caller": "Inbox",
+          "callee": "cn",
+          "lineNumber": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 239,
+      "nonEmptyLines": 225,
+      "functions": [
+        {
+          "name": "LeadExplorer",
+          "startLine": 13,
+          "endLine": 239,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "LeadExplorer",
+          "line": 13,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "LeadExplorer",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "leads.map",
+          "lineNumber": 143
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "selectedLeads.includes",
+          "lineNumber": 149
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "setSelectedLeads",
+          "lineNumber": 151
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "setSelectedLeads",
+          "lineNumber": 152
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "selectedLeads.filter",
+          "lineNumber": 152
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "lead.emails.map",
+          "lineNumber": 172
+        },
+        {
+          "caller": "LeadExplorer",
+          "callee": "cn",
+          "lineNumber": 176
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 222,
+      "nonEmptyLines": 213,
+      "functions": [
+        {
+          "name": "Sparkline",
+          "startLine": 11,
+          "endLine": 28,
+          "params": []
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 110,
+      "nonEmptyLines": 107,
+      "functions": [
+        {
+          "name": "Portfolio",
+          "startLine": 12,
+          "endLine": 110,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Portfolio",
+          "line": 12,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Portfolio",
+          "callee": "domains.map",
+          "lineNumber": 69
+        },
+        {
+          "caller": "Portfolio",
+          "callee": "d.tags.map",
+          "lineNumber": 89
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/routes.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 65,
+      "nonEmptyLines": 61,
+      "functions": [
+        {
+          "name": "Root",
+          "startLine": 9,
+          "endLine": 29,
+          "params": []
+        },
+        {
+          "name": "Placeholder",
+          "startLine": 32,
+          "endLine": 43,
+          "params": [
+            "{ title }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "router",
+          "line": 45,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/main.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 7,
+      "nonEmptyLines": 4,
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    }
+  ]
+}

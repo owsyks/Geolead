@@ -1,0 +1,43 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    { "path": "check_followups.js", "language": "javascript", "sizeLines": 47, "fileCategory": "code" },
+    { "path": "check_unsub.js", "language": "javascript", "sizeLines": 19, "fileCategory": "code" },
+    { "path": "db.$disconnect())", "language": "$disconnect())", "sizeLines": 0, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/guidelines/Guidelines.md", "language": "markdown", "sizeLines": 61, "fileCategory": "docs" },
+    { "path": "Design Front End UI_UX/postcss.config.mjs", "language": "javascript", "sizeLines": 15, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/src/app/components/figma/ImageWithFallback.tsx", "language": "typescript", "sizeLines": 27, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/src/app/components/ui/aspect-ratio.tsx", "language": "typescript", "sizeLines": 11, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/src/app/components/ui/collapsible.tsx", "language": "typescript", "sizeLines": 33, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/src/app/components/ui/sonner.tsx", "language": "typescript", "sizeLines": 25, "fileCategory": "code" },
+    { "path": "Design Front End UI_UX/src/imports/pasted_text/aurora-terminal-prompt.md", "language": "markdown", "sizeLines": 324, "fileCategory": "docs" },
+    { "path": "Design Front End UI_UX/vite.config.ts", "language": "typescript", "sizeLines": 36, "fileCategory": "code" },
+    { "path": "fix_sender.js", "language": "javascript", "sizeLines": 30, "fileCategory": "code" },
+    { "path": "frontend/eslint.config.mjs", "language": "javascript", "sizeLines": 18, "fileCategory": "code" },
+    { "path": "frontend/next.config.ts", "language": "typescript", "sizeLines": 15, "fileCategory": "code" },
+    { "path": "frontend/postcss.config.mjs", "language": "javascript", "sizeLines": 7, "fileCategory": "code" },
+    { "path": "frontend/src/app/globals.css", "language": "css", "sizeLines": 222, "fileCategory": "markup" },
+    { "path": "frontend/src/app/lead-explorer/page.tsx", "language": "typescript", "sizeLines": 5, "fileCategory": "code" },
+    { "path": "frontend/src/app/pricing/page.tsx", "language": "typescript", "sizeLines": 168, "fileCategory": "code" }
+  ],
+  "batchImportData": {
+    "check_followups.js": [],
+    "check_unsub.js": [],
+    "db.$disconnect())": [],
+    "Design Front End UI_UX/guidelines/Guidelines.md": [],
+    "Design Front End UI_UX/postcss.config.mjs": [],
+    "Design Front End UI_UX/src/app/components/figma/ImageWithFallback.tsx": [],
+    "Design Front End UI_UX/src/app/components/ui/aspect-ratio.tsx": [],
+    "Design Front End UI_UX/src/app/components/ui/collapsible.tsx": [],
+    "Design Front End UI_UX/src/app/components/ui/sonner.tsx": [],
+    "Design Front End UI_UX/src/imports/pasted_text/aurora-terminal-prompt.md": [],
+    "Design Front End UI_UX/vite.config.ts": [],
+    "fix_sender.js": [],
+    "frontend/eslint.config.mjs": [],
+    "frontend/next.config.ts": [],
+    "frontend/postcss.config.mjs": [],
+    "frontend/src/app/globals.css": [],
+    "frontend/src/app/lead-explorer/page.tsx": [],
+    "frontend/src/app/pricing/page.tsx": []
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "steps": [
+    {
+      "order": 1,
+      "title": "Big Picture: What GeoLead AI Does",
+      "description": "Start here for orientation. GeoLead AI is an AI-powered outbound email automation platform for geo-domain sellers: it discovers businesses, finds and verifies their contacts, scores them as leads, then runs AI-personalized outbound campaigns and reconciles the replies. The README lays out the headline features (lead discovery, lead explorer, AI email generation, campaigns, unified inbox, analytics, sender accounts), the frontend routes, and the backend API surface. SCRAPING_AND_VERIFICATION.md traces the end-to-end lead pipeline narratively, so skim it to form a mental model before diving into code.",
+      "nodeIds": [
+        "document:README.md",
+        "document:SCRAPING_AND_VERIFICATION.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Entry Points: Backend Server & Frontend Layout",
+      "description": "Every flow you'll trace later is wired up in these two files. backend/src/server.ts is the Express bootstrap: it builds the app, mounts all routers and middleware, attaches the WebSocket server, and starts the background schedulers — it is the spine that connects every backend subsystem. frontend/src/app/layout.tsx is the Next.js App Router root layout that wraps the whole UI in the theme, auth, and domain-context providers. Read these to see how the pieces are assembled before studying the pieces themselves.",
+      "nodeIds": [
+        "file:backend/src/server.ts",
+        "file:frontend/src/app/layout.tsx"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Authentication & Request Gating",
+      "description": "Before any feature works, requests must be authenticated. The auth router exposes register/login/refresh/logout/verify/reset endpoints; the auth service is the engine behind them (password hashing, JWT issuance, refresh-token rotation, verification/reset tokens, workspace seeding); and the auth middleware verifies bearer JWTs and attaches the user to each protected request. On the frontend, lib/outbound.ts is the shared API client that stores tokens, transparently refreshes the access token, and wraps every authenticated fetch — so it underpins all the UI pages you'll see next.",
+      "nodeIds": [
+        "file:backend/src/routes/auth.ts",
+        "file:backend/src/services/auth.ts",
+        "file:backend/src/middleware/auth.ts",
+        "file:frontend/src/lib/outbound.ts"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Lead Discovery Pipeline: The Orchestrator",
+      "description": "This is the heart of lead generation. taskProcessor.ts orchestrates the full search task: queueing, business discovery, crawling, contact extraction, scoring, decision-maker discovery, and email verification, with progress tracking throughout. It delegates the actual web work to crawlerClient.ts, the HTTP client for the self-hosted crawler service that submits search/crawl jobs, polls progress, fetches results, and handles retries. Together they convert a user's search criteria into a stream of raw business sites ready for enrichment.",
+      "nodeIds": [
+        "file:backend/src/services/taskProcessor.ts",
+        "file:backend/src/services/crawlerClient.ts"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Crawling & Contact Extraction",
+      "description": "Once a target site is identified, GeoLead extracts who to contact. crawler.ts fetches a site and its likely contact pages, pulling emails, phones, socials, contact forms, and company-size signals out of the HTML. extractor.ts then validates and cleans the discovered email addresses — typo detection, domain mail-status checks, and AI-based filtering. decisionMaker.ts scores roles found in the crawled page text to identify and rank the business's actual decision-maker, with an AI-assisted discovery fallback. This is where a URL becomes a named, reachable person.",
+      "nodeIds": [
+        "file:backend/src/services/crawler.ts",
+        "file:backend/src/services/extractor.ts",
+        "file:backend/src/services/decisionMaker.ts"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Lead Enrichment & Scoring",
+      "description": "Raw contacts are graded into qualified leads. emailVerification.ts runs the deep deliverability check (syntax, domain, MX, disposable/role detection, typo correction, SMTP mailbox probing, bulk verification with caching). buyerIntent.ts estimates how likely a prospect is to buy, and domainFit.ts scores how well a given geo-domain matches a target business — both AI-assisted with deterministic local fallbacks. These scores are what later let the UI surface the strongest leads first.",
+      "nodeIds": [
+        "file:backend/src/services/emailVerification.ts",
+        "file:backend/src/services/buyerIntent.ts",
+        "file:backend/src/services/domainFit.ts"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Running the Pipeline: BullMQ Worker & Queues",
+      "description": "The discovery pipeline runs asynchronously on background workers, not inside the web request. queues.ts configures the shared Redis connection and the BullMQ queue instances for scraping, outbound sending, and email verification. worker.ts is the worker entry point that consumes those queues and actually drives the discovery → crawl → extract → verify → outbound pipeline against Redis-backed jobs. This is how a long-running scrape survives without blocking the API.",
+      "nodeIds": [
+        "file:backend/src/queues/queues.ts",
+        "file:backend/src/workers/worker.ts"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Lead Explorer: The CRM Surface",
+      "description": "Now see where leads land for the user. The dashboard page is the largest UI surface in the app and the de-facto lead explorer: it drives lead search, kicks off crawling, displays scoring, and exposes per-lead outbound actions (with composer and verification modals alongside it). The domains service and its router back the CRM side of leads — portfolio CRUD, intelligence derivation, sales/offers/buyers tracking, bulk import, dashboard and kanban data — which is what powers notes/tags/pipeline-stage style management over the discovered prospects.",
+      "nodeIds": [
+        "file:frontend/src/app/dashboard/page.tsx",
+        "file:backend/src/routes/domains.ts",
+        "file:backend/src/services/domains.ts"
+      ]
+    },
+    {
+      "order": 9,
+      "title": "Outbound Engine: The Core",
+      "description": "outboundPlatform.ts is the central outbound email engine and the most important backend service to understand. It manages campaigns, sequences, and sender accounts; runs the send-queue tick; delivers across multiple providers (SMTP/SES); tracks opens, clicks, and unsubscribes; ingests replies; handles suppression and analytics; and processes provider webhooks. outboundAi.ts is its creative partner — it composes personalized first-touch and follow-up emails, rewrites and humanizes copy, and scores spam risk, with a local fallback when AI is unavailable.",
+      "nodeIds": [
+        "file:backend/src/services/outboundPlatform.ts",
+        "file:backend/src/services/outboundAi.ts"
+      ]
+    },
+    {
+      "order": 10,
+      "title": "Outbound API & Campaign UI",
+      "description": "See how the engine is exposed and driven. The outbound router is the large Express API for the whole platform — campaigns, templates, sender accounts, inbox, analytics, tracking pixels, unsubscribe, and provider webhooks — with role gating and audit logging. On the frontend, the campaigns page lets users create, list, and inspect campaigns including variant comparison and per-campaign event modals. This closes the loop from qualified lead to a running, measurable outbound campaign.",
+      "nodeIds": [
+        "file:backend/src/routes/outbound.ts",
+        "file:frontend/src/app/campaigns/page.tsx"
+      ]
+    },
+    {
+      "order": 11,
+      "title": "Unified Inbox & Reply Handling",
+      "description": "Outbound only matters if replies are captured and understood. inboxSync.ts is the IMAP synchronization worker that connects to configured mailboxes, ingests new messages, matches replies back to the outbound emails that triggered them, analyzes them, and updates lead status. replyAnalysis.ts classifies each reply (interested, not-interested, out-of-office, unsubscribe, etc.) via the NVIDIA AI model with a keyword fallback. The inbox router manages mailbox config, manual sync, and message listing, and the inbox page renders the synced threads for the user to act on. outboundRealtime.ts pushes sends/replies/status changes to the UI live over WebSocket.",
+      "nodeIds": [
+        "file:backend/src/services/inboxSync.ts",
+        "file:backend/src/services/replyAnalysis.ts",
+        "file:backend/src/routes/inbox.ts",
+        "file:frontend/src/app/inbox/page.tsx",
+        "file:backend/src/services/outboundRealtime.ts"
+      ]
+    },
+    {
+      "order": 12,
+      "title": "Data Persistence: Prisma Schema & Client",
+      "description": "Everything above is durably stored through Prisma/PostgreSQL. The schema is the data model for the whole system — SearchTask/Lead/LeadEmail for discovery; users, campaigns, templates, sender accounts, sequences, email logs/events, replies, analytics, webhooks, suppression and audit tables for outbound; Domain/DomainBuyer/DomainOffer/DomainSale for the portfolio; and the watchlist tables. config/db.ts instantiates and exports the single shared Prisma client used by every service and route, so reading these two clarifies how all the earlier flows read and write their state.",
+      "nodeIds": [
+        "schema:backend/prisma/schema.prisma",
+        "file:backend/src/config/db.ts"
+      ]
+    },
+    {
+      "order": 13,
+      "title": "Deployment & Local Orchestration",
+      "description": "Finally, see how the whole stack ships and runs. docker-compose.yml wires the full local stack — PostgreSQL, Redis, the backend API, the BullMQ worker, and the Next.js frontend — with their ports, env, and startup ordering, mirroring the architecture you've just toured. DEPLOYMENT.md is the production guide: backend to Heroku with Postgres, frontend to Vercel, plus config vars, custom domains, email deliverability via Resend, and a post-deploy checklist. End here to connect the code to a running system.",
+      "nodeIds": [
+        "service:docker-compose.yml",
+        "document:DEPLOYMENT.md"
+      ]
+    }
+  ]
+}

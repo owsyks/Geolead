@@ -1,0 +1,47 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 5,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "Design Front End UI_UX/src/styles/fonts.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 2,
+      "nonEmptyLines": 2,
+      "metrics": {}
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/globals.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {}
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/index.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "metrics": {}
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/tailwind.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 4,
+      "nonEmptyLines": 3,
+      "metrics": {}
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/theme.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 86,
+      "nonEmptyLines": 75,
+      "metrics": {}
+    }
+  ]
+}

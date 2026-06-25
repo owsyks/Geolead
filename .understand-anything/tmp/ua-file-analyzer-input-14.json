@@ -1,0 +1,42 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    {
+      "path": "frontend/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 5,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/CLAUDE.md",
+      "language": "markdown",
+      "sizeLines": 1,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/README.md",
+      "language": "markdown",
+      "sizeLines": 36,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/package.json",
+      "language": "json",
+      "sizeLines": 29,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "language": "json",
+      "sizeLines": 34,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    "frontend/AGENTS.md": [],
+    "frontend/CLAUDE.md": [],
+    "frontend/README.md": [],
+    "frontend/package.json": [],
+    "frontend/tsconfig.json": []
+  }
+}

@@ -1,0 +1,716 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 18,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "check_followups.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 47,
+      "nonEmptyLines": 41,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "check_unsub.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 19,
+      "nonEmptyLines": 19,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "db.$disconnect())",
+      "language": "$disconnect())",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {}
+    },
+    {
+      "path": "Design Front End UI_UX/guidelines/Guidelines.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 61,
+      "nonEmptyLines": 46,
+      "sections": [
+        {
+          "heading": "General guidelines",
+          "level": 1,
+          "line": 11
+        },
+        {
+          "heading": "Design system guidelines",
+          "level": 1,
+          "line": 22
+        },
+        {
+          "heading": "Button",
+          "level": 2,
+          "line": 40
+        },
+        {
+          "heading": "Usage",
+          "level": 3,
+          "line": 44
+        },
+        {
+          "heading": "Variants",
+          "level": 3,
+          "line": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/postcss.config.mjs",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 15,
+      "nonEmptyLines": 15,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/figma/ImageWithFallback.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 27,
+      "nonEmptyLines": 22,
+      "functions": [
+        {
+          "name": "ImageWithFallback",
+          "startLine": 6,
+          "endLine": 27,
+          "params": [
+            "props"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ImageWithFallback",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "ImageWithFallback",
+          "callee": "useState",
+          "lineNumber": 7
+        },
+        {
+          "caller": "handleError",
+          "callee": "setDidError",
+          "lineNumber": 10
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/ui/aspect-ratio.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 11,
+      "nonEmptyLines": 8,
+      "functions": [
+        {
+          "name": "AspectRatio",
+          "startLine": 5,
+          "endLine": 9,
+          "params": [
+            "{\n  ...props\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AspectRatio",
+          "line": 11,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/ui/collapsible.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 28,
+      "functions": [
+        {
+          "name": "Collapsible",
+          "startLine": 5,
+          "endLine": 9,
+          "params": [
+            "{\n  ...props\n}"
+          ]
+        },
+        {
+          "name": "CollapsibleTrigger",
+          "startLine": 11,
+          "endLine": 20,
+          "params": [
+            "{\n  ...props\n}"
+          ]
+        },
+        {
+          "name": "CollapsibleContent",
+          "startLine": 22,
+          "endLine": 31,
+          "params": [
+            "{\n  ...props\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Collapsible",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "CollapsibleTrigger",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "CollapsibleContent",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/app/components/ui/sonner.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 25,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "Toaster",
+          "startLine": 6,
+          "endLine": 23,
+          "params": [
+            "{ ...props }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Toaster",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Toaster",
+          "callee": "useTheme",
+          "lineNumber": 7
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/src/imports/pasted_text/aurora-terminal-prompt.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 324,
+      "nonEmptyLines": 244,
+      "sections": [
+        {
+          "heading": "GeoLead AI — Flagship UI/UX Build Prompt (v2 \"Aurora Terminal\")",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "0. NORTH STAR",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "Design Principles",
+          "level": 3,
+          "line": 15
+        },
+        {
+          "heading": "1. DESIGN LANGUAGE & VISUAL SYSTEM",
+          "level": 2,
+          "line": 26
+        },
+        {
+          "heading": "1.1 Aesthetic",
+          "level": 3,
+          "line": 28
+        },
+        {
+          "heading": "1.2 Color System (tokens)",
+          "level": 3,
+          "line": 33
+        },
+        {
+          "heading": "1.3 Surfaces, Depth & Materials",
+          "level": 3,
+          "line": 63
+        },
+        {
+          "heading": "1.4 Typography",
+          "level": 3,
+          "line": 70
+        },
+        {
+          "heading": "1.5 Shape, Spacing, Radius",
+          "level": 3,
+          "line": 75
+        },
+        {
+          "heading": "2. MOTION SYSTEM",
+          "level": 2,
+          "line": 82
+        },
+        {
+          "heading": "Signature motions (named — reuse these everywhere)",
+          "level": 3,
+          "line": 94
+        },
+        {
+          "heading": "3. SIGNATURE \"WOW\" MOMENTS (the screenshot-worthy hero experiences)",
+          "level": 2,
+          "line": 104
+        },
+        {
+          "heading": "4. AI-NATIVE LAYER",
+          "level": 2,
+          "line": 117
+        },
+        {
+          "heading": "5. POWER-USER BACKBONE",
+          "level": 2,
+          "line": 130
+        },
+        {
+          "heading": "6. APP FRAME",
+          "level": 2,
+          "line": 140
+        },
+        {
+          "heading": "Sidebar (288px, glass, hairline right border)",
+          "level": 3,
+          "line": 144
+        },
+        {
+          "heading": "Header (sticky, `blur(16px)`, hairline bottom)",
+          "level": 3,
+          "line": 151
+        },
+        {
+          "heading": "Auth (`AuthShell`)",
+          "level": 3,
+          "line": 156
+        },
+        {
+          "heading": "7. CORE COMPONENT LIBRARY",
+          "level": 2,
+          "line": 161
+        },
+        {
+          "heading": "8. PAGE-BY-PAGE SPECIFICATION",
+          "level": 2,
+          "line": 182
+        },
+        {
+          "heading": "8.1 Overview (`/`) — \"Outbound Command Center\"",
+          "level": 3,
+          "line": 186
+        },
+        {
+          "heading": "8.2 Portfolio (`/portfolio`)",
+          "level": 3,
+          "line": 192
+        },
+        {
+          "heading": "8.3 Sales Kanban (`/portfolio/kanban`)",
+          "level": 3,
+          "line": 199
+        },
+        {
+          "heading": "8.4 Acquisition Advisor (`/acquisition`)",
+          "level": 3,
+          "line": 203
+        },
+        {
+          "heading": "8.5 Watchlist (`/watchlist`)",
+          "level": 3,
+          "line": 209
+        },
+        {
+          "heading": "8.6 Lead Explorer (`/dashboard`) — THE POWER SCREEN",
+          "level": 3,
+          "line": 214
+        },
+        {
+          "heading": "8.7 Campaigns (`/campaigns`)",
+          "level": 3,
+          "line": 240
+        },
+        {
+          "heading": "8.8 Quick Send (`/quick-send`)",
+          "level": 3,
+          "line": 251
+        },
+        {
+          "heading": "8.9 AI Email Generator (`/ai-email-generator`)",
+          "level": 3,
+          "line": 254
+        },
+        {
+          "heading": "8.10 Inbox (`/inbox`)",
+          "level": 3,
+          "line": 257
+        },
+        {
+          "heading": "8.11 Analytics (`/analytics`)",
+          "level": 3,
+          "line": 264
+        },
+        {
+          "heading": "8.12 Senders (`/sender-accounts`)",
+          "level": 3,
+          "line": 267
+        },
+        {
+          "heading": "8.13 Templates (`/templates`)",
+          "level": 3,
+          "line": 270
+        },
+        {
+          "heading": "8.14 Settings (`/settings`)",
+          "level": 3,
+          "line": 273
+        },
+        {
+          "heading": "8.15 Portfolio Detail (`/portfolio/[id]`)",
+          "level": 3,
+          "line": 276
+        },
+        {
+          "heading": "9. GLOBAL BEHAVIORS",
+          "level": 2,
+          "line": 283
+        },
+        {
+          "heading": "Real-time (`/ws/outbound`)",
+          "level": 3,
+          "line": 285
+        },
+        {
+          "heading": "Notifications",
+          "level": 3,
+          "line": 288
+        },
+        {
+          "heading": "Polling cadences",
+          "level": 3,
+          "line": 291
+        },
+        {
+          "heading": "Offline / Demo fallback",
+          "level": 3,
+          "line": 294
+        },
+        {
+          "heading": "Rate limiting",
+          "level": 3,
+          "line": 297
+        },
+        {
+          "heading": "Compliance (first-class, always visible)",
+          "level": 3,
+          "line": 300
+        },
+        {
+          "heading": "10. DATA MODELS (key fields)",
+          "level": 2,
+          "line": 305
+        },
+        {
+          "heading": "11. TASTE GUARDRAILS (do NOT)",
+          "level": 2,
+          "line": 317
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 44
+      }
+    },
+    {
+      "path": "Design Front End UI_UX/vite.config.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 36,
+      "nonEmptyLines": 32,
+      "functions": [
+        {
+          "name": "figmaAssetResolver",
+          "startLine": 7,
+          "endLine": 17,
+          "params": []
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "resolveId",
+          "callee": "id.startsWith",
+          "lineNumber": 11
+        },
+        {
+          "caller": "resolveId",
+          "callee": "id.replace",
+          "lineNumber": 12
+        },
+        {
+          "caller": "resolveId",
+          "callee": "path.resolve",
+          "lineNumber": 13
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "fix_sender.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 30,
+      "nonEmptyLines": 25,
+      "functions": [
+        {
+          "name": "encrypt",
+          "startLine": 9,
+          "endLine": 15,
+          "params": [
+            "text"
+          ]
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "encrypt",
+          "callee": "randomBytes",
+          "lineNumber": 10
+        },
+        {
+          "caller": "encrypt",
+          "callee": "createCipheriv",
+          "lineNumber": 11
+        },
+        {
+          "caller": "encrypt",
+          "callee": "Buffer.concat",
+          "lineNumber": 12
+        },
+        {
+          "caller": "encrypt",
+          "callee": "cipher.update",
+          "lineNumber": 12
+        },
+        {
+          "caller": "encrypt",
+          "callee": "cipher.final",
+          "lineNumber": 12
+        },
+        {
+          "caller": "encrypt",
+          "callee": "cipher.getAuthTag",
+          "lineNumber": 13
+        },
+        {
+          "caller": "encrypt",
+          "callee": "Buffer.concat([iv, tag, enc]).toString",
+          "lineNumber": 14
+        },
+        {
+          "caller": "encrypt",
+          "callee": "Buffer.concat",
+          "lineNumber": 14
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/eslint.config.mjs",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 16,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/next.config.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 15,
+      "nonEmptyLines": 13,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/postcss.config.mjs",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 7,
+      "nonEmptyLines": 6,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/app/globals.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "totalLines": 222,
+      "nonEmptyLines": 198,
+      "metrics": {}
+    },
+    {
+      "path": "frontend/src/app/lead-explorer/page.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 5,
+      "nonEmptyLines": 4,
+      "functions": [
+        {
+          "name": "LeadExplorerAliasPage",
+          "startLine": 3,
+          "endLine": 5,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "LeadExplorerAliasPage",
+          "line": 3,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "LeadExplorerAliasPage",
+          "callee": "redirect",
+          "lineNumber": 4
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/app/pricing/page.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 168,
+      "nonEmptyLines": 160,
+      "functions": [
+        {
+          "name": "PricingPage",
+          "startLine": 7,
+          "endLine": 168,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PricingPage",
+          "line": 7,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "PricingPage",
+          "callee": "[\n              {\n                q: \"How does the scraping process work?\",\n                a: \"GeoLead AI takes your domain keyword ideas, expands them, retrieves top business results from search engines, and crawls their public home/contact pages. It extracts emails, phone numbers, and maps links safely.\"\n              },\n              {\n                q: \"Are the extracted emails GDPR compliant?\",\n                a: \"Yes. GeoLead AI only crawls public webpages to find publicly available business contact info. It removes private email patterns and focuses on generic addresses like info@, sales@, and contact@.\"\n              },\n              {\n                q: \"Can I cancel my subscription anytime?\",\n                a: \"Absolutely. You can downgrade, upgrade, or cancel your active subscription directly inside the accounts setting portal with a single click.\"\n              },\n              {\n                q: \"How accurate is the AI Relevance Score?\",\n                a: \"Our algorithm calculates semantic similarities (e.g. matching 'roofing' with 'contractors') and geographic checks to ensure the business is a perfect fit for buying your geo domain name.\"\n              }\n            ].map",
+          "lineNumber": 138
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

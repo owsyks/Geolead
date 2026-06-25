@@ -1,0 +1,75 @@
+{
+  "batchIndex": 12,
+  "nodes": [
+    {
+      "id": "file:Design Front End UI_UX/src/styles/fonts.css",
+      "type": "file",
+      "label": "fonts.css",
+      "path": "Design Front End UI_UX/src/styles/fonts.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 2,
+      "summary": "Imports the Geist and Geist Mono variable web fonts (weights 100–900) from Google Fonts for use across the Vite/React design app UI."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/styles/globals.css",
+      "type": "file",
+      "label": "globals.css",
+      "path": "Design Front End UI_UX/src/styles/globals.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 0,
+      "summary": "Empty global stylesheet placeholder reserved for app-wide CSS overrides in the design app; currently contains no rules."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/styles/index.css",
+      "type": "file",
+      "label": "index.css",
+      "path": "Design Front End UI_UX/src/styles/index.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 3,
+      "summary": "Stylesheet entry point that aggregates the design app's styles by @import-ing fonts.css, tailwind.css, and theme.css; loaded by the app's main bootstrap."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/styles/tailwind.css",
+      "type": "file",
+      "label": "tailwind.css",
+      "path": "Design Front End UI_UX/src/styles/tailwind.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 4,
+      "summary": "Sets up Tailwind CSS v4 via @import 'tailwindcss' with an explicit @source glob for js/ts/jsx/tsx files, plus the tw-animate-css animation utilities."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/styles/theme.css",
+      "type": "file",
+      "label": "theme.css",
+      "path": "Design Front End UI_UX/src/styles/theme.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 86,
+      "summary": "Defines the design system theme: light (:root) and dark (.dark) CSS custom-property palettes (bg, surface, border, text, brand/copper accents, status colors), maps them to Tailwind theme tokens via @theme inline, sets base body typography (Geist sans/mono), and provides .glass and .tabular-nums utility classes."
+    }
+  ],
+  "edges": [
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/styles/index.css",
+      "to": "file:Design Front End UI_UX/src/styles/fonts.css",
+      "detail": "@import './fonts.css'"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/styles/index.css",
+      "to": "file:Design Front End UI_UX/src/styles/tailwind.css",
+      "detail": "@import './tailwind.css'"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/styles/index.css",
+      "to": "file:Design Front End UI_UX/src/styles/theme.css",
+      "detail": "@import './theme.css'"
+    }
+  ]
+}

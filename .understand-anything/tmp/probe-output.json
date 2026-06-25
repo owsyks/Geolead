@@ -1,0 +1,959 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 1,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "backend/src/services/crawler.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 413,
+      "nonEmptyLines": 354,
+      "functions": [
+        {
+          "name": "crawlWebsite",
+          "startLine": 28,
+          "endLine": 159,
+          "params": [
+            "url",
+            "maxInnerPages"
+          ]
+        },
+        {
+          "name": "fetchHtml",
+          "startLine": 164,
+          "endLine": 179,
+          "params": [
+            "url"
+          ]
+        },
+        {
+          "name": "fetchFirstHtml",
+          "startLine": 181,
+          "endLine": 190,
+          "params": [
+            "urls"
+          ]
+        },
+        {
+          "name": "extractContactsFromText",
+          "startLine": 195,
+          "endLine": 205,
+          "params": [
+            "text",
+            "sourcePage",
+            "result"
+          ]
+        },
+        {
+          "name": "extractContactsFromHtml",
+          "startLine": 207,
+          "endLine": 255,
+          "params": [
+            "$",
+            "sourcePage",
+            "result"
+          ]
+        },
+        {
+          "name": "buildFetchCandidates",
+          "startLine": 263,
+          "endLine": 277,
+          "params": [
+            "url"
+          ]
+        },
+        {
+          "name": "addLikelyContactFallbacks",
+          "startLine": 279,
+          "endLine": 299,
+          "params": [
+            "baseUrl",
+            "innerLinks"
+          ]
+        },
+        {
+          "name": "rankContactLink",
+          "startLine": 301,
+          "endLine": 313,
+          "params": [
+            "path",
+            "anchorText"
+          ]
+        },
+        {
+          "name": "stripHash",
+          "startLine": 315,
+          "endLine": 323,
+          "params": [
+            "url"
+          ]
+        },
+        {
+          "name": "normalizeHost",
+          "startLine": 325,
+          "endLine": 327,
+          "params": [
+            "hostname"
+          ]
+        },
+        {
+          "name": "extractPageTitle",
+          "startLine": 329,
+          "endLine": 342,
+          "params": [
+            "$"
+          ]
+        },
+        {
+          "name": "extractSocialsFromHtml",
+          "startLine": 347,
+          "endLine": 360,
+          "params": [
+            "$",
+            "sourcePage",
+            "result"
+          ]
+        },
+        {
+          "name": "detectContactForm",
+          "startLine": 365,
+          "endLine": 382,
+          "params": [
+            "$",
+            "result"
+          ]
+        },
+        {
+          "name": "detectCompanySize",
+          "startLine": 387,
+          "endLine": 413,
+          "params": [
+            "text",
+            "result"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "crawlWebsite",
+          "line": 28,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "crawlWebsite",
+          "callee": "url.trim",
+          "lineNumber": 41
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "/^https?:\\/\\//i.test",
+          "lineNumber": 42
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "normalizeHost",
+          "lineNumber": 47
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "console.log",
+          "lineNumber": 49
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "fetchFirstHtml",
+          "lineNumber": 50
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "buildFetchCandidates",
+          "lineNumber": 50
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "console.log",
+          "lineNumber": 53
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "cheerio.load",
+          "lineNumber": 61
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractPageTitle",
+          "lineNumber": 62
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromText",
+          "lineNumber": 65
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromHtml",
+          "lineNumber": 66
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$('script, style, noscript, svg, iframe, template').remove",
+          "lineNumber": 68
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$",
+          "lineNumber": 68
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$('body').text",
+          "lineNumber": 69
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$",
+          "lineNumber": 69
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromText",
+          "lineNumber": 72
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractSocialsFromHtml",
+          "lineNumber": 73
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "detectContactForm",
+          "lineNumber": 74
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "detectCompanySize",
+          "lineNumber": 75
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$('a[href]').each",
+          "lineNumber": 79
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$",
+          "lineNumber": 79
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$(el).attr('href')?.trim",
+          "lineNumber": 80
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$(el).attr",
+          "lineNumber": 80
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$",
+          "lineNumber": 80
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "new URL(href, targetUrl).toString",
+          "lineNumber": 84
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "normalizeHost",
+          "lineNumber": 88
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "absoluteUrlObj.pathname.toLowerCase",
+          "lineNumber": 89
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$(el).text().trim().toLowerCase",
+          "lineNumber": 90
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$(el).text().trim",
+          "lineNumber": 90
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$(el).text",
+          "lineNumber": 90
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$",
+          "lineNumber": 90
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "rankContactLink",
+          "lineNumber": 91
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "innerLinks.push",
+          "lineNumber": 93
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "stripHash",
+          "lineNumber": 93
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "addLikelyContactFallbacks",
+          "lineNumber": 101
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "Array.from(\n      innerLinks\n        .sort((a, b) => b.rank - a.rank || a.index - b.index)\n        .reduce<Map<string, InnerLink>>((acc, link) => {\n          const existing = acc.get(link.url);\n          if (!existing || existing.rank < link.rank) {\n            acc.set(link.url, link);\n          }\n          return acc;\n        }, new Map())\n        .values()\n    ).slice",
+          "lineNumber": 103
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "Array.from",
+          "lineNumber": 103
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "innerLinks\n        .sort((a, b) => b.rank - a.rank || a.index - b.index)\n        .reduce<Map<string, InnerLink>>((acc, link) => {\n          const existing = acc.get(link.url);\n          if (!existing || existing.rank < link.rank) {\n            acc.set(link.url, link);\n          }\n          return acc;\n        }, new Map())\n        .values",
+          "lineNumber": 104
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "innerLinks\n        .sort((a, b) => b.rank - a.rank || a.index - b.index)\n        .reduce",
+          "lineNumber": 104
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "innerLinks\n        .sort",
+          "lineNumber": 104
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "acc.get",
+          "lineNumber": 107
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "acc.set",
+          "lineNumber": 109
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "console.log",
+          "lineNumber": 117
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "fetchHtml",
+          "lineNumber": 118
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "cheerio.load",
+          "lineNumber": 120
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromText",
+          "lineNumber": 121
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromHtml",
+          "lineNumber": 122
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$inner('script, style, noscript, svg, iframe, template').remove",
+          "lineNumber": 123
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$inner",
+          "lineNumber": 123
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$inner('body').text",
+          "lineNumber": 124
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "$inner",
+          "lineNumber": 124
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractContactsFromText",
+          "lineNumber": 125
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "extractSocialsFromHtml",
+          "lineNumber": 126
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "detectContactForm",
+          "lineNumber": 127
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "detectCompanySize",
+          "lineNumber": 128
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "result.emails.filter",
+          "lineNumber": 134
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "item.email.toLowerCase",
+          "lineNumber": 135
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "seenEmails.has",
+          "lineNumber": 136
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "seenEmails.add",
+          "lineNumber": 137
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "Array.from",
+          "lineNumber": 141
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "Array.from",
+          "lineNumber": 142
+        },
+        {
+          "caller": "crawlWebsite",
+          "callee": "console.error",
+          "lineNumber": 151
+        },
+        {
+          "caller": "fetchHtml",
+          "callee": "axios.get",
+          "lineNumber": 166
+        },
+        {
+          "caller": "fetchFirstHtml",
+          "callee": "fetchHtml",
+          "lineNumber": 183
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "result.emails.push",
+          "lineNumber": 196
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "extractEmailCandidates(text, sourcePage).map",
+          "lineNumber": 197
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "extractEmailCandidates",
+          "lineNumber": 197
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "extractPhoneCandidates",
+          "lineNumber": 203
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "result.phones.push",
+          "lineNumber": 204
+        },
+        {
+          "caller": "extractContactsFromText",
+          "callee": "normalizePhoneList",
+          "lineNumber": 204
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$('a[href]').each",
+          "lineNumber": 208
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 208
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$(el).attr('href')?.trim",
+          "lineNumber": 209
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$(el).attr",
+          "lineNumber": 209
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 209
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.toLowerCase().startsWith",
+          "lineNumber": 212
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.toLowerCase",
+          "lineNumber": 212
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "result.emails.push",
+          "lineNumber": 213
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "extractEmailCandidates(href.replace(/^mailto:/i, ''), sourcePage).map",
+          "lineNumber": 213
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "extractEmailCandidates",
+          "lineNumber": 213
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.replace",
+          "lineNumber": 213
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.toLowerCase().startsWith",
+          "lineNumber": 219
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.toLowerCase",
+          "lineNumber": 219
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "normalizePhone",
+          "lineNumber": 220
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.replace(/^tel:/i, '').trim",
+          "lineNumber": 220
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.replace",
+          "lineNumber": 220
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "result.phones.push",
+          "lineNumber": 222
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$('[data-cfemail]').each",
+          "lineNumber": 227
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 227
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$(el).attr",
+          "lineNumber": 228
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 228
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "decodeCloudflareEmail",
+          "lineNumber": 229
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "result.emails.push",
+          "lineNumber": 231
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$('a[href*=\"/cdn-cgi/l/email-protection#\"]').each",
+          "lineNumber": 235
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 235
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$(el).attr",
+          "lineNumber": 236
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 236
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "href.split",
+          "lineNumber": 237
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "decodeCloudflareEmail",
+          "lineNumber": 238
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "result.emails.push",
+          "lineNumber": 240
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$('[href], [content], [value], [data-email], [data-mail], [aria-label], [title]').each",
+          "lineNumber": 244
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "$",
+          "lineNumber": 244
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "Object.values(attribs).forEach",
+          "lineNumber": 248
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "Object.values",
+          "lineNumber": 248
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "result.emails.push",
+          "lineNumber": 249
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "extractEmailCandidates(value, sourcePage).map",
+          "lineNumber": 249
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "extractEmailCandidates",
+          "lineNumber": 249
+        },
+        {
+          "caller": "extractContactsFromHtml",
+          "callee": "normalizeEmail",
+          "lineNumber": 250
+        },
+        {
+          "caller": "buildFetchCandidates",
+          "callee": "candidates.push",
+          "lineNumber": 270
+        },
+        {
+          "caller": "buildFetchCandidates",
+          "callee": "parsed.toString",
+          "lineNumber": 270
+        },
+        {
+          "caller": "buildFetchCandidates",
+          "callee": "Array.from",
+          "lineNumber": 276
+        },
+        {
+          "caller": "addLikelyContactFallbacks",
+          "callee": "fallbackPaths.forEach",
+          "lineNumber": 291
+        },
+        {
+          "caller": "addLikelyContactFallbacks",
+          "callee": "new URL(path, baseUrl).toString",
+          "lineNumber": 293
+        },
+        {
+          "caller": "addLikelyContactFallbacks",
+          "callee": "innerLinks.push",
+          "lineNumber": 294
+        },
+        {
+          "caller": "addLikelyContactFallbacks",
+          "callee": "stripHash",
+          "lineNumber": 294
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(contact|contact-us|contactus|get-in-touch|reach-us|email-us|send-message)\\b/i.test",
+          "lineNumber": 304
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(quote|estimate|request|consultation|appointment|book)\\b/i.test",
+          "lineNumber": 305
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(location|locations|service-area|areas-served)\\b/i.test",
+          "lineNumber": 306
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(team|staff|people|directory)\\b/i.test",
+          "lineNumber": 307
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(about|company|who-we-are)\\b/i.test",
+          "lineNumber": 308
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(support|help|customer-service|info)\\b/i.test",
+          "lineNumber": 309
+        },
+        {
+          "caller": "rankContactLink",
+          "callee": "/\\b(service|services)\\b/i.test",
+          "lineNumber": 310
+        },
+        {
+          "caller": "stripHash",
+          "callee": "parsed.toString",
+          "lineNumber": 319
+        },
+        {
+          "caller": "normalizeHost",
+          "callee": "hostname.toLowerCase().replace",
+          "lineNumber": 326
+        },
+        {
+          "caller": "normalizeHost",
+          "callee": "hostname.toLowerCase",
+          "lineNumber": 326
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$('meta[property=\"og:site_name\"]').attr('content')?.trim",
+          "lineNumber": 330
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$('meta[property=\"og:site_name\"]').attr",
+          "lineNumber": 330
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$",
+          "lineNumber": 330
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$('title').first().text().trim",
+          "lineNumber": 331
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$('title').first().text",
+          "lineNumber": 331
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$('title').first",
+          "lineNumber": 331
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "$",
+          "lineNumber": 331
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "value\n    .replace(/\\s+/g, ' ')\n    .split(/\\s(?:\\||-|\\u2013|\\u2014)\\s/)[0]\n    ?.trim",
+          "lineNumber": 338
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "value\n    .replace(/\\s+/g, ' ')\n    .split",
+          "lineNumber": 338
+        },
+        {
+          "caller": "extractPageTitle",
+          "callee": "value\n    .replace",
+          "lineNumber": 338
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "$('a[href]').each",
+          "lineNumber": 350
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "$",
+          "lineNumber": 350
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "$(el).attr('href')?.trim",
+          "lineNumber": 351
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "$(el).attr",
+          "lineNumber": 351
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "$",
+          "lineNumber": 351
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "socialDomains.forEach",
+          "lineNumber": 354
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "href.includes",
+          "lineNumber": 355
+        },
+        {
+          "caller": "extractSocialsFromHtml",
+          "callee": "result.socials.push",
+          "lineNumber": 356
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$('form').each",
+          "lineNumber": 368
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$",
+          "lineNumber": 368
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$(el).html",
+          "lineNumber": 369
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$",
+          "lineNumber": 369
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$(el).text().toLowerCase",
+          "lineNumber": 370
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$(el).text",
+          "lineNumber": 370
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "$",
+          "lineNumber": 370
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "formHtml.includes",
+          "lineNumber": 374
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "formText.includes",
+          "lineNumber": 375
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "formText.includes",
+          "lineNumber": 376
+        },
+        {
+          "caller": "detectContactForm",
+          "callee": "formText.includes",
+          "lineNumber": 377
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "text.toLowerCase",
+          "lineNumber": 388
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "smallKeywords.forEach",
+          "lineNumber": 399
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "textLower.includes",
+          "lineNumber": 399
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "mediumKeywords.forEach",
+          "lineNumber": 400
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "textLower.includes",
+          "lineNumber": 400
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "largeKeywords.forEach",
+          "lineNumber": 401
+        },
+        {
+          "caller": "detectCompanySize",
+          "callee": "textLower.includes",
+          "lineNumber": 401
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 14,
+        "classCount": 0
+      }
+    }
+  ]
+}

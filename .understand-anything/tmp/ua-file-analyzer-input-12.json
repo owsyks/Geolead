@@ -1,0 +1,42 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    {
+      "path": "Design Front End UI_UX/src/styles/fonts.css",
+      "language": "css",
+      "sizeLines": 2,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/globals.css",
+      "language": "css",
+      "sizeLines": 0,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/index.css",
+      "language": "css",
+      "sizeLines": 3,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/tailwind.css",
+      "language": "css",
+      "sizeLines": 4,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "Design Front End UI_UX/src/styles/theme.css",
+      "language": "css",
+      "sizeLines": 86,
+      "fileCategory": "markup"
+    }
+  ],
+  "batchImportData": {
+    "Design Front End UI_UX/src/styles/fonts.css": [],
+    "Design Front End UI_UX/src/styles/globals.css": [],
+    "Design Front End UI_UX/src/styles/index.css": [],
+    "Design Front End UI_UX/src/styles/tailwind.css": [],
+    "Design Front End UI_UX/src/styles/theme.css": []
+  }
+}

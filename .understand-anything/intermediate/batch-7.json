@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "id": "service:backend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "backend/Dockerfile",
+      "summary": "Multi-stage Docker build for the Express/Prisma backend: a 'base' stage installs dependencies, generates the Prisma client and compiles TypeScript, while a slim 'runner' stage copies the built dist plus node_modules and runs the production server on port 5000.",
+      "tags": ["containerization", "infrastructure", "deployment", "backend", "build-system"],
+      "complexity": "simple",
+      "languageNotes": "Two-stage build (base -> runner) using node:20-bookworm-slim to keep build tooling out of the final runtime image; the runner stage only carries package*.json, node_modules, dist and prisma."
+    },
+    {
+      "id": "service:backend/Dockerfile:base",
+      "type": "service",
+      "name": "base",
+      "filePath": "backend/Dockerfile",
+      "summary": "Builder stage that runs npm ci, copies prisma/tsconfig/src, then executes 'prisma generate' and 'npm run build' to produce the compiled dist output consumed by the runtime stage.",
+      "tags": ["containerization", "build-system", "backend", "prisma"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:backend/Dockerfile:runner",
+      "type": "service",
+      "name": "runner",
+      "filePath": "backend/Dockerfile",
+      "summary": "Production runtime stage that copies build artifacts from the base stage, sets NODE_ENV=production, exposes port 5000 and starts the server via 'node dist/server.js'.",
+      "tags": ["containerization", "deployment", "backend", "runtime"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/.dockerignore",
+      "type": "config",
+      "name": ".dockerignore",
+      "filePath": "backend/.dockerignore",
+      "summary": "Docker build-context exclusion list that keeps node_modules, dist, log files and the .env secrets out of the image build context for the backend Dockerfile.",
+      "tags": ["configuration", "containerization", "infrastructure", "security"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "service:backend/Dockerfile:base",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "service:backend/Dockerfile:runner",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "file:backend/src/server.ts",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "config:backend/.dockerignore",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

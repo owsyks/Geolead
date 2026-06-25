@@ -1,0 +1,35 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    {
+      "path": "backend/.env.example",
+      "language": "config",
+      "sizeLines": 22,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/Procfile",
+      "language": "procfile",
+      "sizeLines": 3,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "backend/package.json",
+      "language": "json",
+      "sizeLines": 47,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tsconfig.json",
+      "language": "json",
+      "sizeLines": 16,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    "backend/.env.example": [],
+    "backend/Procfile": [],
+    "backend/package.json": [],
+    "backend/tsconfig.json": []
+  }
+}

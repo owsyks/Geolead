@@ -1,0 +1,383 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/routes/domains.ts",
+      "type": "file",
+      "name": "domains.ts",
+      "filePath": "backend/src/routes/domains.ts",
+      "summary": "Express router exposing CRUD, portfolio, buyer/offer, bulk-import and acquisition-scan endpoints for domains, delegating to the domains and acquisitionAdvisor services behind auth middleware.",
+      "tags": ["api-handler", "router", "domain-management", "express"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/routes/domains.ts:parseImportRows",
+      "type": "function",
+      "name": "parseImportRows",
+      "filePath": "backend/src/routes/domains.ts",
+      "lineRange": [375, 382],
+      "summary": "Parses raw bulk-import request rows into normalized domain import records.",
+      "tags": ["parsing", "validation", "bulk-import"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/services/acquisitionAdvisor.ts",
+      "type": "file",
+      "name": "acquisitionAdvisor.ts",
+      "filePath": "backend/src/services/acquisitionAdvisor.ts",
+      "summary": "Generates buy/hold/pass acquisition recommendations for domains using rule-based heuristics plus batched NVIDIA AI scoring, and powers an investor chat assistant.",
+      "tags": ["service", "ai", "scoring", "domain-acquisition"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/acquisitionAdvisor.ts:ruleBasedRecommendation",
+      "type": "function",
+      "name": "ruleBasedRecommendation",
+      "filePath": "backend/src/services/acquisitionAdvisor.ts",
+      "lineRange": [72, 120],
+      "summary": "Derives a tiered acquisition recommendation from domain analysis using deterministic heuristic rules.",
+      "tags": ["scoring", "heuristics", "recommendation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/acquisitionAdvisor.ts:batchAiRecommendations",
+      "type": "function",
+      "name": "batchAiRecommendations",
+      "filePath": "backend/src/services/acquisitionAdvisor.ts",
+      "lineRange": [126, 213],
+      "summary": "Builds prompts and calls NVIDIA AI to produce acquisition recommendations for a batch of domains.",
+      "tags": ["ai", "batch", "recommendation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/acquisitionAdvisor.ts:runBulkAcquisitionScan",
+      "type": "function",
+      "name": "runBulkAcquisitionScan",
+      "filePath": "backend/src/services/acquisitionAdvisor.ts",
+      "lineRange": [222, 288],
+      "summary": "Runs a bulk acquisition scan across many raw domains, combining domain analysis with rule-based and AI recommendations.",
+      "tags": ["ai", "batch", "domain-acquisition"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/acquisitionAdvisor.ts:investorChat",
+      "type": "function",
+      "name": "investorChat",
+      "filePath": "backend/src/services/acquisitionAdvisor.ts",
+      "lineRange": [292, 339],
+      "summary": "Conducts an AI-driven investor chat about a domain using its analysis, recommendation, and conversation history.",
+      "tags": ["ai", "chat", "advisor"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/aiScoring.ts",
+      "type": "file",
+      "name": "aiScoring.ts",
+      "filePath": "backend/src/services/aiScoring.ts",
+      "summary": "Computes a match score between a domain idea and a business using NVIDIA AI scoring with a local NLP fallback heuristic.",
+      "tags": ["service", "ai", "scoring", "nlp"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/aiScoring.ts:calculateMatchScore",
+      "type": "function",
+      "name": "calculateMatchScore",
+      "filePath": "backend/src/services/aiScoring.ts",
+      "lineRange": [14, 36],
+      "summary": "Calculates the domain-to-business match score, preferring AI scoring and falling back to local NLP.",
+      "tags": ["scoring", "ai", "entry-point"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/aiScoring.ts:getNvidiaScoring",
+      "type": "function",
+      "name": "getNvidiaScoring",
+      "filePath": "backend/src/services/aiScoring.ts",
+      "lineRange": [41, 80],
+      "summary": "Requests a domain-business relevance score from the NVIDIA AI model and parses the response.",
+      "tags": ["ai", "scoring"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/aiScoring.ts:calculateLocalNLPScore",
+      "type": "function",
+      "name": "calculateLocalNLPScore",
+      "filePath": "backend/src/services/aiScoring.ts",
+      "lineRange": [85, 222],
+      "summary": "Computes a local NLP-based relevance score using token overlap and category heuristics when AI is unavailable.",
+      "tags": ["nlp", "scoring", "fallback"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/src/services/buyerIntent.ts",
+      "type": "file",
+      "name": "buyerIntent.ts",
+      "filePath": "backend/src/services/buyerIntent.ts",
+      "summary": "Estimates a buyer-intent score for a prospect using AI analysis with a deterministic local scoring fallback and label mapping.",
+      "tags": ["service", "ai", "scoring", "lead-intelligence"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntentWithAi",
+      "type": "function",
+      "name": "analyzeBuyerIntentWithAi",
+      "filePath": "backend/src/services/buyerIntent.ts",
+      "lineRange": [18, 63],
+      "summary": "Calls NVIDIA AI to assess buyer intent from prospect input and parses the structured result.",
+      "tags": ["ai", "scoring", "lead-intelligence"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntent",
+      "type": "function",
+      "name": "analyzeBuyerIntent",
+      "filePath": "backend/src/services/buyerIntent.ts",
+      "lineRange": [65, 137],
+      "summary": "Computes a local heuristic buyer-intent score from signals like industry, location, and contact completeness.",
+      "tags": ["scoring", "heuristics", "fallback"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/campaignVariants.ts",
+      "type": "file",
+      "name": "campaignVariants.ts",
+      "filePath": "backend/src/services/campaignVariants.ts",
+      "summary": "Generates and evaluates multiple stylistic email campaign variants via AI and local templates, scoring each for spam risk against a threshold.",
+      "tags": ["service", "ai", "email", "campaign"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/campaignVariants.ts:evaluateVariant",
+      "type": "function",
+      "name": "evaluateVariant",
+      "filePath": "backend/src/services/campaignVariants.ts",
+      "lineRange": [95, 122],
+      "summary": "Scores a single subject/body variant for spam risk and quality metrics.",
+      "tags": ["scoring", "spam", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/campaignVariants.ts:localVariants",
+      "type": "function",
+      "name": "localVariants",
+      "filePath": "backend/src/services/campaignVariants.ts",
+      "lineRange": [126, 173],
+      "summary": "Builds campaign email variants from local templates across the defined variant styles.",
+      "tags": ["email", "templates", "fallback"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/campaignVariants.ts:aiVariants",
+      "type": "function",
+      "name": "aiVariants",
+      "filePath": "backend/src/services/campaignVariants.ts",
+      "lineRange": [177, 242],
+      "summary": "Generates campaign email variants via NVIDIA AI and parses the structured output.",
+      "tags": ["ai", "email", "campaign"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/campaignVariants.ts:generateCampaignVariants",
+      "type": "function",
+      "name": "generateCampaignVariants",
+      "filePath": "backend/src/services/campaignVariants.ts",
+      "lineRange": [246, 284],
+      "summary": "Orchestrates campaign variant generation, preferring AI variants and falling back to local templates, then filters by spam threshold.",
+      "tags": ["ai", "email", "entry-point"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/companyIntelligence.ts",
+      "type": "file",
+      "name": "companyIntelligence.ts",
+      "filePath": "backend/src/services/companyIntelligence.ts",
+      "summary": "Gathers company intelligence by crawling a domain, extracting staff names, enriching with AI, and scoring overall business quality.",
+      "tags": ["service", "scraping", "ai", "company-intelligence"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/companyIntelligence.ts:performCompanyIntel",
+      "type": "function",
+      "name": "performCompanyIntel",
+      "filePath": "backend/src/services/companyIntelligence.ts",
+      "lineRange": [36, 138],
+      "summary": "Crawls a domain and assembles company intelligence including staff names and business signals.",
+      "tags": ["scraping", "company-intelligence", "enrichment"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/companyIntelligence.ts:extractStaffNames",
+      "type": "function",
+      "name": "extractStaffNames",
+      "filePath": "backend/src/services/companyIntelligence.ts",
+      "lineRange": [140, 169],
+      "summary": "Extracts likely staff/person names from parsed HTML content.",
+      "tags": ["scraping", "extraction", "parsing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/companyIntelligence.ts:enrichWithAi",
+      "type": "function",
+      "name": "enrichWithAi",
+      "filePath": "backend/src/services/companyIntelligence.ts",
+      "lineRange": [186, 224],
+      "summary": "Enriches a company profile with AI-generated insights from its name and page text.",
+      "tags": ["ai", "enrichment", "company-intelligence"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/companyIntelligence.ts:scoreBusinessQuality",
+      "type": "function",
+      "name": "scoreBusinessQuality",
+      "filePath": "backend/src/services/companyIntelligence.ts",
+      "lineRange": [226, 276],
+      "summary": "Scores overall business quality from intel signals like rating, review count, category, and company size.",
+      "tags": ["scoring", "company-intelligence", "heuristics"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/contactIntelligence.ts",
+      "type": "file",
+      "name": "contactIntelligence.ts",
+      "filePath": "backend/src/services/contactIntelligence.ts",
+      "summary": "Scores contact reachability intelligence using country, industry, mobile-likelihood, and phone-validity heuristics.",
+      "tags": ["service", "scoring", "contact-intelligence", "heuristics"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/contactIntelligence.ts:scoreContactIntelligence",
+      "type": "function",
+      "name": "scoreContactIntelligence",
+      "filePath": "backend/src/services/contactIntelligence.ts",
+      "lineRange": [120, 199],
+      "summary": "Computes an aggregate contact-intelligence score combining WhatsApp, mobile, industry, and phone-validity signals.",
+      "tags": ["scoring", "contact-intelligence", "entry-point"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/contactUtils.ts",
+      "type": "file",
+      "name": "contactUtils.ts",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "summary": "Utility library for normalizing, validating, and extracting email and phone contact data, including Cloudflare email decoding and disposable/personal domain classification.",
+      "tags": ["utility", "contact", "normalization", "validation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/contactUtils.ts:normalizeEmail",
+      "type": "function",
+      "name": "normalizeEmail",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "lineRange": [136, 182],
+      "summary": "Normalizes and cleans a raw email string, stripping noise and validating basic structure.",
+      "tags": ["normalization", "email", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/contactUtils.ts:extractEmailCandidates",
+      "type": "function",
+      "name": "extractEmailCandidates",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "lineRange": [184, 205],
+      "summary": "Extracts candidate email addresses from free text along with their source page.",
+      "tags": ["extraction", "email", "parsing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/contactUtils.ts:isPlaceholderEmail",
+      "type": "function",
+      "name": "isPlaceholderEmail",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "lineRange": [237, 268],
+      "summary": "Detects placeholder or example email addresses that should be discarded.",
+      "tags": ["validation", "email", "filtering"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/contactUtils.ts:normalizePhone",
+      "type": "function",
+      "name": "normalizePhone",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "lineRange": [286, 338],
+      "summary": "Normalizes a raw phone string into a canonical format, handling North American and international numbers.",
+      "tags": ["normalization", "phone", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/contactUtils.ts:normalizePhoneList",
+      "type": "function",
+      "name": "normalizePhoneList",
+      "filePath": "backend/src/services/contactUtils.ts",
+      "lineRange": [356, 375],
+      "summary": "Normalizes and de-duplicates a list of phone numbers up to a maximum count.",
+      "tags": ["normalization", "phone", "utility"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/src/routes/domains.ts", "target": "file:backend/src/middleware/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/domains.ts", "target": "file:backend/src/services/acquisitionAdvisor.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/domains.ts", "target": "file:backend/src/services/domains.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/domains.ts", "target": "function:backend/src/routes/domains.ts:parseImportRows", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/routes/domains.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:runBulkAcquisitionScan", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/routes/domains.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:investorChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "file:backend/src/services/domainAnalyzer.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "file:backend/src/services/domains.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "file:backend/src/services/nvidiaAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:ruleBasedRecommendation", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:batchAiRecommendations", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:runBulkAcquisitionScan", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:investorChat", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:runBulkAcquisitionScan", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/acquisitionAdvisor.ts", "target": "function:backend/src/services/acquisitionAdvisor.ts:investorChat", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/acquisitionAdvisor.ts:batchAiRecommendations", "target": "function:backend/src/services/nvidiaAi.ts:nvidiaChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/aiScoring.ts", "target": "file:backend/src/services/nvidiaAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/aiScoring.ts", "target": "function:backend/src/services/aiScoring.ts:calculateMatchScore", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/aiScoring.ts", "target": "function:backend/src/services/aiScoring.ts:getNvidiaScoring", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/aiScoring.ts", "target": "function:backend/src/services/aiScoring.ts:calculateLocalNLPScore", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/aiScoring.ts", "target": "function:backend/src/services/aiScoring.ts:calculateMatchScore", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/aiScoring.ts:getNvidiaScoring", "target": "function:backend/src/services/nvidiaAi.ts:nvidiaChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/buyerIntent.ts", "target": "file:backend/src/services/nvidiaAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/buyerIntent.ts", "target": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntentWithAi", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/buyerIntent.ts", "target": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntent", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/buyerIntent.ts", "target": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntentWithAi", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/buyerIntent.ts", "target": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntent", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/buyerIntent.ts:analyzeBuyerIntentWithAi", "target": "function:backend/src/services/nvidiaAi.ts:nvidiaChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "file:backend/src/services/nvidiaAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "file:backend/src/services/outboundAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:evaluateVariant", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:localVariants", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:aiVariants", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:generateCampaignVariants", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:localVariants", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/campaignVariants.ts", "target": "function:backend/src/services/campaignVariants.ts:generateCampaignVariants", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/campaignVariants.ts:evaluateVariant", "target": "function:backend/src/services/outboundAi.ts:scoreSpamRisk", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/campaignVariants.ts:aiVariants", "target": "function:backend/src/services/nvidiaAi.ts:nvidiaChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "file:backend/src/services/nvidiaAi.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:performCompanyIntel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:extractStaffNames", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:enrichWithAi", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:scoreBusinessQuality", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:enrichWithAi", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/companyIntelligence.ts", "target": "function:backend/src/services/companyIntelligence.ts:scoreBusinessQuality", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/src/services/companyIntelligence.ts:enrichWithAi", "target": "function:backend/src/services/nvidiaAi.ts:nvidiaChat", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/contactIntelligence.ts", "target": "function:backend/src/services/contactIntelligence.ts:scoreContactIntelligence", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactIntelligence.ts", "target": "function:backend/src/services/contactIntelligence.ts:scoreContactIntelligence", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizeEmail", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:extractEmailCandidates", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:isPlaceholderEmail", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizePhone", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizePhoneList", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizeEmail", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:extractEmailCandidates", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:isPlaceholderEmail", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizePhone", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/contactUtils.ts", "target": "function:backend/src/services/contactUtils.ts:normalizePhoneList", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}

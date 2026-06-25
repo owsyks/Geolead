@@ -1,0 +1,463 @@
+{
+  "batchIndex": 6,
+  "nodes": [
+    {
+      "id": "file:Design Front End UI_UX/src/app/App.tsx",
+      "type": "file",
+      "label": "App.tsx",
+      "path": "Design Front End UI_UX/src/app/App.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 12,
+      "summary": "Root React component of the Vite/React design app. Forces dark mode by adding the 'dark' class to documentElement on mount, then renders the RouterProvider with the app router."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/App.tsx:App",
+      "type": "function",
+      "label": "App",
+      "path": "Design Front End UI_UX/src/app/App.tsx",
+      "startLine": 5,
+      "endLine": 12,
+      "isExported": true,
+      "isDefault": true,
+      "summary": "Default-exported root component; applies dark theme via useEffect and mounts the RouterProvider."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/layout.tsx",
+      "type": "file",
+      "label": "layout.tsx",
+      "path": "Design Front End UI_UX/src/app/components/layout.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 113,
+      "summary": "Shared layout chrome for the design app: a navigation Sidebar (active-route aware via useLocation) and a Header with title/subtitle/eyebrow props. Uses the cn helper for conditional styling."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/layout.tsx:Sidebar",
+      "type": "function",
+      "label": "Sidebar",
+      "path": "Design Front End UI_UX/src/app/components/layout.tsx",
+      "startLine": 34,
+      "endLine": 88,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Navigation sidebar; maps navItems to links and highlights the active route using useLocation and cn."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/layout.tsx:Header",
+      "type": "function",
+      "label": "Header",
+      "path": "Design Front End UI_UX/src/app/components/layout.tsx",
+      "startLine": 90,
+      "endLine": 113,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Page header rendering eyebrow, title and subtitle props."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "type": "file",
+      "label": "ui.tsx",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 148,
+      "summary": "Design-system primitives for the Vite app: cn class-merge helper plus GlassCard, StatusBadge, MetricCard and ScoreRing presentational components. No internal imports."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:cn",
+      "type": "function",
+      "label": "cn",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "startLine": 6,
+      "endLine": 8,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Tailwind class-name merge helper combining clsx and twMerge."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:GlassCard",
+      "type": "function",
+      "label": "GlassCard",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "startLine": 10,
+      "endLine": 22,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Glassmorphism card container that spreads props and merges className via cn."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:StatusBadge",
+      "type": "function",
+      "label": "StatusBadge",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "startLine": 24,
+      "endLine": 64,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Color-coded status pill; derives styling from lowercased status keywords and renders uppercased label."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:MetricCard",
+      "type": "function",
+      "label": "MetricCard",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "startLine": 66,
+      "endLine": 97,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "KPI card showing title, value and an up/down trend indicator."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:ScoreRing",
+      "type": "function",
+      "label": "ScoreRing",
+      "path": "Design Front End UI_UX/src/app/components/ui.tsx",
+      "startLine": 99,
+      "endLine": 148,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Circular score gauge rendered at sm/md sizes."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "type": "file",
+      "label": "Campaigns.tsx",
+      "path": "Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 139,
+      "summary": "Campaigns page showing a kanban-style board of campaigns grouped by status (DRAFT/ACTIVE/PAUSED/COMPLETED). Imports layout and ui primitives."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/pages/Campaigns.tsx:Campaigns",
+      "type": "function",
+      "label": "Campaigns",
+      "path": "Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "startLine": 12,
+      "endLine": 139,
+      "isExported": true,
+      "isDefault": true,
+      "summary": "Default-exported page component rendering campaign columns filtered by status."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "type": "file",
+      "label": "Inbox.tsx",
+      "path": "Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 164,
+      "summary": "Inbox page with a filterable reply list (All/Unread/Interested/Negotiating) and active-reply detail view; tracks selection with useState."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/pages/Inbox.tsx:Inbox",
+      "type": "function",
+      "label": "Inbox",
+      "path": "Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "startLine": 13,
+      "endLine": 164,
+      "isExported": true,
+      "isDefault": true,
+      "summary": "Default-exported page component managing reply filtering and active reply selection."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "type": "file",
+      "label": "LeadExplorer.tsx",
+      "path": "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 239,
+      "summary": "Lead Explorer page rendering a selectable table of leads with per-lead email lists and multi-select state managed via useState."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx:LeadExplorer",
+      "type": "function",
+      "label": "LeadExplorer",
+      "path": "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "startLine": 13,
+      "endLine": 239,
+      "isExported": true,
+      "isDefault": true,
+      "summary": "Default-exported page component managing lead selection and rendering lead/email rows."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "type": "file",
+      "label": "Overview.tsx",
+      "path": "Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 222,
+      "summary": "Overview/dashboard page. Defines an internal Sparkline helper and composes layout and ui primitives into a metrics dashboard. No exported symbols recorded by extraction."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/pages/Overview.tsx:Sparkline",
+      "type": "function",
+      "label": "Sparkline",
+      "path": "Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "startLine": 11,
+      "endLine": 28,
+      "isExported": false,
+      "isDefault": false,
+      "summary": "Internal mini line-chart helper used within the Overview dashboard."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "type": "file",
+      "label": "Portfolio.tsx",
+      "path": "Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 110,
+      "summary": "Portfolio page mapping over domains to render domain cards with tags; uses layout and ui primitives."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/pages/Portfolio.tsx:Portfolio",
+      "type": "function",
+      "label": "Portfolio",
+      "path": "Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "startLine": 12,
+      "endLine": 110,
+      "isExported": true,
+      "isDefault": true,
+      "summary": "Default-exported page component rendering domain cards and their tags."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "type": "file",
+      "label": "routes.tsx",
+      "path": "Design Front End UI_UX/src/app/routes.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 65,
+      "summary": "Central React Router configuration. Defines a Root layout wrapper and a Placeholder component, and exports the router wiring the Overview, Campaigns, Inbox, LeadExplorer and Portfolio pages under the shared layout."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/routes.tsx:Root",
+      "type": "function",
+      "label": "Root",
+      "path": "Design Front End UI_UX/src/app/routes.tsx",
+      "startLine": 9,
+      "endLine": 29,
+      "isExported": false,
+      "isDefault": false,
+      "summary": "Root layout route wrapping pages with Sidebar/Header chrome."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/routes.tsx:Placeholder",
+      "type": "function",
+      "label": "Placeholder",
+      "path": "Design Front End UI_UX/src/app/routes.tsx",
+      "startLine": 32,
+      "endLine": 43,
+      "isExported": false,
+      "isDefault": false,
+      "summary": "Stub route component rendering a titled placeholder for unbuilt pages."
+    },
+    {
+      "id": "symbol:Design Front End UI_UX/src/app/routes.tsx:router",
+      "type": "variable",
+      "label": "router",
+      "path": "Design Front End UI_UX/src/app/routes.tsx",
+      "startLine": 45,
+      "endLine": 65,
+      "isExported": true,
+      "isDefault": false,
+      "summary": "Exported createBrowserRouter instance mapping routes to the design-app pages."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/main.tsx",
+      "type": "file",
+      "label": "main.tsx",
+      "path": "Design Front End UI_UX/src/main.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "sizeLines": 6,
+      "summary": "Vite entry point. Imports global styles and bootstraps the App component into the DOM root."
+    }
+  ],
+  "edges": [
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/App.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/App.tsx:App"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/layout.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/layout.tsx:Sidebar"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/layout.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/layout.tsx:Header"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:cn"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:GlassCard"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:StatusBadge"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:MetricCard"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/components/ui.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/components/ui.tsx:ScoreRing"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/pages/Campaigns.tsx:Campaigns"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/pages/Inbox.tsx:Inbox"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx:LeadExplorer"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/pages/Overview.tsx:Sparkline"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/pages/Portfolio.tsx:Portfolio"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/routes.tsx:Root"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/routes.tsx:Placeholder"
+    },
+    {
+      "type": "contains",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "symbol:Design Front End UI_UX/src/app/routes.tsx:router"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/App.tsx",
+      "to": "file:Design Front End UI_UX/src/app/routes.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/components/layout.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Campaigns.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Inbox.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Overview.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/pages/Portfolio.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/ui.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/components/layout.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/pages/Campaigns.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/pages/Inbox.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/pages/LeadExplorer.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/pages/Overview.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/app/routes.tsx",
+      "to": "file:Design Front End UI_UX/src/app/pages/Portfolio.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/main.tsx",
+      "to": "file:Design Front End UI_UX/src/app/App.tsx"
+    },
+    {
+      "type": "imports",
+      "from": "file:Design Front End UI_UX/src/main.tsx",
+      "to": "file:Design Front End UI_UX/src/styles/index.css"
+    }
+  ]
+}

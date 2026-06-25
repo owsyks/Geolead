@@ -1,0 +1,135 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 2,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "backend/.dockerignore",
+      "language": "unknown",
+      "fileCategory": "infra",
+      "totalLines": 4,
+      "nonEmptyLines": 4,
+      "metrics": {}
+    },
+    {
+      "path": "backend/Dockerfile",
+      "language": "dockerfile",
+      "fileCategory": "infra",
+      "totalLines": 23,
+      "nonEmptyLines": 17,
+      "services": [
+        {
+          "name": "base",
+          "image": "node:20-bookworm-slim",
+          "ports": [],
+          "startLine": 1,
+          "endLine": 12
+        },
+        {
+          "name": "runner",
+          "image": "node:20-bookworm-slim",
+          "ports": [
+            5000
+          ],
+          "startLine": 13,
+          "endLine": 24
+        }
+      ],
+      "steps": [
+        {
+          "name": "FROM node:20-bookworm-slim AS base",
+          "startLine": 1,
+          "endLine": 1
+        },
+        {
+          "name": "WORKDIR /app",
+          "startLine": 2,
+          "endLine": 2
+        },
+        {
+          "name": "COPY package*.json ./",
+          "startLine": 4,
+          "endLine": 4
+        },
+        {
+          "name": "RUN npm ci",
+          "startLine": 5,
+          "endLine": 5
+        },
+        {
+          "name": "COPY prisma ./prisma",
+          "startLine": 7,
+          "endLine": 7
+        },
+        {
+          "name": "COPY tsconfig.json ./",
+          "startLine": 8,
+          "endLine": 8
+        },
+        {
+          "name": "COPY src ./src",
+          "startLine": 9,
+          "endLine": 9
+        },
+        {
+          "name": "RUN npx prisma generate && npm run build",
+          "startLine": 11,
+          "endLine": 11
+        },
+        {
+          "name": "FROM node:20-bookworm-slim AS runner",
+          "startLine": 13,
+          "endLine": 13
+        },
+        {
+          "name": "WORKDIR /app",
+          "startLine": 14,
+          "endLine": 14
+        },
+        {
+          "name": "ENV NODE_ENV=production",
+          "startLine": 15,
+          "endLine": 15
+        },
+        {
+          "name": "COPY --from=base /app/package*.json ./",
+          "startLine": 17,
+          "endLine": 17
+        },
+        {
+          "name": "COPY --from=base /app/node_modules ./node_modules",
+          "startLine": 18,
+          "endLine": 18
+        },
+        {
+          "name": "COPY --from=base /app/dist ./dist",
+          "startLine": 19,
+          "endLine": 19
+        },
+        {
+          "name": "COPY --from=base /app/prisma ./prisma",
+          "startLine": 20,
+          "endLine": 20
+        },
+        {
+          "name": "EXPOSE 5000",
+          "startLine": 22,
+          "endLine": 22
+        },
+        {
+          "name": "CMD [\"node\", \"dist/server.js\"]",
+          "startLine": 23,
+          "endLine": 23
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "serviceCount": 2,
+        "stepCount": 17
+      }
+    }
+  ]
+}

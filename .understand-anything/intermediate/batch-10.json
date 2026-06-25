@@ -1,0 +1,306 @@
+{
+  "nodes": [
+    {
+      "id": "document:AUDIT_REPORT.md",
+      "type": "document",
+      "name": "AUDIT_REPORT.md",
+      "filePath": "AUDIT_REPORT.md",
+      "summary": "Engineering audit report cataloging applied, deferred, and not-a-bug findings across the backend and frontend, plus an end-to-end workflow verification log. Documents fixes such as DNS cache TTLs, webhook deduplication, send retry logic, and provider config validation.",
+      "tags": ["documentation", "audit", "engineering-notes", "changelog"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:CRAWLER.md",
+      "type": "document",
+      "name": "CRAWLER.md",
+      "filePath": "CRAWLER.md",
+      "summary": "Complete technical documentation for the standalone GeoLead crawler service, covering its architecture, stealth search flow, fetcher chain, proxy system, Kimi AI integration, full HTTP API reference, SQLite schema, configuration, and deployment options.",
+      "tags": ["documentation", "architecture", "api-reference", "crawler"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:DEPLOYMENT.md",
+      "type": "document",
+      "name": "DEPLOYMENT.md",
+      "filePath": "DEPLOYMENT.md",
+      "summary": "Step-by-step deployment guide for shipping the backend to Heroku (with Postgres) and the frontend to Vercel, including config vars, custom domain setup, Resend email deliverability, and a post-deploy checklist.",
+      "tags": ["documentation", "deployment", "heroku", "vercel"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:DESIGN.md",
+      "type": "document",
+      "name": "DESIGN.md",
+      "filePath": "DESIGN.md",
+      "summary": "UI/UX design specification defining the product's design language, color palette, typography, layout system, navigation, component library, and page-by-page intent for the GeoLead AI app.",
+      "tags": ["documentation", "design-spec", "ui-ux", "style-guide"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:GEOLEAD_AI_FULL_UI_PROMPT.txt",
+      "type": "document",
+      "name": "GEOLEAD_AI_FULL_UI_PROMPT.txt",
+      "filePath": "GEOLEAD_AI_FULL_UI_PROMPT.txt",
+      "summary": "Full natural-language prompt specification describing the complete GeoLead AI user interface for AI-assisted UI generation, detailing every screen, layout, and interaction.",
+      "tags": ["documentation", "ui-prompt", "design-spec", "specification"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:GEOLEAD_AI_UI_PROMPT_V2.txt",
+      "type": "document",
+      "name": "GEOLEAD_AI_UI_PROMPT_V2.txt",
+      "filePath": "GEOLEAD_AI_UI_PROMPT_V2.txt",
+      "summary": "Revised version 2 of the GeoLead AI UI generation prompt, a refined natural-language specification of the application's screens and visual design for AI-assisted UI scaffolding.",
+      "tags": ["documentation", "ui-prompt", "design-spec", "specification"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Project entry-point documentation summarizing GeoLead AI's features, frontend routes, backend API endpoints, local setup steps, environment variables, Docker usage, and CI configuration.",
+      "tags": ["documentation", "entry-point", "overview", "getting-started"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:SCRAPING_AND_VERIFICATION.md",
+      "type": "document",
+      "name": "SCRAPING_AND_VERIFICATION.md",
+      "filePath": "SCRAPING_AND_VERIFICATION.md",
+      "summary": "End-to-end walkthrough of the lead scraping and email verification pipeline, tracing the flow from user search through task processing, worker discovery and crawling, scrape-time validation, the 9-step deep email verification, and campaign sending with bounce feedback.",
+      "tags": ["documentation", "pipeline", "scraping", "email-verification"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "table:check_tasks.sql",
+      "type": "table",
+      "name": "check_tasks.sql",
+      "filePath": "check_tasks.sql",
+      "summary": "Diagnostic SQL query that selects the five most recently updated SearchTask rows in PROCESSING or PENDING status, used to inspect in-flight scraping task progress.",
+      "tags": ["database", "diagnostic", "query", "search-task"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "type": "service",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Docker Compose orchestration for the full local stack, wiring together PostgreSQL, Redis, the backend API, the BullMQ worker, and the Next.js frontend with their environment, ports, and dependency ordering.",
+      "tags": ["orchestration", "infrastructure", "containerization", "docker-compose"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:docker-compose.yml:postgres",
+      "type": "service",
+      "name": "postgres",
+      "summary": "PostgreSQL 16 (alpine) database service providing the geolead_ai database, exposed on port 5432 with a persistent named volume.",
+      "tags": ["database", "postgres", "infrastructure", "storage"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:redis",
+      "type": "service",
+      "name": "redis",
+      "summary": "Redis 7 (alpine) service exposed on port 6379, backing the BullMQ job queues for scraping and outbound sends.",
+      "tags": ["cache", "redis", "queue", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:backend",
+      "type": "service",
+      "name": "backend",
+      "summary": "Backend API service built from ./backend that runs Prisma migrate deploy then starts the Express server on port 5000, depending on the postgres and redis services.",
+      "tags": ["backend", "api", "express", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:worker",
+      "type": "service",
+      "name": "worker",
+      "summary": "BullMQ worker service built from ./backend that runs the compiled worker process for lead-scraping jobs and outbound queue ticks, depending on postgres and redis.",
+      "tags": ["worker", "queue", "background-jobs", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:frontend",
+      "type": "service",
+      "name": "frontend",
+      "summary": "Next.js frontend service built from ./frontend, exposed on port 3000 and configured with the backend API base URL, depending on the backend service.",
+      "tags": ["frontend", "nextjs", "ui", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Root monorepo package manifest defining concurrently-driven dev and build scripts that orchestrate the backend, worker, and frontend workspaces.",
+      "tags": ["configuration", "build-system", "npm", "monorepo"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:README.md",
+      "target": "file:backend/src/server.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:backend/src/workers/worker.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:DEPLOYMENT.md",
+      "target": "file:backend/src/server.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/services/taskProcessor.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/workers/worker.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/services/crawler.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/services/extractor.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/services/emailVerification.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SCRAPING_AND_VERIFICATION.md",
+      "target": "file:backend/src/services/outboundPlatform.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:redis",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:backend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:worker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:frontend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "file:backend/src/server.ts",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:docker-compose.yml:worker",
+      "target": "file:backend/src/workers/worker.ts",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:redis",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:worker",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:worker",
+      "target": "service:docker-compose.yml:redis",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:frontend",
+      "target": "service:docker-compose.yml:backend",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:backend/src/server.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:package.json",
+      "target": "file:backend/src/workers/worker.ts",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

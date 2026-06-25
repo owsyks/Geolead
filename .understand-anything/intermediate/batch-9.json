@@ -1,0 +1,30 @@
+{
+  "batchIndex": 9,
+  "nodes": [
+    {
+      "id": "file:.github/workflows/ci.yml",
+      "type": "config",
+      "label": "ci.yml",
+      "path": ".github/workflows/ci.yml",
+      "language": "yaml",
+      "fileCategory": "infra",
+      "sizeLines": 39,
+      "summary": "GitHub Actions CI workflow named \"CI\". Triggers on pushes to the main/master branches and on all pull requests. Defines a single \"build\" job running on ubuntu-latest that checks out the repo, sets up Node.js 20 with npm caching keyed on backend/ and frontend/ package-lock.json, installs backend and frontend dependencies via npm ci, and builds both the backend (npm run build:backend) and frontend (npm run build:frontend).",
+      "sections": [
+        { "heading": "name", "level": 1, "line": 1 },
+        { "heading": "on", "level": 1, "line": 3 },
+        { "heading": "jobs", "level": 1, "line": 10 }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 3,
+        "totalLines": 39,
+        "nonEmptyLines": 31
+      }
+    }
+  ],
+  "edges": []
+}

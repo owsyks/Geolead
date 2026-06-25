@@ -1,0 +1,72 @@
+{
+  "batchIndex": 11,
+  "nodes": [
+    {
+      "id": "doc:Design Front End UI_UX/ATTRIBUTIONS.md",
+      "type": "doc",
+      "label": "ATTRIBUTIONS.md",
+      "path": "Design Front End UI_UX/ATTRIBUTIONS.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "sizeLines": 3,
+      "summary": "Attribution notice for the Figma Make design app. Credits shadcn/ui components (MIT license) and Unsplash photos (Unsplash license) used in the bundle.",
+      "tags": ["docs", "attribution", "license", "design-app"]
+    },
+    {
+      "id": "doc:Design Front End UI_UX/README.md",
+      "type": "doc",
+      "label": "README.md",
+      "path": "Design Front End UI_UX/README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "sizeLines": 10,
+      "summary": "README for the 'Design Front End UI/UX' code bundle exported from Figma. Documents that the project originates from a Figma design and gives run instructions: `npm i` to install and `npm run dev` to start the dev server.",
+      "tags": ["docs", "readme", "figma", "design-app", "vite"]
+    },
+    {
+      "id": "file:Design Front End UI_UX/default_shadcn_theme.css",
+      "type": "stylesheet",
+      "label": "default_shadcn_theme.css",
+      "path": "Design Front End UI_UX/default_shadcn_theme.css",
+      "language": "css",
+      "fileCategory": "markup",
+      "sizeLines": 120,
+      "summary": "Default shadcn/ui design-token theme for the Figma design app. Declares CSS custom properties for light (`:root`) and dark (`.dark`) modes — background, foreground, primary/secondary, muted, accent, destructive, border, chart, and sidebar colors (mix of hex and oklch) plus radius and font-weight tokens — then maps them to Tailwind theme variables via `@theme inline`. Marked KEEP_IN_SYNC with the shadcn globals.css source.",
+      "tags": ["markup", "css", "theme", "design-tokens", "shadcn", "tailwind", "dark-mode"]
+    },
+    {
+      "id": "file:Design Front End UI_UX/index.html",
+      "type": "markup",
+      "label": "index.html",
+      "path": "Design Front End UI_UX/index.html",
+      "language": "html",
+      "fileCategory": "markup",
+      "sizeLines": 21,
+      "summary": "Vite HTML entry document for the Figma design app. Sets charset/viewport/description meta, marks the page noindex/nofollow, applies full-height root styling, mounts a `#root` container, and loads the app via `<script type=module src=/src/main.tsx>`.",
+      "tags": ["markup", "html", "vite", "entry-point", "design-app"]
+    },
+    {
+      "id": "config:Design Front End UI_UX/package.json",
+      "type": "config",
+      "label": "package.json",
+      "path": "Design Front End UI_UX/package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "sizeLines": 89,
+      "summary": "npm manifest for the Figma design app ('@figma/my-make-file', private, type=module). Defines `dev` (vite) and `build` (vite build) scripts. Depends on React 18 (peer), the full Radix UI primitive set, MUI/Emotion, Tailwind 4 with @tailwindcss/vite, lucide-react, recharts, react-hook-form, react-router 7, motion, sonner, and other UI/utility libs. Dev deps: vite 6, @vitejs/plugin-react, tailwindcss. Includes a pnpm override pinning vite to 6.3.5.",
+      "tags": ["config", "package-json", "npm", "vite", "react", "radix-ui", "tailwind", "dependencies"]
+    },
+    {
+      "id": "config:Design Front End UI_UX/pnpm-workspace.yaml",
+      "type": "config",
+      "label": "pnpm-workspace.yaml",
+      "path": "Design Front End UI_UX/pnpm-workspace.yaml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "sizeLines": 1,
+      "summary": "pnpm workspace definition for the Figma design app, declaring a single package at the current directory ('.').",
+      "tags": ["config", "pnpm", "workspace", "yaml"]
+    }
+  ],
+  "edges": []
+}

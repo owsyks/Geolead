@@ -1,0 +1,50 @@
+{
+  "batchIndex": 13,
+  "nodes": [
+    {
+      "id": "config:backend/.env.example",
+      "type": "config",
+      "label": "backend/.env.example",
+      "path": "backend/.env.example",
+      "language": "config",
+      "fileCategory": "config",
+      "sizeLines": 22,
+      "summary": "Environment variable template for the GeoLead AI backend. Declares configuration keys for the HTTP server (PORT, CORS_ORIGIN), PostgreSQL (DATABASE_URL), Redis/BullMQ (REDIS_URL), external APIs (SERPER_API_KEY, OPENAI_API_KEY, OPENAI_MODEL), and the outbound email platform (OUTBOUND_BASE_URL, OUTBOUND_ADMIN_EMAIL, OUTBOUND_PHYSICAL_ADDRESS, OUTBOUND_SECRET_KEY, OUTBOUND_QUEUE_INTERVAL_MS, OUTBOUND_QUEUE_MODE).",
+      "tags": ["env", "configuration", "secrets-template", "backend"]
+    },
+    {
+      "id": "config:backend/Procfile",
+      "type": "config",
+      "label": "backend/Procfile",
+      "path": "backend/Procfile",
+      "language": "procfile",
+      "fileCategory": "infra",
+      "sizeLines": 3,
+      "summary": "Heroku process definition for the backend. Declares a release phase that runs Prisma migrations (npx prisma migrate deploy), a web process serving the compiled Express server (node dist/server.js), and a worker process running the BullMQ job worker (node dist/workers/worker.js).",
+      "tags": ["heroku", "deployment", "infra", "process-manager", "prisma-migrate"]
+    },
+    {
+      "id": "config:backend/package.json",
+      "type": "config",
+      "label": "backend/package.json",
+      "path": "backend/package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "sizeLines": 47,
+      "summary": "NPM manifest for geolead-ai-backend (scraping and lead scoring engine). Defines scripts (dev/dev:watch via tsx, worker, tsc build, start, postinstall prisma generate, db:migrate, db:studio, db:generate), Node engine constraint >=20 <23, and dependencies: Prisma client, axios, bcryptjs, bullmq, cheerio, cors, dotenv, express, imapflow, ioredis, jsonwebtoken, mailparser, xlsx, plus TypeScript/tsx dev tooling.",
+      "tags": ["npm", "manifest", "dependencies", "scripts", "backend", "express", "prisma", "bullmq"]
+    },
+    {
+      "id": "config:backend/tsconfig.json",
+      "type": "config",
+      "label": "backend/tsconfig.json",
+      "path": "backend/tsconfig.json",
+      "language": "json",
+      "fileCategory": "config",
+      "sizeLines": 16,
+      "summary": "TypeScript compiler configuration for the backend. Targets ES2022 with NodeNext module/moduleResolution, outputs to ./dist from rootDir ./src, enables strict mode, esModuleInterop, skipLibCheck, forceConsistentCasingInFileNames, and resolveJsonModule. Includes src/**/*.",
+      "tags": ["typescript", "tsconfig", "compiler-options", "backend"]
+    }
+  ],
+  "edges": []
+}

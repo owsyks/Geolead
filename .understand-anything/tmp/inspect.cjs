@@ -1,0 +1,11 @@
+const b = require('C:/Users/VVV/Desktop/SaaS/.understand-anything/intermediate/batches.json');
+console.log('top-level keys:', Object.keys(b));
+const x = b.batches[6];
+console.log('batch entry keys:', Object.keys(x));
+console.log('batchIndex value:', x.batchIndex);
+const filesField = x.batchFiles ? 'batchFiles' : (x.files ? 'files' : '???');
+console.log('files field name:', filesField);
+console.log('first file entry:', JSON.stringify((x.batchFiles||x.files||[])[0]));
+console.log('batchImportData keys:', x.batchImportData?Object.keys(x.batchImportData).length:0);
+console.log('neighborMap keys:', x.neighborMap?Object.keys(x.neighborMap).length:0);
+console.log('all batchIndex values:', b.batches.map(z=>z.batchIndex));

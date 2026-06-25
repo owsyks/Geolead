@@ -306,3 +306,43 @@ export async function searchMaps(
   });
   return results;
 }
+
+const COUNTRY_KEYWORDS: Record<string, string[]> = {
+  'united states': ['united states', 'usa', 'u.s.a.', 'united states of america'],
+  'united kingdom': ['united kingdom', 'uk', 'u.k.', 'england', 'scotland', 'wales', 'northern ireland', 'great britain'],
+  canada: ['canada'],
+  australia: ['australia'],
+  germany: ['germany', 'deutschland'],
+  france: ['france'],
+  spain: ['spain', 'españa'],
+  italy: ['italy'],
+  netherlands: ['netherlands', 'holland'],
+  india: ['india'],
+  ireland: ['ireland'],
+  'new zealand': ['new zealand'],
+  'south africa': ['south africa'],
+};
+
+export function isWrongCountry(address: string | null | undefined, requestedCountry: string): boolean {
+  if (!address || !requestedCountry) return false;
+  const addr = address.toLowerCase();
+  const req = requestedCountry.toLowerCase().trim();
+
+  // Normalize requested country to its canonical key
+  let requestedKey: string | null = null;
+  for (const [key, aliases] of Object.entries(COUNTRY_KEYWORDS)) {
+    if (key === req || aliases.includes(req)) {
+      requestedKey = key;
+      break;
+    }
+  }
+  if (!requestedKey) return false; // Unknown requested country, don't filter
+
+  // Check if any OTHER country is mentioned in the address
+  for (const [key, aliases] of Object.entries(COUNTRY_KEYWORDS)) {
+    if (key === requestedKey) continue;
+    if (aliases.some(a => addr.includes(a))) return true;
+  }
+
+  return false;
+}

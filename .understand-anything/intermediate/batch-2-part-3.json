@@ -1,0 +1,205 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/services/deliverabilityEngine.ts",
+      "type": "file",
+      "name": "deliverabilityEngine.ts",
+      "filePath": "backend/src/services/deliverabilityEngine.ts",
+      "summary": "Multi-layer scoring engine that assesses an email's deliverability and reply/conversion likelihood by combining provider, role-pattern, company-quality, and historical-reputation signals.",
+      "tags": ["service", "deliverability", "scoring", "email"],
+      "complexity": "complex",
+      "languageNotes": "Composes weighted sub-scores (provider, pattern, company, history) into a final deliverability score with risk and recommendation."
+    },
+    {
+      "id": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverability",
+      "type": "function",
+      "name": "assessDeliverability",
+      "filePath": "backend/src/services/deliverabilityEngine.ts",
+      "lineRange": [61, 179],
+      "summary": "Assesses a single email address end-to-end, gathering signals and computing a layered deliverability score, risk level, and recommendation.",
+      "tags": ["deliverability", "scoring", "email"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/deliverabilityEngine.ts:computeFinalScore",
+      "type": "function",
+      "name": "computeFinalScore",
+      "filePath": "backend/src/services/deliverabilityEngine.ts",
+      "lineRange": [331, 371],
+      "summary": "Combines the weighted scoring layers and base signals into a single normalized deliverability score.",
+      "tags": ["scoring", "deliverability", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverabilityBulk",
+      "type": "function",
+      "name": "assessDeliverabilityBulk",
+      "filePath": "backend/src/services/deliverabilityEngine.ts",
+      "lineRange": [416, 479],
+      "summary": "Assesses many email addresses concurrently with shared caching of company and domain lookups for efficiency.",
+      "tags": ["deliverability", "scoring", "batch"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/services/deliverabilityIntelligence.ts",
+      "type": "file",
+      "name": "deliverabilityIntelligence.ts",
+      "filePath": "backend/src/services/deliverabilityIntelligence.ts",
+      "summary": "Network-level deliverability probes — SMTP RCPT verification, catch-all detection, RDAP domain-age lookup, and SSL inspection — each guarded by timeouts.",
+      "tags": ["service", "deliverability", "network", "email"],
+      "complexity": "moderate",
+      "languageNotes": "Wraps raw socket/RDAP/TLS probes in withTimeout to keep external network calls bounded."
+    },
+    {
+      "id": "function:backend/src/services/deliverabilityIntelligence.ts:performSmtpProbe",
+      "type": "function",
+      "name": "performSmtpProbe",
+      "filePath": "backend/src/services/deliverabilityIntelligence.ts",
+      "lineRange": [54, 123],
+      "summary": "Opens an SMTP conversation to a recipient's mail server and interprets RCPT TO responses to infer mailbox existence.",
+      "tags": ["deliverability", "network", "email", "smtp"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/services/deliverabilityIntelligence.ts:performRdapLookup",
+      "type": "function",
+      "name": "performRdapLookup",
+      "filePath": "backend/src/services/deliverabilityIntelligence.ts",
+      "lineRange": [154, 175],
+      "summary": "Queries RDAP registries to determine a domain's registration/creation date for age-based scoring.",
+      "tags": ["deliverability", "network", "domain"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/services/inboxSync.ts",
+      "type": "file",
+      "name": "inboxSync.ts",
+      "filePath": "backend/src/services/inboxSync.ts",
+      "summary": "IMAP inbox synchronization worker that connects to configured mailboxes, ingests new messages, matches replies to outbound emails, analyzes them, and updates lead status.",
+      "tags": ["service", "email", "inbox", "worker"],
+      "complexity": "complex",
+      "languageNotes": "Matches inbound replies to outbound email logs via tracking tokens and message-id heuristics, then applies reply effects."
+    },
+    {
+      "id": "function:backend/src/services/inboxSync.ts:syncMailbox",
+      "type": "function",
+      "name": "syncMailbox",
+      "filePath": "backend/src/services/inboxSync.ts",
+      "lineRange": [115, 209],
+      "summary": "Connects to a single IMAP mailbox, fetches unseen messages, and ingests each parsed message into the reply-matching pipeline.",
+      "tags": ["email", "inbox", "imap", "sync"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/inboxSync.ts:ingestParsedMessage",
+      "type": "function",
+      "name": "ingestParsedMessage",
+      "filePath": "backend/src/services/inboxSync.ts",
+      "lineRange": [214, 286],
+      "summary": "Processes a parsed inbound email, attempting to match it to an existing outbound thread and triggering reply analysis.",
+      "tags": ["email", "inbox", "reply-matching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/inboxSync.ts:applyReplyEffects",
+      "type": "function",
+      "name": "applyReplyEffects",
+      "filePath": "backend/src/services/inboxSync.ts",
+      "lineRange": [377, 468],
+      "summary": "Applies the consequences of a matched and analyzed reply — updating lead status, recording outcomes, and broadcasting realtime events.",
+      "tags": ["email", "inbox", "reply-handling", "crm"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/services/inboxSync.ts:testImapConnection",
+      "type": "function",
+      "name": "testImapConnection",
+      "filePath": "backend/src/services/inboxSync.ts",
+      "lineRange": [76, 100],
+      "summary": "Validates IMAP credentials by attempting a connection and returning a friendly error on failure.",
+      "tags": ["email", "imap", "validation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/services/mailer.ts",
+      "type": "file",
+      "name": "mailer.ts",
+      "filePath": "backend/src/services/mailer.ts",
+      "summary": "Transactional email helper that renders branded HTML templates and sends account verification and password-reset emails via the configured provider.",
+      "tags": ["service", "email", "transactional", "mailer"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/services/mailer.ts:sendVerificationEmail",
+      "type": "function",
+      "name": "sendVerificationEmail",
+      "filePath": "backend/src/services/mailer.ts",
+      "lineRange": [48, 56],
+      "summary": "Sends an account email-verification message containing a tokenized confirmation link.",
+      "tags": ["email", "transactional", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/services/mailer.ts:sendPasswordResetEmail",
+      "type": "function",
+      "name": "sendPasswordResetEmail",
+      "filePath": "backend/src/services/mailer.ts",
+      "lineRange": [58, 66],
+      "summary": "Sends a password-reset message containing a tokenized reset link.",
+      "tags": ["email", "transactional", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/services/outboundRealtime.ts",
+      "type": "file",
+      "name": "outboundRealtime.ts",
+      "filePath": "backend/src/services/outboundRealtime.ts",
+      "summary": "Lightweight WebSocket server that performs the handshake manually and broadcasts outbound platform events (sends, replies, status changes) to connected clients.",
+      "tags": ["service", "websocket", "realtime", "event-handler"],
+      "complexity": "moderate",
+      "languageNotes": "Implements the RFC6455 upgrade handshake and frame encoding by hand rather than depending on a ws library."
+    },
+    {
+      "id": "function:backend/src/services/outboundRealtime.ts:attachOutboundWebSocket",
+      "type": "function",
+      "name": "attachOutboundWebSocket",
+      "filePath": "backend/src/services/outboundRealtime.ts",
+      "lineRange": [16, 38],
+      "summary": "Attaches a WebSocket upgrade handler to the HTTP server, tracking connected sockets for broadcasting.",
+      "tags": ["websocket", "realtime", "server"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverability", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityEngine.ts:computeFinalScore", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverabilityBulk", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverability", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityEngine.ts:assessDeliverabilityBulk", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "file:backend/src/services/campaignFeedback.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "file:backend/src/services/companyIntelligence.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "file:backend/src/services/deliverabilityIntelligence.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "file:backend/src/services/emailVerification.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/deliverabilityEngine.ts", "target": "function:backend/src/services/deliverabilityIntelligence.ts:performSmtpProbe", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/deliverabilityIntelligence.ts", "target": "function:backend/src/services/deliverabilityIntelligence.ts:performSmtpProbe", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/deliverabilityIntelligence.ts", "target": "function:backend/src/services/deliverabilityIntelligence.ts:performRdapLookup", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:syncMailbox", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:ingestParsedMessage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:applyReplyEffects", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:testImapConnection", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:syncMailbox", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/inboxSync.ts:testImapConnection", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "file:backend/src/config/secrets.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "file:backend/src/services/outboundRealtime.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "file:backend/src/services/replyAnalysis.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/services/inboxSync.ts", "target": "function:backend/src/services/outboundRealtime.ts:attachOutboundWebSocket", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/mailer.ts", "target": "function:backend/src/services/mailer.ts:sendVerificationEmail", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/mailer.ts", "target": "function:backend/src/services/mailer.ts:sendPasswordResetEmail", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/mailer.ts", "target": "function:backend/src/services/mailer.ts:sendVerificationEmail", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/mailer.ts", "target": "function:backend/src/services/mailer.ts:sendPasswordResetEmail", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/services/outboundRealtime.ts", "target": "function:backend/src/services/outboundRealtime.ts:attachOutboundWebSocket", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/services/outboundRealtime.ts", "target": "function:backend/src/services/outboundRealtime.ts:attachOutboundWebSocket", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}

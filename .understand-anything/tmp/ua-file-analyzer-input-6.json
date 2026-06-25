@@ -1,0 +1,27 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    {"path": "Design Front End UI_UX/src/app/App.tsx", "language": "typescript", "sizeLines": 12, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/components/layout.tsx", "language": "typescript", "sizeLines": 113, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/components/ui.tsx", "language": "typescript", "sizeLines": 148, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/pages/Campaigns.tsx", "language": "typescript", "sizeLines": 139, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/pages/Inbox.tsx", "language": "typescript", "sizeLines": 164, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx", "language": "typescript", "sizeLines": 239, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/pages/Overview.tsx", "language": "typescript", "sizeLines": 222, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/pages/Portfolio.tsx", "language": "typescript", "sizeLines": 110, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/app/routes.tsx", "language": "typescript", "sizeLines": 65, "fileCategory": "code"},
+    {"path": "Design Front End UI_UX/src/main.tsx", "language": "typescript", "sizeLines": 6, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+    "Design Front End UI_UX/src/app/App.tsx": ["Design Front End UI_UX/src/app/routes.tsx"],
+    "Design Front End UI_UX/src/app/components/layout.tsx": ["Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/components/ui.tsx": [],
+    "Design Front End UI_UX/src/app/pages/Campaigns.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/pages/Inbox.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/pages/Overview.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/pages/Portfolio.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/components/ui.tsx"],
+    "Design Front End UI_UX/src/app/routes.tsx": ["Design Front End UI_UX/src/app/components/layout.tsx", "Design Front End UI_UX/src/app/pages/Campaigns.tsx", "Design Front End UI_UX/src/app/pages/Inbox.tsx", "Design Front End UI_UX/src/app/pages/LeadExplorer.tsx", "Design Front End UI_UX/src/app/pages/Overview.tsx", "Design Front End UI_UX/src/app/pages/Portfolio.tsx"],
+    "Design Front End UI_UX/src/main.tsx": ["Design Front End UI_UX/src/app/App.tsx", "Design Front End UI_UX/src/styles/index.css"]
+  }
+}

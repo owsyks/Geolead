@@ -1,0 +1,360 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/app/verify-email/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/verify-email/page.tsx",
+      "summary": "Email-verification page that consumes a verification token from the URL and confirms the user's account via the auth API.",
+      "tags": ["page", "component", "auth", "email-verification"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/verify-email/page.tsx:VerifyEmailPage",
+      "type": "function",
+      "name": "VerifyEmailPage",
+      "filePath": "frontend/src/app/verify-email/page.tsx",
+      "lineRange": [10, 61],
+      "summary": "Component reading the verification token and calling the backend to mark the email as verified, showing success/error feedback.",
+      "tags": ["page", "component", "auth", "email-verification"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/watchlist/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/watchlist/page.tsx",
+      "summary": "Watchlist page for tracking external domains, managing reminders and notifications, and promoting watched domains into the portfolio.",
+      "tags": ["page", "component", "watchlist", "notifications", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/watchlist/page.tsx:WatchlistPage",
+      "type": "function",
+      "name": "WatchlistPage",
+      "filePath": "frontend/src/app/watchlist/page.tsx",
+      "lineRange": [66, 258],
+      "summary": "Top-level watchlist component managing watched domains, reminders, notifications tab, and add/check actions.",
+      "tags": ["page", "component", "watchlist", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/watchlist/page.tsx:DomainRow",
+      "type": "function",
+      "name": "DomainRow",
+      "filePath": "frontend/src/app/watchlist/page.tsx",
+      "lineRange": [262, 486],
+      "summary": "Row component rendering a watched domain with status, reminders, and inline management actions.",
+      "tags": ["component", "watchlist", "row", "presentation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/watchlist/page.tsx:NotificationsTab",
+      "type": "function",
+      "name": "NotificationsTab",
+      "filePath": "frontend/src/app/watchlist/page.tsx",
+      "lineRange": [490, 531],
+      "summary": "Tab listing watchlist notifications with read/unread handling.",
+      "tags": ["component", "watchlist", "notifications", "tab"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/watchlist/page.tsx:AddReminderModal",
+      "type": "function",
+      "name": "AddReminderModal",
+      "filePath": "frontend/src/app/watchlist/page.tsx",
+      "lineRange": [704, 777],
+      "summary": "Modal for scheduling a reminder against a watched domain.",
+      "tags": ["component", "watchlist", "modal", "reminder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/AuthShell.tsx",
+      "type": "file",
+      "name": "AuthShell.tsx",
+      "filePath": "frontend/src/components/AuthShell.tsx",
+      "summary": "Shared layout and form primitives (shell, field, submit button, error/notice banners) used across the authentication pages.",
+      "tags": ["component", "auth", "layout", "ui-primitives", "barrel"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/AuthShell.tsx:AuthShell",
+      "type": "function",
+      "name": "AuthShell",
+      "filePath": "frontend/src/components/AuthShell.tsx",
+      "lineRange": [8, 39],
+      "summary": "Wrapper layout component providing the branded card frame for auth pages.",
+      "tags": ["component", "auth", "layout"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/DomainSelector.tsx",
+      "type": "file",
+      "name": "DomainSelector.tsx",
+      "filePath": "frontend/src/components/DomainSelector.tsx",
+      "summary": "Reusable domain-selector control bound to the shared domain context, letting users switch the active domain across outbound pages.",
+      "tags": ["component", "domain-selector", "context-consumer", "ui-control"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/DomainSelector.tsx:DomainSelector",
+      "type": "function",
+      "name": "DomainSelector",
+      "filePath": "frontend/src/components/DomainSelector.tsx",
+      "lineRange": [15, 157],
+      "summary": "Control component reading and updating the active domain through the domain context provider.",
+      "tags": ["component", "domain-selector", "context-consumer"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/OutboundShell.tsx",
+      "type": "file",
+      "name": "OutboundShell.tsx",
+      "filePath": "frontend/src/components/OutboundShell.tsx",
+      "summary": "Primary authenticated app shell providing navigation, theme toggle, unread-count badges, and shared metric/empty-state components for outbound pages.",
+      "tags": ["component", "layout", "shell", "navigation", "barrel"],
+      "complexity": "complex",
+      "languageNotes": "Composes the theme provider, auth context, and a custom useUnreadCount hook into the shared page chrome."
+    },
+    {
+      "id": "function:frontend/src/components/OutboundShell.tsx:OutboundShell",
+      "type": "function",
+      "name": "OutboundShell",
+      "filePath": "frontend/src/components/OutboundShell.tsx",
+      "lineRange": [75, 242],
+      "summary": "Shell component rendering the sidebar/header navigation and wrapping authenticated page content.",
+      "tags": ["component", "layout", "shell", "navigation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/OutboundShell.tsx:useUnreadCount",
+      "type": "function",
+      "name": "useUnreadCount",
+      "filePath": "frontend/src/components/OutboundShell.tsx",
+      "lineRange": [57, 73],
+      "summary": "Custom hook polling the backend for unread notification/inbox counts shown in the navigation.",
+      "tags": ["hook", "data-fetching", "notifications"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ThemeProvider.tsx",
+      "type": "file",
+      "name": "ThemeProvider.tsx",
+      "filePath": "frontend/src/components/ThemeProvider.tsx",
+      "summary": "Lightweight theme context provider and useTheme hook for toggling and persisting light/dark mode across the app.",
+      "tags": ["component", "theme", "context", "provider"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ThemeProvider.tsx:ThemeProvider",
+      "type": "function",
+      "name": "ThemeProvider",
+      "filePath": "frontend/src/components/ThemeProvider.tsx",
+      "lineRange": [7, 27],
+      "summary": "Context provider that holds the current theme and exposes a toggle to descendant components.",
+      "tags": ["component", "theme", "provider", "context"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui.tsx",
+      "type": "file",
+      "name": "ui.tsx",
+      "filePath": "frontend/src/components/ui.tsx",
+      "summary": "Shared UI primitives library (glass cards, status badges, metric cards, score rings, sparklines, pill controls, kanban column, modal) reused across all frontend pages.",
+      "tags": ["component", "ui-primitives", "design-system", "barrel", "utility"],
+      "complexity": "complex",
+      "languageNotes": "Acts as the app's mini design-system module; widely imported by nearly every page in the batch."
+    },
+    {
+      "id": "function:frontend/src/components/ui.tsx:ScoreRing",
+      "type": "function",
+      "name": "ScoreRing",
+      "filePath": "frontend/src/components/ui.tsx",
+      "lineRange": [60, 87],
+      "summary": "SVG ring gauge component rendering a 0-100 score with color thresholds.",
+      "tags": ["component", "ui-primitives", "chart", "score"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ui.tsx:Sparkline",
+      "type": "function",
+      "name": "Sparkline",
+      "filePath": "frontend/src/components/ui.tsx",
+      "lineRange": [90, 133],
+      "summary": "Compact inline SVG sparkline chart for visualizing small trend series.",
+      "tags": ["component", "ui-primitives", "chart", "sparkline"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ui.tsx:Modal",
+      "type": "function",
+      "name": "Modal",
+      "filePath": "frontend/src/components/ui.tsx",
+      "lineRange": [199, 238],
+      "summary": "Reusable modal/dialog primitive with overlay and close handling used by many page-level modals.",
+      "tags": ["component", "ui-primitives", "modal", "overlay"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/lib/ClientDate.tsx",
+      "type": "file",
+      "name": "ClientDate.tsx",
+      "filePath": "frontend/src/lib/ClientDate.tsx",
+      "summary": "Client-only date rendering component that formats timestamps after hydration to avoid server/client mismatch.",
+      "tags": ["component", "utility", "date", "hydration-safe"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/ClientDate.tsx:ClientDate",
+      "type": "function",
+      "name": "ClientDate",
+      "filePath": "frontend/src/lib/ClientDate.tsx",
+      "lineRange": [11, 35],
+      "summary": "Component that defers date formatting to the client to prevent Next.js hydration warnings.",
+      "tags": ["component", "date", "hydration-safe"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/lib/auth.tsx",
+      "type": "file",
+      "name": "auth.tsx",
+      "filePath": "frontend/src/lib/auth.tsx",
+      "summary": "Authentication context provider and useAuth hook managing the session, public-route gating, and redirecting unauthenticated users.",
+      "tags": ["auth", "context", "provider", "hook", "session"],
+      "complexity": "moderate",
+      "languageNotes": "Bridges the low-level token helpers in lib/outbound.ts into a React auth context consumed app-wide."
+    },
+    {
+      "id": "function:frontend/src/lib/auth.tsx:AuthProvider",
+      "type": "function",
+      "name": "AuthProvider",
+      "filePath": "frontend/src/lib/auth.tsx",
+      "lineRange": [58, 172],
+      "summary": "Provider component that loads the current user, handles login/logout and unauthorized redirects, and exposes auth state via context.",
+      "tags": ["auth", "provider", "context", "session"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/lib/domainContext.tsx",
+      "type": "file",
+      "name": "domainContext.tsx",
+      "filePath": "frontend/src/lib/domainContext.tsx",
+      "summary": "Domain context provider and useDomainContext hook holding the active/selected domain shared across outbound and portfolio pages.",
+      "tags": ["context", "provider", "hook", "domain-state"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/lib/domainContext.tsx:DomainContextProvider",
+      "type": "function",
+      "name": "DomainContextProvider",
+      "filePath": "frontend/src/lib/domainContext.tsx",
+      "lineRange": [30, 79],
+      "summary": "Provider that loads available domains and tracks the active domain selection for descendant components.",
+      "tags": ["context", "provider", "domain-state", "data-fetching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/lib/outbound.ts",
+      "type": "file",
+      "name": "outbound.ts",
+      "filePath": "frontend/src/lib/outbound.ts",
+      "summary": "Core frontend API client for the outbound backend: token storage, access-token refresh, authenticated fetch wrapper, ApiError type, and shared constants.",
+      "tags": ["api-client", "auth", "service", "utility", "entry-point"],
+      "complexity": "complex",
+      "languageNotes": "Central data-access module imported by virtually every page and provider; defines the authFetch/fetchOutbound transport and token lifecycle."
+    },
+    {
+      "id": "function:frontend/src/lib/outbound.ts:refreshAccessToken",
+      "type": "function",
+      "name": "refreshAccessToken",
+      "filePath": "frontend/src/lib/outbound.ts",
+      "lineRange": [32, 54],
+      "summary": "Exchanges the stored refresh token for a new access token and updates token storage.",
+      "tags": ["auth", "token-refresh", "api-client"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/lib/outbound.ts:fetchOutbound",
+      "type": "function",
+      "name": "fetchOutbound",
+      "filePath": "frontend/src/lib/outbound.ts",
+      "lineRange": [85, 118],
+      "summary": "Primary typed request helper that calls the outbound API with auth headers and unwraps JSON responses or throws ApiError.",
+      "tags": ["api-client", "fetch", "serialization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:frontend/src/lib/outbound.ts:ApiError",
+      "type": "class",
+      "name": "ApiError",
+      "filePath": "frontend/src/lib/outbound.ts",
+      "lineRange": [77, 83],
+      "summary": "Error subclass carrying HTTP status and response detail for failed outbound API calls.",
+      "tags": ["error", "api-client", "type-definition"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/app/verify-email/page.tsx", "target": "file:frontend/src/components/AuthShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/verify-email/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/verify-email/page.tsx", "target": "function:frontend/src/app/verify-email/page.tsx:VerifyEmailPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/verify-email/page.tsx", "target": "function:frontend/src/app/verify-email/page.tsx:VerifyEmailPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/verify-email/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "function:frontend/src/app/watchlist/page.tsx:WatchlistPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "function:frontend/src/app/watchlist/page.tsx:DomainRow", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "function:frontend/src/app/watchlist/page.tsx:NotificationsTab", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "function:frontend/src/app/watchlist/page.tsx:AddReminderModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "function:frontend/src/app/watchlist/page.tsx:WatchlistPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/watchlist/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/components/AuthShell.tsx", "target": "function:frontend/src/components/AuthShell.tsx:AuthShell", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/AuthShell.tsx", "target": "function:frontend/src/components/AuthShell.tsx:AuthShell", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/components/DomainSelector.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/DomainSelector.tsx", "target": "function:frontend/src/components/DomainSelector.tsx:DomainSelector", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/DomainSelector.tsx", "target": "function:frontend/src/components/DomainSelector.tsx:DomainSelector", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/DomainSelector.tsx", "target": "function:frontend/src/lib/domainContext.tsx:DomainContextProvider", "type": "depends_on", "direction": "forward", "weight": 0.6},
+
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "file:frontend/src/components/ThemeProvider.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "file:frontend/src/lib/auth.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "function:frontend/src/components/OutboundShell.tsx:OutboundShell", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "function:frontend/src/components/OutboundShell.tsx:useUnreadCount", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "function:frontend/src/components/OutboundShell.tsx:OutboundShell", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/OutboundShell.tsx", "target": "function:frontend/src/lib/auth.tsx:AuthProvider", "type": "depends_on", "direction": "forward", "weight": 0.6},
+
+    {"source": "file:frontend/src/components/ThemeProvider.tsx", "target": "function:frontend/src/components/ThemeProvider.tsx:ThemeProvider", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ThemeProvider.tsx", "target": "function:frontend/src/components/ThemeProvider.tsx:ThemeProvider", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:ScoreRing", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:Sparkline", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:Modal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:ScoreRing", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:Sparkline", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui.tsx", "target": "function:frontend/src/components/ui.tsx:Modal", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/lib/ClientDate.tsx", "target": "function:frontend/src/lib/ClientDate.tsx:ClientDate", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/ClientDate.tsx", "target": "function:frontend/src/lib/ClientDate.tsx:ClientDate", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/lib/auth.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/lib/auth.tsx", "target": "function:frontend/src/lib/auth.tsx:AuthProvider", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/auth.tsx", "target": "function:frontend/src/lib/auth.tsx:AuthProvider", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/lib/auth.tsx", "target": "function:frontend/src/lib/outbound.ts:refreshAccessToken", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/lib/domainContext.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/lib/domainContext.tsx", "target": "function:frontend/src/lib/domainContext.tsx:DomainContextProvider", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/domainContext.tsx", "target": "function:frontend/src/lib/domainContext.tsx:DomainContextProvider", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/lib/domainContext.tsx", "target": "function:frontend/src/lib/outbound.ts:fetchOutbound", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "function:frontend/src/lib/outbound.ts:refreshAccessToken", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "function:frontend/src/lib/outbound.ts:fetchOutbound", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "class:frontend/src/lib/outbound.ts:ApiError", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "function:frontend/src/lib/outbound.ts:refreshAccessToken", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "function:frontend/src/lib/outbound.ts:fetchOutbound", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/lib/outbound.ts", "target": "class:frontend/src/lib/outbound.ts:ApiError", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}

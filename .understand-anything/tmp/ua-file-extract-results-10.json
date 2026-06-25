@@ -1,0 +1,1010 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 11,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "AUDIT_REPORT.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 165,
+      "nonEmptyLines": 116,
+      "sections": [
+        {
+          "heading": "GeoLead AI — Audit Report",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Fixes already applied (this session)",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "Backend",
+          "level": 3,
+          "line": 11
+        },
+        {
+          "heading": "Frontend",
+          "level": 3,
+          "line": 20
+        },
+        {
+          "heading": "Larger fixes — APPLIED in follow-up session",
+          "level": 2,
+          "line": 31
+        },
+        {
+          "heading": "Bigger backend changes",
+          "level": 3,
+          "line": 33
+        },
+        {
+          "heading": "B1. Duplicate `CampaignLead` ✅ NOT A BUG",
+          "level": 4,
+          "line": 35
+        },
+        {
+          "heading": "B2. Cross-task duplicate Leads ✅ NOT A BUG",
+          "level": 4,
+          "line": 38
+        },
+        {
+          "heading": "B3. Add TTL to DNS caches ✅ FIXED",
+          "level": 4,
+          "line": 41
+        },
+        {
+          "heading": "B4. Cache TTL bug in `campaignFeedback.ts` — DEFERRED",
+          "level": 4,
+          "line": 44
+        },
+        {
+          "heading": "B5. Webhook event deduplication ✅ FIXED",
+          "level": 4,
+          "line": 47
+        },
+        {
+          "heading": "B6. Per-business failures surfaced ✅ FIXED",
+          "level": 4,
+          "line": 50
+        },
+        {
+          "heading": "B7. Retry logic for transient send failures ✅ FIXED",
+          "level": 4,
+          "line": 53
+        },
+        {
+          "heading": "B8. SES + other provider config validation ✅ FIXED",
+          "level": 4,
+          "line": 56
+        },
+        {
+          "heading": "B9. `outboundPlatform.ts` is ~2700 lines — DEFERRED",
+          "level": 4,
+          "line": 59
+        },
+        {
+          "heading": "B10. `dashboard/page.tsx` is ~1500 lines — DEFERRED",
+          "level": 4,
+          "line": 62
+        },
+        {
+          "heading": "B11. SMTP STARTTLS bypass risk — DEFERRED",
+          "level": 4,
+          "line": 65
+        },
+        {
+          "heading": "Bigger frontend changes",
+          "level": 3,
+          "line": 70
+        },
+        {
+          "heading": "F1. Hydration: `<ClientDate>` flashes — DEFERRED",
+          "level": 4,
+          "line": 72
+        },
+        {
+          "heading": "F2. `isDemoMode` is sticky ✅ FIXED",
+          "level": 4,
+          "line": 75
+        },
+        {
+          "heading": "F3. WebSocket cleanup on home page — DEFERRED",
+          "level": 4,
+          "line": 78
+        },
+        {
+          "heading": "F4. AbortController for inbox thread fetches — DEFERRED",
+          "level": 4,
+          "line": 81
+        },
+        {
+          "heading": "F5. Hard-coded demo fixtures — DEFERRED",
+          "level": 4,
+          "line": 84
+        },
+        {
+          "heading": "Workflow gaps (need design decisions)",
+          "level": 3,
+          "line": 89
+        },
+        {
+          "heading": "W1. Role accounts (info@, sales@) currently kept as RISKY",
+          "level": 4,
+          "line": 91
+        },
+        {
+          "heading": "W2. Tracking pixel URL uses `OUTBOUND_BASE_URL` env var, default localhost",
+          "level": 4,
+          "line": 95
+        },
+        {
+          "heading": "W3. Click tracking URL doesn't include recipient identity",
+          "level": 4,
+          "line": 98
+        },
+        {
+          "heading": "End-to-end workflow verification (live run)",
+          "level": 2,
+          "line": 105
+        },
+        {
+          "heading": "Follow-up session (round 3) — additional fixes applied",
+          "level": 2,
+          "line": 132
+        },
+        {
+          "heading": "Critical bug found during provider validation testing",
+          "level": 3,
+          "line": 134
+        },
+        {
+          "heading": "Quality fixes",
+          "level": 3,
+          "line": 137
+        },
+        {
+          "heading": "Refactor",
+          "level": 3,
+          "line": 147
+        },
+        {
+          "heading": "Open items (user-facing only)",
+          "level": 2,
+          "line": 151
+        },
+        {
+          "heading": "What I did NOT investigate deeply",
+          "level": 2,
+          "line": 161
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 34
+      }
+    },
+    {
+      "path": "CRAWLER.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 868,
+      "nonEmptyLines": 683,
+      "sections": [
+        {
+          "heading": "GeoLead Crawler — Complete Technical Documentation",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "Overview",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "Architecture",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "Connection Path",
+          "level": 3,
+          "line": 41
+        },
+        {
+          "heading": "Technology Stack",
+          "level": 2,
+          "line": 55
+        },
+        {
+          "heading": "Search Engine",
+          "level": 2,
+          "line": 72
+        },
+        {
+          "heading": "Search Providers (in `app/crawler/search.py`)",
+          "level": 3,
+          "line": 76
+        },
+        {
+          "heading": "Stealth Search Flow",
+          "level": 3,
+          "line": 86
+        },
+        {
+          "heading": "Search Source Modes",
+          "level": 3,
+          "line": 114
+        },
+        {
+          "heading": "Crawling Pipeline",
+          "level": 2,
+          "line": 126
+        },
+        {
+          "heading": "Fetcher Chain (in `app/crawler/fetcher.py`)",
+          "level": 3,
+          "line": 130
+        },
+        {
+          "heading": "Per-Site Crawl Depth",
+          "level": 3,
+          "line": 143
+        },
+        {
+          "heading": "Contact Extraction (in `app/crawler/extractor.py`)",
+          "level": 3,
+          "line": 155
+        },
+        {
+          "heading": "Relevance Scoring (in `app/crawler/accuracy.py`)",
+          "level": 3,
+          "line": 164
+        },
+        {
+          "heading": "Google Maps Discovery (in `app/crawler/gmaps.py`)",
+          "level": 2,
+          "line": 184
+        },
+        {
+          "heading": "Proxy System",
+          "level": 2,
+          "line": 209
+        },
+        {
+          "heading": "Free Proxy Auto-Harvest (in `app/crawler/proxy_sources.py`)",
+          "level": 3,
+          "line": 211
+        },
+        {
+          "heading": "Proxy Pool (in `app/crawler/proxy.py`)",
+          "level": 3,
+          "line": 224
+        },
+        {
+          "heading": "Per-Job Proxy Control",
+          "level": 3,
+          "line": 236
+        },
+        {
+          "heading": "Kimi AI Integration (in `app/crawler/kimi.py`)",
+          "level": 2,
+          "line": 245
+        },
+        {
+          "heading": "API Reference",
+          "level": 2,
+          "line": 267
+        },
+        {
+          "heading": "Search Jobs",
+          "level": 3,
+          "line": 272
+        },
+        {
+          "heading": "`POST /api/search`",
+          "level": 4,
+          "line": 274
+        },
+        {
+          "heading": "`GET /api/jobs/{job_id}`",
+          "level": 4,
+          "line": 301
+        },
+        {
+          "heading": "`GET /api/jobs?limit=20`",
+          "level": 4,
+          "line": 316
+        },
+        {
+          "heading": "`POST /api/jobs/{job_id}/pause`",
+          "level": 4,
+          "line": 319
+        },
+        {
+          "heading": "`POST /api/jobs/{job_id}/resume`",
+          "level": 4,
+          "line": 322
+        },
+        {
+          "heading": "`POST /api/jobs/{job_id}/stop`",
+          "level": 4,
+          "line": 325
+        },
+        {
+          "heading": "Results",
+          "level": 3,
+          "line": 328
+        },
+        {
+          "heading": "`GET /api/searches/{job_id}/results`",
+          "level": 4,
+          "line": 330
+        },
+        {
+          "heading": "`GET /api/search-web`",
+          "level": 4,
+          "line": 360
+        },
+        {
+          "heading": "Stats",
+          "level": 3,
+          "line": 375
+        },
+        {
+          "heading": "`GET /api/stats`",
+          "level": 4,
+          "line": 377
+        },
+        {
+          "heading": "Export",
+          "level": 3,
+          "line": 388
+        },
+        {
+          "heading": "`GET /api/export/{fmt}`",
+          "level": 4,
+          "line": 390
+        },
+        {
+          "heading": "Health",
+          "level": 3,
+          "line": 393
+        },
+        {
+          "heading": "`GET /health`",
+          "level": 4,
+          "line": 395
+        },
+        {
+          "heading": "Database Schema (SQLite)",
+          "level": 2,
+          "line": 402
+        },
+        {
+          "heading": "`search_jobs`",
+          "level": 3,
+          "line": 404
+        },
+        {
+          "heading": "`websites`",
+          "level": 3,
+          "line": 424
+        },
+        {
+          "heading": "`contacts`",
+          "level": 3,
+          "line": 440
+        },
+        {
+          "heading": "Configuration (.env)",
+          "level": 2,
+          "line": 454
+        },
+        {
+          "heading": "Core",
+          "level": 3,
+          "line": 456
+        },
+        {
+          "heading": "Search",
+          "level": 3,
+          "line": 466
+        },
+        {
+          "heading": "Stealth Browser",
+          "level": 3,
+          "line": 475
+        },
+        {
+          "heading": "Crawl Depth",
+          "level": 3,
+          "line": 488
+        },
+        {
+          "heading": "Google Maps",
+          "level": 3,
+          "line": 496
+        },
+        {
+          "heading": "Proxy",
+          "level": 3,
+          "line": 503
+        },
+        {
+          "heading": "Identity Rotation",
+          "level": 3,
+          "line": 519
+        },
+        {
+          "heading": "Aggressive Mode",
+          "level": 3,
+          "line": 525
+        },
+        {
+          "heading": "Low-CPU Mode",
+          "level": 3,
+          "line": 534
+        },
+        {
+          "heading": "Kimi AI",
+          "level": 3,
+          "line": 547
+        },
+        {
+          "heading": "Deployment",
+          "level": 2,
+          "line": 561
+        },
+        {
+          "heading": "Option 1: Direct Python (Local PC)",
+          "level": 3,
+          "line": 563
+        },
+        {
+          "heading": "Option 2: Docker (VPS)",
+          "level": 3,
+          "line": 585
+        },
+        {
+          "heading": "Option 3: Cloudflare Tunnel (Public Access)",
+          "level": 3,
+          "line": 607
+        },
+        {
+          "heading": "One-Click Start Script",
+          "level": 3,
+          "line": 628
+        },
+        {
+          "heading": "Security",
+          "level": 2,
+          "line": 643
+        },
+        {
+          "heading": "API Key Authentication",
+          "level": 3,
+          "line": 645
+        },
+        {
+          "heading": "Network Security",
+          "level": 3,
+          "line": 659
+        },
+        {
+          "heading": "Generating a Strong API Key",
+          "level": 3,
+          "line": 668
+        },
+        {
+          "heading": "GeoLead Integration",
+          "level": 2,
+          "line": 676
+        },
+        {
+          "heading": "How GeoLead Calls the Crawler",
+          "level": 3,
+          "line": 678
+        },
+        {
+          "heading": "Data Flow: Search → Leads",
+          "level": 3,
+          "line": 690
+        },
+        {
+          "heading": "Stop/Cancel Flow",
+          "level": 3,
+          "line": 728
+        },
+        {
+          "heading": "Settings (GeoLead DB)",
+          "level": 3,
+          "line": 745
+        },
+        {
+          "heading": "Resource Requirements",
+          "level": 2,
+          "line": 756
+        },
+        {
+          "heading": "File Structure",
+          "level": 2,
+          "line": 768
+        },
+        {
+          "heading": "Limitations & Trade-offs",
+          "level": 2,
+          "line": 809
+        },
+        {
+          "heading": "Troubleshooting",
+          "level": 2,
+          "line": 827
+        },
+        {
+          "heading": "Crawler not starting",
+          "level": 3,
+          "line": 829
+        },
+        {
+          "heading": "No search results",
+          "level": 3,
+          "line": 834
+        },
+        {
+          "heading": "Tunnel URL changed",
+          "level": 3,
+          "line": 840
+        },
+        {
+          "heading": "502 Bad Gateway errors",
+          "level": 3,
+          "line": 845
+        },
+        {
+          "heading": "Browser crashes (EPIPE)",
+          "level": 3,
+          "line": 850
+        },
+        {
+          "heading": "Database locked",
+          "level": 3,
+          "line": 855
+        },
+        {
+          "heading": "Future Improvements",
+          "level": 2,
+          "line": 861
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 77
+      }
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 189,
+      "nonEmptyLines": 138,
+      "sections": [
+        {
+          "heading": "GeoLead AI — Deployment Guide (Vercel + Heroku)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "0. Prerequisites (one time)",
+          "level": 2,
+          "line": 14
+        },
+        {
+          "heading": "1. Put the project in git (required by both hosts)",
+          "level": 2,
+          "line": 29
+        },
+        {
+          "heading": "2. Backend → Heroku",
+          "level": 2,
+          "line": 43
+        },
+        {
+          "heading": "2a. Create the app + database",
+          "level": 3,
+          "line": 45
+        },
+        {
+          "heading": "2b. Set config vars (secrets)",
+          "level": 3,
+          "line": 56
+        },
+        {
+          "heading": "2c. Deploy only the `backend/` subfolder",
+          "level": 3,
+          "line": 82
+        },
+        {
+          "heading": "2d. Keep it always-on",
+          "level": 3,
+          "line": 97
+        },
+        {
+          "heading": "3. Frontend → Vercel",
+          "level": 2,
+          "line": 108
+        },
+        {
+          "heading": "4. Custom domain (you have one ready)",
+          "level": 2,
+          "line": 134
+        },
+        {
+          "heading": "5. Email deliverability (Resend)",
+          "level": 2,
+          "line": 158
+        },
+        {
+          "heading": "6. Post-deploy checklist",
+          "level": 2,
+          "line": 170
+        },
+        {
+          "heading": "Cost (rough, USD/mo)",
+          "level": 2,
+          "line": 184
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 13
+      }
+    },
+    {
+      "path": "DESIGN.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 240,
+      "nonEmptyLines": 195,
+      "sections": [
+        {
+          "heading": "GeoLead AI — Website / App Design Specification",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. Product in one line",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "2. Design language",
+          "level": 2,
+          "line": 22
+        },
+        {
+          "heading": "3. Color palette",
+          "level": 2,
+          "line": 37
+        },
+        {
+          "heading": "Neutrals (the base — Tailwind \"slate\")",
+          "level": 3,
+          "line": 39
+        },
+        {
+          "heading": "Brand & accent",
+          "level": 3,
+          "line": 48
+        },
+        {
+          "heading": "Semantic status colors (always shown as soft \"tinted pill\" — colored text + 10% bg + 25% border)",
+          "level": 3,
+          "line": 56
+        },
+        {
+          "heading": "4. Typography",
+          "level": 2,
+          "line": 66
+        },
+        {
+          "heading": "5. Shape, depth & motion",
+          "level": 2,
+          "line": 77
+        },
+        {
+          "heading": "6. Layout system",
+          "level": 2,
+          "line": 92
+        },
+        {
+          "heading": "Sidebar anatomy (top → bottom)",
+          "level": 3,
+          "line": 121
+        },
+        {
+          "heading": "7. Navigation (sidebar order & icons)",
+          "level": 2,
+          "line": 136
+        },
+        {
+          "heading": "8. Core component library",
+          "level": 2,
+          "line": 159
+        },
+        {
+          "heading": "9. Auth screens (separate, centered layout)",
+          "level": 2,
+          "line": 181
+        },
+        {
+          "heading": "10. Page-by-page intent (what each screen shows)",
+          "level": 2,
+          "line": 196
+        },
+        {
+          "heading": "11. Voice & microcopy",
+          "level": 2,
+          "line": 219
+        },
+        {
+          "heading": "12. Quick \"imagine it\" summary",
+          "level": 2,
+          "line": 229
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 17
+      }
+    },
+    {
+      "path": "GEOLEAD_AI_FULL_UI_PROMPT.txt",
+      "language": "txt",
+      "fileCategory": "docs",
+      "totalLines": 477,
+      "nonEmptyLines": 339,
+      "metrics": {}
+    },
+    {
+      "path": "GEOLEAD_AI_UI_PROMPT_V2.txt",
+      "language": "txt",
+      "fileCategory": "docs",
+      "totalLines": 324,
+      "nonEmptyLines": 244,
+      "metrics": {}
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 108,
+      "nonEmptyLines": 95,
+      "sections": [
+        {
+          "heading": "GeoLead AI",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "What is included",
+          "level": 2,
+          "line": 5
+        },
+        {
+          "heading": "Routes",
+          "level": 2,
+          "line": 17
+        },
+        {
+          "heading": "Backend API",
+          "level": 2,
+          "line": 29
+        },
+        {
+          "heading": "Local setup",
+          "level": 2,
+          "line": 63
+        },
+        {
+          "heading": "Environment variables",
+          "level": 2,
+          "line": 82
+        },
+        {
+          "heading": "Docker",
+          "level": 2,
+          "line": 98
+        },
+        {
+          "heading": "CI",
+          "level": 2,
+          "line": 107
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 8
+      }
+    },
+    {
+      "path": "SCRAPING_AND_VERIFICATION.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 172,
+      "nonEmptyLines": 136,
+      "sections": [
+        {
+          "heading": "Scraping & Email Verification — A-Z Flow",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. User Search → Backend API",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "2. Task Processing Dispatch (`taskProcessor.ts`)",
+          "level": 2,
+          "line": 14
+        },
+        {
+          "heading": "3. Worker Phase — Discovery (`worker.ts:48-140`)",
+          "level": 2,
+          "line": 20
+        },
+        {
+          "heading": "4. Worker Phase — Crawl & Score (`worker.ts:159-235`)",
+          "level": 2,
+          "line": 30
+        },
+        {
+          "heading": "5. Crawler Details (`crawler.ts`)",
+          "level": 2,
+          "line": 60
+        },
+        {
+          "heading": "6. Scrape-time Validation (`extractor.ts`)",
+          "level": 2,
+          "line": 69
+        },
+        {
+          "heading": "7. Deep Email Verification (separate user action)",
+          "level": 2,
+          "line": 89
+        },
+        {
+          "heading": "9-step verification pipeline (`emailVerification.ts`):",
+          "level": 3,
+          "line": 93
+        },
+        {
+          "heading": "Step 9 — SMTP RCPT in detail:",
+          "level": 3,
+          "line": 117
+        },
+        {
+          "heading": "Final scoring:",
+          "level": 3,
+          "line": 134
+        },
+        {
+          "heading": "8. Campaign Sending Flow (`outboundPlatform.ts`)",
+          "level": 2,
+          "line": 144
+        },
+        {
+          "heading": "9. Bounce Feedback Loop",
+          "level": 2,
+          "line": 160
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 13
+      }
+    },
+    {
+      "path": "check_tasks.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 1,
+      "nonEmptyLines": 1,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "docker-compose.yml",
+      "language": "yaml",
+      "fileCategory": "infra",
+      "totalLines": 69,
+      "nonEmptyLines": 64,
+      "sections": [
+        {
+          "heading": "services",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "volumes",
+          "level": 1,
+          "line": 68
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 2
+      }
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 16,
+      "nonEmptyLines": 16,
+      "sections": [
+        {
+          "heading": "name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "private",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "scripts",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "devDependencies",
+          "level": 1,
+          "line": 13
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 5
+      }
+    }
+  ]
+}

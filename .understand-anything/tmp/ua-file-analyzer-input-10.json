@@ -1,0 +1,29 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    {"path": "AUDIT_REPORT.md", "language": "markdown", "sizeLines": 165, "fileCategory": "docs"},
+    {"path": "CRAWLER.md", "language": "markdown", "sizeLines": 868, "fileCategory": "docs"},
+    {"path": "DEPLOYMENT.md", "language": "markdown", "sizeLines": 189, "fileCategory": "docs"},
+    {"path": "DESIGN.md", "language": "markdown", "sizeLines": 240, "fileCategory": "docs"},
+    {"path": "GEOLEAD_AI_FULL_UI_PROMPT.txt", "language": "txt", "sizeLines": 477, "fileCategory": "docs"},
+    {"path": "GEOLEAD_AI_UI_PROMPT_V2.txt", "language": "txt", "sizeLines": 324, "fileCategory": "docs"},
+    {"path": "README.md", "language": "markdown", "sizeLines": 108, "fileCategory": "docs"},
+    {"path": "SCRAPING_AND_VERIFICATION.md", "language": "markdown", "sizeLines": 172, "fileCategory": "docs"},
+    {"path": "check_tasks.sql", "language": "sql", "sizeLines": 1, "fileCategory": "data"},
+    {"path": "docker-compose.yml", "language": "yaml", "sizeLines": 69, "fileCategory": "infra"},
+    {"path": "package.json", "language": "json", "sizeLines": 16, "fileCategory": "config"}
+  ],
+  "batchImportData": {
+    "AUDIT_REPORT.md": [],
+    "CRAWLER.md": [],
+    "DEPLOYMENT.md": [],
+    "DESIGN.md": [],
+    "GEOLEAD_AI_FULL_UI_PROMPT.txt": [],
+    "GEOLEAD_AI_UI_PROMPT_V2.txt": [],
+    "README.md": [],
+    "SCRAPING_AND_VERIFICATION.md": [],
+    "check_tasks.sql": [],
+    "docker-compose.yml": [],
+    "package.json": []
+  }
+}

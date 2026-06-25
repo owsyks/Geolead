@@ -1,0 +1,56 @@
+{
+  "batchIndex": 14,
+  "nodes": [
+    {
+      "id": "file:frontend/AGENTS.md",
+      "type": "document",
+      "label": "frontend/AGENTS.md",
+      "path": "frontend/AGENTS.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "sizeLines": 5,
+      "summary": "Agent-guidance document for the Next.js frontend. Warns that this Next.js version (16.2.6) has breaking changes versus older conventions and instructs agents to read the bundled guides in node_modules/next/dist/docs/ before writing code. Wrapped in nextjs-agent-rules markers."
+    },
+    {
+      "id": "file:frontend/CLAUDE.md",
+      "type": "document",
+      "label": "frontend/CLAUDE.md",
+      "path": "frontend/CLAUDE.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "sizeLines": 1,
+      "summary": "Claude Code project instructions file for the frontend. A single line '@AGENTS.md' that imports/includes the AGENTS.md agent rules, delegating all frontend agent guidance to that document."
+    },
+    {
+      "id": "file:frontend/README.md",
+      "type": "document",
+      "label": "frontend/README.md",
+      "path": "frontend/README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "sizeLines": 36,
+      "summary": "Default Next.js bootstrap README for the frontend app. Sections: Getting Started (dev server commands), Learn More (Next.js docs links), and Deploy on Vercel. Boilerplate onboarding documentation."
+    },
+    {
+      "id": "config:frontend/package.json",
+      "type": "config",
+      "label": "frontend/package.json",
+      "path": "frontend/package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "sizeLines": 29,
+      "summary": "NPM manifest for the Next.js frontend (name 'frontend', v0.1.0, private). Scripts: dev (next dev --webpack), build, start, lint (eslint). Dependencies: next 16.2.6, react/react-dom 19.2.4, framer-motion, lucide-react, xlsx. Dev deps: TailwindCSS 4 (@tailwindcss/postcss), TypeScript 5, eslint 9 with eslint-config-next, type packages."
+    },
+    {
+      "id": "config:frontend/tsconfig.json",
+      "type": "config",
+      "label": "frontend/tsconfig.json",
+      "path": "frontend/tsconfig.json",
+      "language": "json",
+      "fileCategory": "config",
+      "sizeLines": 34,
+      "summary": "TypeScript configuration for the Next.js frontend. Defines compilerOptions, include and exclude globs for the project's TypeScript compilation and Next.js build."
+    }
+  ],
+  "edges": []
+}

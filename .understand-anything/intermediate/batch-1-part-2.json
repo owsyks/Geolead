@@ -1,0 +1,360 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/app/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/page.tsx",
+      "summary": "Application home/landing page that summarizes recent outbound activity and surfaces key metrics and event feeds.",
+      "tags": ["page", "component", "home", "entry-point", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/page.tsx:HomePage",
+      "type": "function",
+      "name": "HomePage",
+      "filePath": "frontend/src/app/page.tsx",
+      "lineRange": [142, 489],
+      "summary": "Home page component that loads overview data and renders metric cards and a recent-events activity feed.",
+      "tags": ["page", "component", "home", "data-fetching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/portfolio/[id]/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/portfolio/[id]/page.tsx",
+      "summary": "Domain detail page for a single portfolio domain, with overview and intelligence tabs, buyer/offer management modals, and an AI investor chat section.",
+      "tags": ["page", "component", "portfolio", "domain-detail", "next-app-router"],
+      "complexity": "complex",
+      "languageNotes": "Dynamic App Router route ([id]) bundling many tab and modal sub-components in one file."
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/[id]/page.tsx:DomainDetailPage",
+      "type": "function",
+      "name": "DomainDetailPage",
+      "filePath": "frontend/src/app/portfolio/[id]/page.tsx",
+      "lineRange": [43, 225],
+      "summary": "Top-level domain detail component loading a domain by id and orchestrating tabs and management modals.",
+      "tags": ["page", "component", "portfolio", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/[id]/page.tsx:OverviewTab",
+      "type": "function",
+      "name": "OverviewTab",
+      "filePath": "frontend/src/app/portfolio/[id]/page.tsx",
+      "lineRange": [229, 363],
+      "summary": "Overview tab rendering a domain's core attributes, status, and summary metrics.",
+      "tags": ["component", "tab", "portfolio", "overview"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/[id]/page.tsx:IntelligenceTab",
+      "type": "function",
+      "name": "IntelligenceTab",
+      "filePath": "frontend/src/app/portfolio/[id]/page.tsx",
+      "lineRange": [382, 609],
+      "summary": "Intelligence tab presenting derived domain scoring, fit signals, and buyer-discovery insights.",
+      "tags": ["component", "tab", "portfolio", "intelligence"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/[id]/page.tsx:InvestorChatSection",
+      "type": "function",
+      "name": "InvestorChatSection",
+      "filePath": "frontend/src/app/portfolio/[id]/page.tsx",
+      "lineRange": [818, 927],
+      "summary": "Embedded AI investor-chat section for discussing the domain's valuation and acquisition strategy.",
+      "tags": ["component", "ai-chat", "portfolio", "investor"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/portfolio/kanban/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/portfolio/kanban/page.tsx",
+      "summary": "Kanban board view of the domain portfolio that groups domains into status columns for drag-oriented pipeline management.",
+      "tags": ["page", "component", "portfolio", "kanban", "next-app-router"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/kanban/page.tsx:PortfolioKanbanPage",
+      "type": "function",
+      "name": "PortfolioKanbanPage",
+      "filePath": "frontend/src/app/portfolio/kanban/page.tsx",
+      "lineRange": [27, 159],
+      "summary": "Component loading the kanban dataset and rendering status columns of portfolio domains.",
+      "tags": ["page", "component", "portfolio", "kanban"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/portfolio/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/portfolio/page.tsx",
+      "summary": "Portfolio listing page for managing owned domains, including create, bulk-import, and record-sale modal flows.",
+      "tags": ["page", "component", "portfolio", "domain-management", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/page.tsx:PortfolioPage",
+      "type": "function",
+      "name": "PortfolioPage",
+      "filePath": "frontend/src/app/portfolio/page.tsx",
+      "lineRange": [61, 495],
+      "summary": "Top-level portfolio component managing the domain list, filters, and create/import/sale modals.",
+      "tags": ["page", "component", "portfolio", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/page.tsx:DomainFormModal",
+      "type": "function",
+      "name": "DomainFormModal",
+      "filePath": "frontend/src/app/portfolio/page.tsx",
+      "lineRange": [497, 556],
+      "summary": "Modal form for creating or editing a portfolio domain record.",
+      "tags": ["component", "modal", "portfolio", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/portfolio/page.tsx:BulkImportModal",
+      "type": "function",
+      "name": "BulkImportModal",
+      "filePath": "frontend/src/app/portfolio/page.tsx",
+      "lineRange": [558, 629],
+      "summary": "Modal that accepts a list of domains for bulk import into the portfolio.",
+      "tags": ["component", "modal", "portfolio", "bulk-import"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/profile/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/profile/page.tsx",
+      "summary": "User profile page for viewing and updating account details, gated behind the authenticated session.",
+      "tags": ["page", "component", "profile", "account", "next-app-router"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/profile/page.tsx:ProfileBody",
+      "type": "function",
+      "name": "ProfileBody",
+      "filePath": "frontend/src/app/profile/page.tsx",
+      "lineRange": [36, 169],
+      "summary": "Inner profile component rendering editable account fields and persisting changes via the API.",
+      "tags": ["component", "profile", "form", "account"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/quick-send/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/quick-send/page.tsx",
+      "summary": "Quick-send page for composing and dispatching a one-off outbound email without setting up a full campaign.",
+      "tags": ["page", "component", "outbound", "quick-send", "next-app-router"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/quick-send/page.tsx:QuickSendPage",
+      "type": "function",
+      "name": "QuickSendPage",
+      "filePath": "frontend/src/app/quick-send/page.tsx",
+      "lineRange": [16, 170],
+      "summary": "Component managing the one-off email form and submitting a single send through the outbound API.",
+      "tags": ["page", "component", "outbound", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/register/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/register/page.tsx",
+      "summary": "Registration page rendering the sign-up form and creating new accounts via the shared auth provider.",
+      "tags": ["page", "component", "auth", "register"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/register/page.tsx:RegisterPage",
+      "type": "function",
+      "name": "RegisterPage",
+      "filePath": "frontend/src/app/register/page.tsx",
+      "lineRange": [9, 81],
+      "summary": "Component managing registration form state and invoking the auth context's sign-up flow.",
+      "tags": ["page", "component", "auth", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/reset-password/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/reset-password/page.tsx",
+      "summary": "Reset-password page that consumes a reset token and submits a new password to the auth API.",
+      "tags": ["page", "component", "auth", "password-reset"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/app/reset-password/page.tsx:ResetPasswordPage",
+      "type": "function",
+      "name": "ResetPasswordPage",
+      "filePath": "frontend/src/app/reset-password/page.tsx",
+      "lineRange": [9, 94],
+      "summary": "Component reading the reset token and password fields and posting the password reset request.",
+      "tags": ["page", "component", "auth", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/app/sender-accounts/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/sender-accounts/page.tsx",
+      "summary": "Sender accounts page for configuring, testing, and managing the SMTP/sender identities used for outbound email.",
+      "tags": ["page", "component", "sender-accounts", "outbound", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/sender-accounts/page.tsx:SenderAccountsPage",
+      "type": "function",
+      "name": "SenderAccountsPage",
+      "filePath": "frontend/src/app/sender-accounts/page.tsx",
+      "lineRange": [39, 296],
+      "summary": "Component managing the list of sender accounts with add, verify, and save actions against the backend.",
+      "tags": ["page", "component", "sender-accounts", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/settings/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/settings/page.tsx",
+      "summary": "Settings page for configuring application-wide options and integrations, including a Gmail inbox connection card.",
+      "tags": ["page", "component", "settings", "configuration", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/settings/page.tsx:SettingsPage",
+      "type": "function",
+      "name": "SettingsPage",
+      "filePath": "frontend/src/app/settings/page.tsx",
+      "lineRange": [81, 413],
+      "summary": "Top-level settings component loading setting definitions and persisting user/admin configuration values.",
+      "tags": ["page", "component", "settings", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/settings/page.tsx:GmailInboxCard",
+      "type": "function",
+      "name": "GmailInboxCard",
+      "filePath": "frontend/src/app/settings/page.tsx",
+      "lineRange": [447, 632],
+      "summary": "Card component managing the Gmail/IMAP inbox connection, test, and sync configuration.",
+      "tags": ["component", "settings", "inbox", "integration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/app/templates/page.tsx",
+      "type": "file",
+      "name": "page.tsx",
+      "filePath": "frontend/src/app/templates/page.tsx",
+      "summary": "Email templates page for listing, creating, and editing reusable outbound message templates.",
+      "tags": ["page", "component", "templates", "outbound", "next-app-router"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/app/templates/page.tsx:TemplatesPage",
+      "type": "function",
+      "name": "TemplatesPage",
+      "filePath": "frontend/src/app/templates/page.tsx",
+      "lineRange": [33, 246],
+      "summary": "Component managing the template list and the create/edit/save lifecycle via the outbound API.",
+      "tags": ["page", "component", "templates", "state-management"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/app/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/page.tsx", "target": "file:frontend/src/lib/ClientDate.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/page.tsx", "target": "function:frontend/src/app/page.tsx:HomePage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/page.tsx", "target": "function:frontend/src/app/page.tsx:HomePage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "function:frontend/src/app/portfolio/[id]/page.tsx:DomainDetailPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "function:frontend/src/app/portfolio/[id]/page.tsx:OverviewTab", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "function:frontend/src/app/portfolio/[id]/page.tsx:IntelligenceTab", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "function:frontend/src/app/portfolio/[id]/page.tsx:InvestorChatSection", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "function:frontend/src/app/portfolio/[id]/page.tsx:DomainDetailPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/portfolio/[id]/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "function:frontend/src/app/portfolio/kanban/page.tsx:PortfolioKanbanPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "function:frontend/src/app/portfolio/kanban/page.tsx:PortfolioKanbanPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/portfolio/kanban/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/components/DomainSelector.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/lib/domainContext.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "function:frontend/src/app/portfolio/page.tsx:PortfolioPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "function:frontend/src/app/portfolio/page.tsx:DomainFormModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "function:frontend/src/app/portfolio/page.tsx:BulkImportModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "function:frontend/src/app/portfolio/page.tsx:PortfolioPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/portfolio/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "file:frontend/src/lib/auth.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "function:frontend/src/app/profile/page.tsx:ProfileBody", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/profile/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/quick-send/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/quick-send/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/quick-send/page.tsx", "target": "function:frontend/src/app/quick-send/page.tsx:QuickSendPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/quick-send/page.tsx", "target": "function:frontend/src/app/quick-send/page.tsx:QuickSendPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/quick-send/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/register/page.tsx", "target": "file:frontend/src/components/AuthShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/register/page.tsx", "target": "file:frontend/src/lib/auth.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/register/page.tsx", "target": "function:frontend/src/app/register/page.tsx:RegisterPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/register/page.tsx", "target": "function:frontend/src/app/register/page.tsx:RegisterPage", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/reset-password/page.tsx", "target": "file:frontend/src/components/AuthShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/reset-password/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/reset-password/page.tsx", "target": "function:frontend/src/app/reset-password/page.tsx:ResetPasswordPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/reset-password/page.tsx", "target": "function:frontend/src/app/reset-password/page.tsx:ResetPasswordPage", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "file:frontend/src/lib/ClientDate.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "function:frontend/src/app/sender-accounts/page.tsx:SenderAccountsPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "function:frontend/src/app/sender-accounts/page.tsx:SenderAccountsPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/sender-accounts/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "file:frontend/src/lib/ClientDate.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "function:frontend/src/app/settings/page.tsx:SettingsPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "function:frontend/src/app/settings/page.tsx:GmailInboxCard", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "function:frontend/src/app/settings/page.tsx:SettingsPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/settings/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "file:frontend/src/components/OutboundShell.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "file:frontend/src/components/ui.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "function:frontend/src/app/templates/page.tsx:TemplatesPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "function:frontend/src/app/templates/page.tsx:TemplatesPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/app/templates/page.tsx", "target": "file:frontend/src/lib/outbound.ts", "type": "calls", "direction": "forward", "weight": 0.8}
+  ]
+}

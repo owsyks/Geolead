@@ -40,7 +40,30 @@
       "Bash(vercel --prod --yes)",
       "Bash(heroku config:set CORS_ORIGIN=\"https://geoai-ashen.vercel.app\" -a geolead-ai-api)",
       "Bash(git -C frontend rev-parse --show-toplevel)",
-      "Bash(git -C frontend status --short)"
+      "Bash(git -C frontend status --short)",
+      "Read(//c/Users/VVV/Desktop/crawl/**)",
+      "Read(//c/Users/VVV/Desktop/crawl/app/crawler/**)",
+      "Bash(sed -E 's/\\(API_KEY=\\).*/\\\\1***/')",
+      "Bash(PLUGIN_ROOT=\"C:/Users/VVV/.claude/plugins/cache/understand-anything/understand-anything/2.8.1\" CLAUDE_PLUGIN_ROOT=\"C:/Users/VVV/.claude/plugins/cache/understand-anything/understand-anything/2.8.1\" node *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(node *)",
+      "Agent",
+      "Bash(python -c ' *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Read(//c/Users/VVV/.claude/plugins/cache/understand-anything/understand-anything/2.8.1/packages/dashboard/**)",
+      "Bash(GRAPH_DIR=\"C:/Users/VVV/Desktop/SaaS\" npx vite --host 127.0.0.1)",
+      "Read(//c/Users/VVV/Downloads/**)",
+      "Bash(ssh -i C:/Users/VVV/Downloads/geo-lead-ssh_key.pem -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 azureuser@20.240.52.137 ' *)",
+      "Bash(ssh *)",
+      "Bash(heroku config:set CRAWLER_BASE_URL=https://suppose-employment-descending-css.trycloudflare.com CRAWLER_API_KEY=0SbE0ZIU9Ds7UhShLqT4rt4ETO664pO6VvbgCi-L1dM --app geolead-ai-api)",
+      "Bash(heroku config:get CRAWLER_BASE_URL --app geolead-ai-api)",
+      "Bash(echo \"BASE: $\\(heroku config:get CRAWLER_BASE_URL --app geolead-ai-api 2>&1\\)\")",
+      "Bash(heroku config:get CRAWLER_API_KEY --app geolead-ai-api)",
+      "Bash(echo \"KEY:  $\\(heroku config:get CRAWLER_API_KEY --app geolead-ai-api 2>&1\\)\")",
+      "Bash(cat .vercel/project.json)",
+      "Bash(vercel --version)",
+      "Bash(npx vercel *)",
+      "Bash(ls vercel.json)"
     ]
   }
 }

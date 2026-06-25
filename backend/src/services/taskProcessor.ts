@@ -1,5 +1,5 @@
 import prisma from '../config/db.js';
-import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs } from './crawlerClient.js';
+import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs, isWrongCountry } from './crawlerClient.js';
 import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
@@ -270,6 +270,8 @@ export async function processSearchTask(taskId: string) {
     let rawResultCount = 0;
     let droppedNoDomain = 0;
     let droppedBlockedHost = 0;
+    let droppedNoEmail = 0;
+    let droppedWrongCountry = 0;
     let droppedFiltered = 0;
 
     const taskMetadata = (task.metadata as any) || {};
@@ -319,6 +321,10 @@ export async function processSearchTask(taskId: string) {
         if (!domainKey) { droppedNoDomain++; continue; }
 
         if (isBlockedWebsiteHost(domainKey)) { droppedBlockedHost++; continue; }
+
+        if (result.emails.length === 0) { droppedNoEmail++; continue; }
+
+        if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
 
         const discovered: DiscoveredBiz = {
           name: result.companyName || result.title || result.domain,
@@ -372,17 +378,17 @@ export async function processSearchTask(taskId: string) {
 
     const businessList = Array.from(discoveredBusinesses.values())
       .sort((a, b) => scoreDiscoveredBusiness(b, searchContext) - scoreDiscoveredBusiness(a, searchContext))
-      .slice(0, task.searchDepth);
+      .slice(0, Math.max(task.searchDepth, 10));
     console.log(
       `[Processor] Funnel: raw=${rawResultCount} -> unique=${discoveredBusinesses.size} -> processing=${businessList.length} ` +
-      `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} filtered:${droppedFiltered})`,
+      `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} noEmail:${droppedNoEmail} wrongCountry:${droppedWrongCountry} filtered:${droppedFiltered})`,
     );
 
     if (businessList.length === 0) {
       const zeroLeadsReason = rawResultCount === 0 ? 'crawler_returned_zero' : 'all_results_filtered';
       console.warn(
         `[Processor] SearchTask ${taskId} produced 0 leads. raw=${rawResultCount} ` +
-        `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, filtered:${droppedFiltered}} ` +
+        `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, noEmail:${droppedNoEmail}, wrongCountry:${droppedWrongCountry}, filtered:${droppedFiltered}} ` +
         `unique=${discoveredBusinesses.size} reason=${zeroLeadsReason}`,
       );
       await prisma.searchTask.update({
@@ -396,7 +402,7 @@ export async function processSearchTask(taskId: string) {
             ...taskMetadata,
             zeroLeadsReason,
             rawResultCount,
-            droppedCounts: { droppedNoDomain, droppedBlockedHost, droppedFiltered },
+            droppedCounts: { droppedNoDomain, droppedBlockedHost, droppedNoEmail, droppedWrongCountry, droppedFiltered },
           } as any,
         },
       });

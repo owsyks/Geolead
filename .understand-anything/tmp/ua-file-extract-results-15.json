@@ -1,0 +1,1924 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 25,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "fileCategory": "code",
+      "totalLines": 27,
+      "nonEmptyLines": 23,
+      "metrics": {}
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "sections": [
+        {
+          "heading": "outputLanguage",
+          "level": 1,
+          "line": 2
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 1
+      }
+    },
+    {
+      "path": ".understand-anything/tmp/probe-input.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 7,
+      "nonEmptyLines": 7,
+      "sections": [
+        {
+          "heading": "projectRoot",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "batchFiles",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "batchImportData",
+          "level": 1,
+          "line": 6
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 3
+      }
+    },
+    {
+      "path": ".understand-anything/tmp/probe-output.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 959,
+      "nonEmptyLines": 959,
+      "sections": [
+        {
+          "heading": "scriptCompleted",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "filesAnalyzed",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "filesSkipped",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "results",
+          "level": 1,
+          "line": 5
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 4
+      }
+    },
+    {
+      "path": "backend/check_tasks.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 11,
+      "nonEmptyLines": 11,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260521235151_init/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 60,
+      "nonEmptyLines": 53,
+      "definitions": [
+        {
+          "name": "SearchTask",
+          "kind": "table",
+          "fields": [
+            "id",
+            "keyword",
+            "domainIdea",
+            "country",
+            "cityState",
+            "searchDepth",
+            "status",
+            "progress",
+            "totalLeads",
+            "validEmails",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 2,
+          "endLine": 17
+        },
+        {
+          "name": "Lead",
+          "kind": "table",
+          "fields": [
+            "id",
+            "taskId",
+            "businessName",
+            "website",
+            "location",
+            "googleMapsLink",
+            "category",
+            "rating",
+            "reviewsCount",
+            "phoneNumbers",
+            "socialLinks",
+            "domainMatchScore",
+            "scoreExplanation",
+            "notes",
+            "companySize",
+            "summary",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 20,
+          "endLine": 41
+        },
+        {
+          "name": "LeadEmail",
+          "kind": "table",
+          "fields": [
+            "id",
+            "leadId",
+            "email",
+            "status",
+            "confidenceScore",
+            "sourcePage",
+            "createdAt"
+          ],
+          "startLine": 44,
+          "endLine": 54
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 3
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260523212847_sync_schema/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 409,
+      "nonEmptyLines": 351,
+      "definitions": [
+        {
+          "name": "User",
+          "kind": "table",
+          "fields": [
+            "id",
+            "email",
+            "name",
+            "role",
+            "isActive",
+            "timezone",
+            "locale",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 21,
+          "endLine": 33
+        },
+        {
+          "name": "Campaign",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "name",
+            "objective",
+            "geoDomain",
+            "niche",
+            "cityState",
+            "tone",
+            "language",
+            "status",
+            "timezone",
+            "dailyLimit",
+            "smartDelayMin",
+            "smartDelayMax",
+            "sendWindowStart",
+            "sendWindowEnd",
+            "startsAt",
+            "pausedAt",
+            "aBTestEnabled",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 36,
+          "endLine": 61
+        },
+        {
+          "name": "Template",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "name",
+            "type",
+            "purpose",
+            "language",
+            "tone",
+            "subject",
+            "previewText",
+            "body",
+            "followUpBody",
+            "variables",
+            "aiPrompt",
+            "spamScore",
+            "deliverabilityScore",
+            "isArchived",
+            "tags",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 64,
+          "endLine": 86
+        },
+        {
+          "name": "SenderAccount",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "label",
+            "provider",
+            "fromName",
+            "fromEmail",
+            "replyTo",
+            "status",
+            "timezone",
+            "dailyLimit",
+            "hourlyLimit",
+            "warmupEnabled",
+            "warmupTarget",
+            "sendWindowStart",
+            "sendWindowEnd",
+            "rotationRank",
+            "providerConfig",
+            "dkimStatus",
+            "spfStatus",
+            "dmarcStatus",
+            "deliverabilityScore",
+            "bounceRate",
+            "spamComplaintRate",
+            "lastVerifiedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 89,
+          "endLine": 118
+        },
+        {
+          "name": "Sequence",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "name",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 121,
+          "endLine": 130
+        },
+        {
+          "name": "SequenceStep",
+          "kind": "table",
+          "fields": [
+            "id",
+            "sequenceId",
+            "templateId",
+            "stepOrder",
+            "delayHours",
+            "stepType",
+            "subject",
+            "previewText",
+            "body",
+            "useAI",
+            "stopOnReply",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 133,
+          "endLine": 150
+        },
+        {
+          "name": "CampaignLead",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "leadId",
+            "sequenceId",
+            "status",
+            "stage",
+            "currentStep",
+            "nextSendAt",
+            "lastSentAt",
+            "openedAt",
+            "clickedAt",
+            "repliedAt",
+            "unsubscribedAt",
+            "engaged",
+            "positiveReply",
+            "negativeReply",
+            "engagementScore",
+            "personalization",
+            "trackingToken",
+            "unsubscribeToken",
+            "messageId",
+            "pausedReason",
+            "attemptCount",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 153,
+          "endLine": 181
+        },
+        {
+          "name": "EmailLog",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "campaignLeadId",
+            "leadId",
+            "senderAccountId",
+            "templateId",
+            "sequenceStepId",
+            "provider",
+            "providerMessageId",
+            "toEmail",
+            "fromEmail",
+            "subject",
+            "previewText",
+            "bodyText",
+            "bodyHtml",
+            "status",
+            "trackingToken",
+            "unsubscribeToken",
+            "scheduledAt",
+            "sentAt",
+            "deliveredAt",
+            "openedAt",
+            "clickedAt",
+            "repliedAt",
+            "bouncedAt",
+            "unsubscribedAt",
+            "errorMessage",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 184,
+          "endLine": 217
+        },
+        {
+          "name": "EmailEvent",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "campaignLeadId",
+            "emailLogId",
+            "type",
+            "payload",
+            "ipAddress",
+            "userAgent",
+            "provider",
+            "occurredAt",
+            "createdAt"
+          ],
+          "startLine": 220,
+          "endLine": 234
+        },
+        {
+          "name": "Reply",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "campaignLeadId",
+            "leadId",
+            "emailLogId",
+            "fromEmail",
+            "subject",
+            "body",
+            "threadId",
+            "sentiment",
+            "intentScore",
+            "buyingIntent",
+            "status",
+            "suggestedResponse",
+            "tags",
+            "receivedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 237,
+          "endLine": 258
+        },
+        {
+          "name": "AnalyticsSnapshot",
+          "kind": "table",
+          "fields": [
+            "id",
+            "campaignId",
+            "date",
+            "sent",
+            "delivered",
+            "opens",
+            "clicks",
+            "replies",
+            "positiveReplies",
+            "negativeReplies",
+            "bounces",
+            "unsubscribes",
+            "complaints",
+            "engagementScore",
+            "deliverabilityScore"
+          ],
+          "startLine": 261,
+          "endLine": 279
+        },
+        {
+          "name": "WebhookEvent",
+          "kind": "table",
+          "fields": [
+            "id",
+            "provider",
+            "type",
+            "externalId",
+            "payload",
+            "processed",
+            "createdAt"
+          ],
+          "startLine": 282,
+          "endLine": 292
+        },
+        {
+          "name": "SuppressionEntry",
+          "kind": "table",
+          "fields": [
+            "id",
+            "email",
+            "reason",
+            "source",
+            "campaignId",
+            "leadId",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 295,
+          "endLine": 306
+        },
+        {
+          "name": "AuditLog",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "entityType",
+            "entityId",
+            "action",
+            "payload",
+            "createdAt"
+          ],
+          "startLine": 309,
+          "endLine": 319
+        },
+        {
+          "name": "User_email_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 322,
+          "endLine": 322
+        },
+        {
+          "name": "CampaignLead_trackingToken_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 325,
+          "endLine": 325
+        },
+        {
+          "name": "CampaignLead_unsubscribeToken_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 328,
+          "endLine": 328
+        },
+        {
+          "name": "CampaignLead_campaignId_leadId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 331,
+          "endLine": 331
+        },
+        {
+          "name": "EmailLog_trackingToken_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 334,
+          "endLine": 334
+        },
+        {
+          "name": "SuppressionEntry_email_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 337,
+          "endLine": 337
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 20
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260530235025_add_email_verification_fields/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 38,
+      "nonEmptyLines": 33,
+      "definitions": [
+        {
+          "name": "EmailVerificationJob",
+          "kind": "table",
+          "fields": [
+            "id",
+            "status",
+            "totalEmails",
+            "processedEmails",
+            "validEmails",
+            "riskyEmails",
+            "invalidEmails",
+            "errorMessage",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 15,
+          "endLine": 29
+        },
+        {
+          "name": "LeadEmail_email_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 32,
+          "endLine": 32
+        },
+        {
+          "name": "LeadEmail_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 35,
+          "endLine": 35
+        },
+        {
+          "name": "LeadEmail_leadId_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 38,
+          "endLine": 38
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 4
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260531235438_add_domain_reputation/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 26,
+      "nonEmptyLines": 23,
+      "definitions": [
+        {
+          "name": "DomainReputation",
+          "kind": "table",
+          "fields": [
+            "domain",
+            "totalSent",
+            "totalDelivered",
+            "totalBounced",
+            "totalOpened",
+            "totalReplied",
+            "totalComplaints",
+            "bounceRate",
+            "deliveryRate",
+            "replyRate",
+            "reputationDelta",
+            "lastBounceAt",
+            "lastDeliveryAt",
+            "lastUpdatedAt",
+            "metadata"
+          ],
+          "startLine": 2,
+          "endLine": 20
+        },
+        {
+          "name": "DomainReputation_bounceRate_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 23,
+          "endLine": 23
+        },
+        {
+          "name": "DomainReputation_lastUpdatedAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 26,
+          "endLine": 26
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 3
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260601004008_searchtask_failure_tracking/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260601131009_add_domain_portfolio/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 144,
+      "nonEmptyLines": 121,
+      "definitions": [
+        {
+          "name": "Domain",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "name",
+            "status",
+            "purchaseDate",
+            "purchasePrice",
+            "registrar",
+            "expirationDate",
+            "category",
+            "niche",
+            "industry",
+            "city",
+            "state",
+            "country",
+            "tags",
+            "targetIndustries",
+            "targetLocations",
+            "notes",
+            "brandingScore",
+            "estimatedValue",
+            "buyerDemandScore",
+            "leadOpportunityScore",
+            "saleProbability",
+            "recommendedPrice",
+            "bestIndustries",
+            "bestCities",
+            "outreachStrategy",
+            "aiSummary",
+            "archivedAt",
+            "soldAt",
+            "intelligenceUpdatedAt",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 5,
+          "endLine": 42
+        },
+        {
+          "name": "DomainBuyer",
+          "kind": "table",
+          "fields": [
+            "id",
+            "domainId",
+            "leadId",
+            "businessName",
+            "contactName",
+            "email",
+            "phone",
+            "website",
+            "location",
+            "industry",
+            "buyerScore",
+            "status",
+            "notes",
+            "lastContactedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 45,
+          "endLine": 64
+        },
+        {
+          "name": "DomainOffer",
+          "kind": "table",
+          "fields": [
+            "id",
+            "domainId",
+            "buyerId",
+            "direction",
+            "amount",
+            "currency",
+            "status",
+            "notes",
+            "receivedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 67,
+          "endLine": 81
+        },
+        {
+          "name": "DomainSale",
+          "kind": "table",
+          "fields": [
+            "id",
+            "domainId",
+            "buyerName",
+            "buyerEmail",
+            "salePrice",
+            "currency",
+            "saleDate",
+            "marketplace",
+            "fees",
+            "notes",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 84,
+          "endLine": 99
+        },
+        {
+          "name": "Domain_name_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 102,
+          "endLine": 102
+        },
+        {
+          "name": "Domain_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 105,
+          "endLine": 105
+        },
+        {
+          "name": "Domain_archivedAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 108,
+          "endLine": 108
+        },
+        {
+          "name": "Domain_soldAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 111,
+          "endLine": 111
+        },
+        {
+          "name": "DomainBuyer_domainId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 114,
+          "endLine": 114
+        },
+        {
+          "name": "DomainBuyer_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 117,
+          "endLine": 117
+        },
+        {
+          "name": "DomainOffer_domainId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 120,
+          "endLine": 120
+        },
+        {
+          "name": "DomainOffer_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 123,
+          "endLine": 123
+        },
+        {
+          "name": "DomainSale_domainId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 126,
+          "endLine": 126
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 13
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260601235453_add_settings/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 11,
+      "nonEmptyLines": 10,
+      "definitions": [
+        {
+          "name": "Setting",
+          "kind": "table",
+          "fields": [
+            "key",
+            "value",
+            "category",
+            "isSecret",
+            "updatedAt",
+            "createdAt"
+          ],
+          "startLine": 2,
+          "endLine": 11
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 1
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260602022903_add_mailbox_inbox/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 1,
+      "nonEmptyLines": 0,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 0
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260602022919_add_mailbox_inbox/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 69,
+      "nonEmptyLines": 58,
+      "definitions": [
+        {
+          "name": "Mailbox",
+          "kind": "table",
+          "fields": [
+            "id",
+            "label",
+            "email",
+            "imapHost",
+            "imapPort",
+            "useSsl",
+            "username",
+            "appPassword",
+            "enabled",
+            "syncIntervalSec",
+            "lastSyncAt",
+            "lastSyncStatus",
+            "lastSyncError",
+            "lastSeenUid",
+            "uidValidity",
+            "totalImported",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 14,
+          "endLine": 35
+        },
+        {
+          "name": "LeadStatusHistory",
+          "kind": "table",
+          "fields": [
+            "id",
+            "leadId",
+            "campaignId",
+            "domainId",
+            "fromStatus",
+            "toStatus",
+            "reason",
+            "source",
+            "createdAt"
+          ],
+          "startLine": 38,
+          "endLine": 50
+        },
+        {
+          "name": "Mailbox_email_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 53,
+          "endLine": 53
+        },
+        {
+          "name": "LeadStatusHistory_leadId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 56,
+          "endLine": 56
+        },
+        {
+          "name": "LeadStatusHistory_createdAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 59,
+          "endLine": 59
+        },
+        {
+          "name": "Reply_messageId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 62,
+          "endLine": 62
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 6
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260602180000_add_auth_multi_tenancy/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 208,
+      "nonEmptyLines": 160,
+      "definitions": [
+        {
+          "name": "Session",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "tokenHash",
+            "userAgent",
+            "ip",
+            "expiresAt",
+            "revokedAt",
+            "createdAt"
+          ],
+          "startLine": 29,
+          "endLine": 40
+        },
+        {
+          "name": "PasswordResetToken",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "tokenHash",
+            "expiresAt",
+            "usedAt",
+            "createdAt"
+          ],
+          "startLine": 43,
+          "endLine": 52
+        },
+        {
+          "name": "VerificationToken",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "tokenHash",
+            "expiresAt",
+            "usedAt",
+            "createdAt"
+          ],
+          "startLine": 55,
+          "endLine": 64
+        },
+        {
+          "name": "OAuthAccount",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "provider",
+            "providerAccountId",
+            "createdAt"
+          ],
+          "startLine": 67,
+          "endLine": 75
+        },
+        {
+          "name": "UserSettings",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "displayName",
+            "aiTone",
+            "defaultEmailStyle",
+            "preferredModel",
+            "pricingStrategy",
+            "portfolioCategories",
+            "outreachDefaults",
+            "followUpDefaults",
+            "buyerScoringPrefs",
+            "onboardingComplete",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 78,
+          "endLine": 95
+        },
+        {
+          "name": "NotificationPreference",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "desktop",
+            "email",
+            "campaignAlerts",
+            "replyAlerts",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 98,
+          "endLine": 109
+        },
+        {
+          "name": "Integration",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "provider",
+            "status",
+            "healthStatus",
+            "lastVerifiedAt",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 112,
+          "endLine": 123
+        },
+        {
+          "name": "Session_tokenHash_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 126,
+          "endLine": 126
+        },
+        {
+          "name": "Session_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 129,
+          "endLine": 129
+        },
+        {
+          "name": "PasswordResetToken_tokenHash_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 132,
+          "endLine": 132
+        },
+        {
+          "name": "PasswordResetToken_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 135,
+          "endLine": 135
+        },
+        {
+          "name": "VerificationToken_tokenHash_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 138,
+          "endLine": 138
+        },
+        {
+          "name": "VerificationToken_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 141,
+          "endLine": 141
+        },
+        {
+          "name": "OAuthAccount_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 144,
+          "endLine": 144
+        },
+        {
+          "name": "OAuthAccount_provider_providerAccountId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 147,
+          "endLine": 147
+        },
+        {
+          "name": "UserSettings_userId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 150,
+          "endLine": 150
+        },
+        {
+          "name": "NotificationPreference_userId_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 153,
+          "endLine": 153
+        },
+        {
+          "name": "Integration_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 156,
+          "endLine": 156
+        },
+        {
+          "name": "Integration_userId_provider_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 159,
+          "endLine": 159
+        },
+        {
+          "name": "Domain_userId_name_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 162,
+          "endLine": 162
+        },
+        {
+          "name": "Mailbox_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 165,
+          "endLine": 165
+        },
+        {
+          "name": "Mailbox_userId_email_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 168,
+          "endLine": 168
+        },
+        {
+          "name": "SearchTask_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 171,
+          "endLine": 171
+        },
+        {
+          "name": "Setting_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 174,
+          "endLine": 174
+        },
+        {
+          "name": "Setting_userId_key_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 177,
+          "endLine": 177
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 25
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260604120000_add_watchlist/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 91,
+      "nonEmptyLines": 83,
+      "definitions": [
+        {
+          "name": "WatchedDomain",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "domainName",
+            "priority",
+            "status",
+            "notes",
+            "brandScore",
+            "marketScore",
+            "acquisitionScore",
+            "estimatedValue",
+            "aiRecommendation",
+            "aiReasoning",
+            "registrationStatus",
+            "registrar",
+            "expirationDate",
+            "lastCheckedAt",
+            "addedFrom",
+            "isFavorite",
+            "metadata",
+            "createdAt",
+            "updatedAt"
+          ],
+          "startLine": 4,
+          "endLine": 27
+        },
+        {
+          "name": "WatchedDomainEvent",
+          "kind": "table",
+          "fields": [
+            "id",
+            "watchedDomainId",
+            "type",
+            "details",
+            "createdAt"
+          ],
+          "startLine": 30,
+          "endLine": 37
+        },
+        {
+          "name": "WatchlistReminder",
+          "kind": "table",
+          "fields": [
+            "id",
+            "watchedDomainId",
+            "userId",
+            "type",
+            "label",
+            "triggerAt",
+            "triggered",
+            "triggeredAt",
+            "notifyVia",
+            "createdAt"
+          ],
+          "startLine": 40,
+          "endLine": 52
+        },
+        {
+          "name": "WatchlistNotification",
+          "kind": "table",
+          "fields": [
+            "id",
+            "userId",
+            "watchedDomainId",
+            "domainName",
+            "type",
+            "title",
+            "body",
+            "priority",
+            "read",
+            "readAt",
+            "createdAt"
+          ],
+          "startLine": 55,
+          "endLine": 68
+        },
+        {
+          "name": "WatchedDomain_userId_domainName_key",
+          "kind": "index",
+          "fields": [],
+          "startLine": 83,
+          "endLine": 83
+        },
+        {
+          "name": "WatchedDomain_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 84,
+          "endLine": 84
+        },
+        {
+          "name": "WatchedDomain_registrationStatus_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 85,
+          "endLine": 85
+        },
+        {
+          "name": "WatchedDomain_status_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 86,
+          "endLine": 86
+        },
+        {
+          "name": "WatchedDomainEvent_watchedDomainId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 87,
+          "endLine": 87
+        },
+        {
+          "name": "WatchlistReminder_userId_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 88,
+          "endLine": 88
+        },
+        {
+          "name": "WatchlistReminder_triggered_triggerAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 89,
+          "endLine": 89
+        },
+        {
+          "name": "WatchlistNotification_userId_read_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 90,
+          "endLine": 90
+        },
+        {
+          "name": "WatchlistNotification_userId_createdAt_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 91,
+          "endLine": 91
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 13
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260604130000_add_contact_intelligence/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 8,
+      "nonEmptyLines": 7,
+      "definitions": [
+        {
+          "name": "Lead_bestContactChannel_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 7,
+          "endLine": 7
+        },
+        {
+          "name": "Lead_whatsappScore_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 8,
+          "endLine": 8
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 2
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260605120000_add_emaillog_variant/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "definitions": [
+        {
+          "name": "EmailLog_variant_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 3,
+          "endLine": 3
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 1
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/20260605221514_add_decision_maker_fields/migration.sql",
+      "language": "sql",
+      "fileCategory": "data",
+      "totalLines": 35,
+      "nonEmptyLines": 27,
+      "definitions": [
+        {
+          "name": "Lead_priorityScore_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 26,
+          "endLine": 26
+        },
+        {
+          "name": "Lead_buyerIntentScore_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 29,
+          "endLine": 29
+        },
+        {
+          "name": "Lead_decisionMakerRole_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 32,
+          "endLine": 32
+        },
+        {
+          "name": "Lead_decisionMakerScore_idx",
+          "kind": "index",
+          "fields": [],
+          "startLine": 35,
+          "endLine": 35
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "definitionCount": 4
+      }
+    },
+    {
+      "path": "backend/prisma/migrations/migration_lock.toml",
+      "language": "toml",
+      "fileCategory": "config",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 0
+      }
+    },
+    {
+      "path": "backend/prisma/schema.prisma",
+      "language": "prisma",
+      "fileCategory": "data",
+      "totalLines": 849,
+      "nonEmptyLines": 788,
+      "metrics": {}
+    },
+    {
+      "path": "backend/scripts/check_tasks.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 12,
+      "nonEmptyLines": 12,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/src/services/queryGenerator.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 149,
+      "nonEmptyLines": 129,
+      "functions": [
+        {
+          "name": "generateQueryVariations",
+          "startLine": 4,
+          "endLine": 99,
+          "params": [
+            "keyword",
+            "country",
+            "cityState",
+            "targetLeadCount"
+          ]
+        },
+        {
+          "name": "addLocalizedQueryVariations",
+          "startLine": 101,
+          "endLine": 119,
+          "params": [
+            "variations",
+            "query",
+            "locationVariants"
+          ]
+        },
+        {
+          "name": "normalizePhrase",
+          "startLine": 121,
+          "endLine": 127,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "getLocationVariants",
+          "startLine": 129,
+          "endLine": 149,
+          "params": [
+            "country",
+            "cityState"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "generateQueryVariations",
+          "line": 4,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "generateQueryVariations",
+          "callee": "normalizePhrase",
+          "lineNumber": 13
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "getLocationVariants",
+          "lineNumber": 14
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Math.min",
+          "lineNumber": 15
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Math.max",
+          "lineNumber": 15
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Math.ceil",
+          "lineNumber": 15
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 17
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Object.entries",
+          "lineNumber": 50
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "baseKeyword.includes",
+          "lineNumber": 51
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "synonyms.forEach",
+          "lineNumber": 53
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "baseKeyword.replace",
+          "lineNumber": 54
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 55
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "normalizePhrase",
+          "lineNumber": 55
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 62
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 63
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 64
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "phraseSeeds.add",
+          "lineNumber": 65
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Array.from",
+          "lineNumber": 86
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "normalizePhrase",
+          "lineNumber": 89
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "addLocalizedQueryVariations",
+          "lineNumber": 90
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Array.from(variations).slice",
+          "lineNumber": 93
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Array.from",
+          "lineNumber": 93
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Array.from(variations).slice",
+          "lineNumber": 98
+        },
+        {
+          "caller": "generateQueryVariations",
+          "callee": "Array.from",
+          "lineNumber": 98
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "locationVariants.some",
+          "lineNumber": 102
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "query.includes",
+          "lineNumber": 102
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "variations.add",
+          "lineNumber": 103
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "locationVariants.find",
+          "lineNumber": 107
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "/\\b[a-z]{2}\\b$/.test",
+          "lineNumber": 107
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "loc.includes",
+          "lineNumber": 107
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "locationVariants.find",
+          "lineNumber": 108
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "loc.includes",
+          "lineNumber": 108
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "loc.split",
+          "lineNumber": 108
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "[statefulLocation, secondaryLocation].filter",
+          "lineNumber": 110
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "selectedLocations.forEach",
+          "lineNumber": 112
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "variations.add",
+          "lineNumber": 113
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "variations.add",
+          "lineNumber": 114
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "variations.add",
+          "lineNumber": 115
+        },
+        {
+          "caller": "addLocalizedQueryVariations",
+          "callee": "variations.add",
+          "lineNumber": 118
+        },
+        {
+          "caller": "normalizePhrase",
+          "callee": "value\n    .toLowerCase()\n    .replace(/[^\\w\\s,]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim",
+          "lineNumber": 122
+        },
+        {
+          "caller": "normalizePhrase",
+          "callee": "value\n    .toLowerCase()\n    .replace(/[^\\w\\s,]/g, ' ')\n    .replace",
+          "lineNumber": 122
+        },
+        {
+          "caller": "normalizePhrase",
+          "callee": "value\n    .toLowerCase()\n    .replace",
+          "lineNumber": 122
+        },
+        {
+          "caller": "normalizePhrase",
+          "callee": "value\n    .toLowerCase",
+          "lineNumber": 122
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "normalizePhrase",
+          "lineNumber": 131
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "normalizePhrase",
+          "lineNumber": 132
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "variants.add",
+          "lineNumber": 135
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "cityStateValue.replace(/,/g, ' ').replace(/\\s+/g, ' ').trim",
+          "lineNumber": 137
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "cityStateValue.replace(/,/g, ' ').replace",
+          "lineNumber": 137
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "cityStateValue.replace",
+          "lineNumber": 137
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "variants.add",
+          "lineNumber": 138
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "cityStateValue.split(',')[0]?.trim",
+          "lineNumber": 140
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "cityStateValue.split",
+          "lineNumber": 140
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "variants.add",
+          "lineNumber": 141
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "variants.add",
+          "lineNumber": 145
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "Array.from(variants).filter",
+          "lineNumber": 148
+        },
+        {
+          "caller": "getLocationVariants",
+          "callee": "Array.from",
+          "lineNumber": 148
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "check_dallas.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 68,
+      "nonEmptyLines": 59,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "check_db.js",
+      "language": "javascript",
+      "fileCategory": "code",
+      "totalLines": 13,
+      "nonEmptyLines": 13,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    }
+  ]
+}

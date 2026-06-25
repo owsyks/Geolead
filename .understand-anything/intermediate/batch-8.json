@@ -1,0 +1,101 @@
+{
+  "nodes": [
+    {
+      "id": "service:frontend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Multi-stage Docker build for the Next.js frontend: installs dependencies, builds the app, and produces a minimal production runner image serving the standalone server on port 3000.",
+      "tags": ["containerization", "infrastructure", "deployment", "frontend", "nextjs"],
+      "complexity": "simple",
+      "languageNotes": "Three-stage build (deps, builder, runner) leverages Next.js standalone output to copy only the compiled server, public assets, and static files into a slim runtime image, minimizing final image size."
+    },
+    {
+      "id": "service:frontend/Dockerfile:deps",
+      "type": "service",
+      "name": "deps",
+      "filePath": "frontend/Dockerfile",
+      "summary": "First build stage based on node:20-bookworm-slim that copies package manifests and runs npm ci to install dependencies in an isolated layer.",
+      "tags": ["containerization", "build-stage", "dependencies", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile:builder",
+      "type": "service",
+      "name": "builder",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Build stage extending deps that injects the NEXT_PUBLIC_OUTBOUND_API_BASE build arg, copies the source tree, and runs the Next.js production build.",
+      "tags": ["containerization", "build-stage", "build-system", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/Dockerfile:runner",
+      "type": "service",
+      "name": "runner",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Final production stage on node:20-bookworm-slim that copies the built standalone server, public, and static assets, exposes port 3000, and launches the Next.js server.",
+      "tags": ["containerization", "runtime", "deployment", "production", "infrastructure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:frontend/.dockerignore",
+      "type": "service",
+      "name": ".dockerignore",
+      "filePath": "frontend/.dockerignore",
+      "summary": "Docker build-context exclusion list for the frontend, omitting files from the image build to keep the build context small and avoid leaking local artifacts.",
+      "tags": ["containerization", "infrastructure", "build-system", "configuration"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "service:frontend/Dockerfile:deps",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "service:frontend/Dockerfile:builder",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "service:frontend/Dockerfile:runner",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile:builder",
+      "target": "service:frontend/Dockerfile:deps",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile:runner",
+      "target": "service:frontend/Dockerfile:builder",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "file:frontend/src/app/layout.tsx",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/.dockerignore",
+      "target": "service:frontend/Dockerfile",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

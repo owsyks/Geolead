@@ -1,0 +1,364 @@
+{
+  "nodes": [
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/accordion.tsx",
+      "type": "file",
+      "name": "accordion.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/accordion.tsx",
+      "summary": "shadcn/ui Accordion primitive wrapping Radix Accordion with styled trigger and animated collapsible content.",
+      "tags": ["component", "ui-primitive", "radix", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/alert-dialog.tsx",
+      "type": "file",
+      "name": "alert-dialog.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/alert-dialog.tsx",
+      "summary": "shadcn/ui AlertDialog primitive built on Radix AlertDialog, providing styled overlay, content, header/footer, and action/cancel buttons.",
+      "tags": ["component", "ui-primitive", "radix", "dialog", "design-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/alert.tsx",
+      "type": "file",
+      "name": "alert.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/alert.tsx",
+      "summary": "shadcn/ui Alert component with class-variance-authority variants for default and destructive styles, plus title and description subcomponents.",
+      "tags": ["component", "ui-primitive", "cva", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/avatar.tsx",
+      "type": "file",
+      "name": "avatar.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/avatar.tsx",
+      "summary": "shadcn/ui Avatar primitive wrapping Radix Avatar with image and fallback subcomponents.",
+      "tags": ["component", "ui-primitive", "radix", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/badge.tsx",
+      "type": "file",
+      "name": "badge.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/badge.tsx",
+      "summary": "shadcn/ui Badge component exposing cva-based variant styles and an asChild Slot escape hatch.",
+      "tags": ["component", "ui-primitive", "cva", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/breadcrumb.tsx",
+      "type": "file",
+      "name": "breadcrumb.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/breadcrumb.tsx",
+      "summary": "shadcn/ui Breadcrumb navigation primitives including list, item, link, page, separator, and ellipsis subcomponents.",
+      "tags": ["component", "ui-primitive", "navigation", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/button.tsx",
+      "type": "file",
+      "name": "button.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/button.tsx",
+      "summary": "shadcn/ui Button component with cva variant/size styles exported as buttonVariants, used as the base for many other UI primitives.",
+      "tags": ["component", "ui-primitive", "cva", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/calendar.tsx",
+      "type": "file",
+      "name": "calendar.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/calendar.tsx",
+      "summary": "shadcn/ui Calendar component wrapping react-day-picker DayPicker with custom button styles and navigation icons.",
+      "tags": ["component", "ui-primitive", "date-picker", "design-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/card.tsx",
+      "type": "file",
+      "name": "card.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/card.tsx",
+      "summary": "shadcn/ui Card container with header, title, description, action, content, and footer slot subcomponents.",
+      "tags": ["component", "ui-primitive", "layout", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx",
+      "type": "file",
+      "name": "carousel.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/carousel.tsx",
+      "summary": "shadcn/ui Carousel built on embla-carousel-react, managing scroll state and keyboard navigation via a React context consumed by content, item, previous, and next subcomponents.",
+      "tags": ["component", "ui-primitive", "carousel", "context", "design-system"],
+      "complexity": "complex",
+      "languageNotes": "Uses a React context (useCarousel) plus useCallback/useEffect to coordinate embla API state across subcomponents."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "type": "file",
+      "name": "chart.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "summary": "shadcn/ui Chart wrapper around Recharts providing a themed ChartContainer, dynamic CSS variable injection, and customizable tooltip/legend content components.",
+      "tags": ["component", "ui-primitive", "recharts", "data-visualization", "design-system"],
+      "complexity": "complex",
+      "languageNotes": "ChartStyle injects per-theme CSS custom properties from a config object; tooltip/legend resolve their config via getPayloadConfigFromPayload."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/checkbox.tsx",
+      "type": "file",
+      "name": "checkbox.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/checkbox.tsx",
+      "summary": "shadcn/ui Checkbox primitive wrapping Radix Checkbox with a styled indicator.",
+      "tags": ["component", "ui-primitive", "radix", "form-control", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/command.tsx",
+      "type": "file",
+      "name": "command.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/command.tsx",
+      "summary": "shadcn/ui Command palette built on the cmdk library, including a Dialog-hosted CommandDialog plus input, list, group, item, and shortcut subcomponents.",
+      "tags": ["component", "ui-primitive", "cmdk", "command-palette", "design-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/context-menu.tsx",
+      "type": "file",
+      "name": "context-menu.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/context-menu.tsx",
+      "summary": "shadcn/ui ContextMenu primitive wrapping Radix ContextMenu with trigger, content, items, checkbox/radio items, submenus, labels, and separators.",
+      "tags": ["component", "ui-primitive", "radix", "menu", "design-system"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/dialog.tsx",
+      "type": "file",
+      "name": "dialog.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/dialog.tsx",
+      "summary": "shadcn/ui Dialog primitive wrapping Radix Dialog with styled overlay, content with close button, and header/footer/title/description subcomponents.",
+      "tags": ["component", "ui-primitive", "radix", "dialog", "design-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/drawer.tsx",
+      "type": "file",
+      "name": "drawer.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/drawer.tsx",
+      "summary": "shadcn/ui Drawer primitive built on the vaul library, providing styled overlay, content, and header/footer/title/description subcomponents.",
+      "tags": ["component", "ui-primitive", "vaul", "drawer", "design-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/dropdown-menu.tsx",
+      "type": "file",
+      "name": "dropdown-menu.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/dropdown-menu.tsx",
+      "summary": "shadcn/ui DropdownMenu primitive wrapping Radix DropdownMenu with trigger, content, items, checkbox/radio items, submenus, labels, and separators.",
+      "tags": ["component", "ui-primitive", "radix", "menu", "design-system"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/form.tsx",
+      "type": "file",
+      "name": "form.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/form.tsx",
+      "summary": "shadcn/ui Form integration over react-hook-form, exposing FormField/useFormField context plumbing and item/label/control/description/message subcomponents.",
+      "tags": ["component", "ui-primitive", "react-hook-form", "context", "design-system"],
+      "complexity": "moderate",
+      "languageNotes": "Bridges react-hook-form Controller with React context to derive accessible field ids and validation state via useFormField."
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/hover-card.tsx",
+      "type": "file",
+      "name": "hover-card.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/hover-card.tsx",
+      "summary": "shadcn/ui HoverCard primitive wrapping Radix HoverCard with a styled, positioned content panel.",
+      "tags": ["component", "ui-primitive", "radix", "overlay", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/input-otp.tsx",
+      "type": "file",
+      "name": "input-otp.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/input-otp.tsx",
+      "summary": "shadcn/ui InputOTP primitive built on input-otp, rendering one-time-password slots with active/caret state from context plus group and separator subcomponents.",
+      "tags": ["component", "ui-primitive", "form-control", "otp", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/input.tsx",
+      "type": "file",
+      "name": "input.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/input.tsx",
+      "summary": "shadcn/ui Input component applying themed focus, validation, and file-input styles to a native input element.",
+      "tags": ["component", "ui-primitive", "form-control", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/label.tsx",
+      "type": "file",
+      "name": "label.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/label.tsx",
+      "summary": "shadcn/ui Label primitive wrapping Radix Label with disabled-state styling.",
+      "tags": ["component", "ui-primitive", "radix", "form-control", "design-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/menubar.tsx",
+      "type": "file",
+      "name": "menubar.tsx",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/menubar.tsx",
+      "summary": "shadcn/ui Menubar primitive wrapping Radix Menubar with menus, triggers, content, items, checkbox/radio items, submenus, labels, and separators.",
+      "tags": ["component", "ui-primitive", "radix", "menu", "design-system"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:Carousel",
+      "type": "function",
+      "name": "Carousel",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/carousel.tsx",
+      "lineRange": [45, 133],
+      "summary": "Root Carousel component that initializes the embla carousel API, tracks scroll-prev/next state, wires keyboard navigation, and provides carousel context to children.",
+      "tags": ["component", "context-provider", "carousel", "stateful"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:useCarousel",
+      "type": "function",
+      "name": "useCarousel",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/carousel.tsx",
+      "lineRange": [35, 43],
+      "summary": "Hook that reads the carousel context and throws if used outside a Carousel provider.",
+      "tags": ["hook", "context", "carousel"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartContainer",
+      "type": "function",
+      "name": "ChartContainer",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "lineRange": [37, 70],
+      "summary": "Provides chart config context, generates a unique chart id, renders themed CSS via ChartStyle, and wraps children in a Recharts ResponsiveContainer.",
+      "tags": ["component", "context-provider", "recharts", "data-visualization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartStyle",
+      "type": "function",
+      "name": "ChartStyle",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "lineRange": [72, 103],
+      "summary": "Generates a <style> block injecting per-theme CSS custom properties for each colored chart config entry.",
+      "tags": ["utility", "theming", "recharts", "css-in-js"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartTooltipContent",
+      "type": "function",
+      "name": "ChartTooltipContent",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "lineRange": [107, 249],
+      "summary": "Customizable Recharts tooltip content that resolves labels, formatters, indicators, and per-series colors from the chart config.",
+      "tags": ["component", "recharts", "tooltip", "data-visualization"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartLegendContent",
+      "type": "function",
+      "name": "ChartLegendContent",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "lineRange": [253, 305],
+      "summary": "Customizable Recharts legend content that renders per-series icons and labels resolved from the chart config.",
+      "tags": ["component", "recharts", "legend", "data-visualization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:getPayloadConfigFromPayload",
+      "type": "function",
+      "name": "getPayloadConfigFromPayload",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/chart.tsx",
+      "lineRange": [308, 344],
+      "summary": "Helper that resolves the matching chart config entry for a given Recharts payload item and key.",
+      "tags": ["utility", "recharts", "config-resolution"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/form.tsx:useFormField",
+      "type": "function",
+      "name": "useFormField",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/form.tsx",
+      "lineRange": [45, 66],
+      "summary": "Hook combining FormField and FormItem contexts with react-hook-form state to expose field ids and validation status for accessible form controls.",
+      "tags": ["hook", "react-hook-form", "context", "accessibility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/calendar.tsx:Calendar",
+      "type": "function",
+      "name": "Calendar",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/calendar.tsx",
+      "lineRange": [10, 73],
+      "summary": "Wraps react-day-picker DayPicker, applying button-variant styling, custom class names, and chevron navigation icons.",
+      "tags": ["component", "date-picker", "styling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:Design Front End UI_UX/src/app/components/ui/command.tsx:CommandDialog",
+      "type": "function",
+      "name": "CommandDialog",
+      "filePath": "Design Front End UI_UX/src/app/components/ui/command.tsx",
+      "lineRange": [32, 54],
+      "summary": "Hosts the Command palette inside a Dialog with an accessible title and description for modal command search.",
+      "tags": ["component", "command-palette", "dialog"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/accordion.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/alert-dialog.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/button.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/alert-dialog.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/alert.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/avatar.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/badge.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/breadcrumb.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/button.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/calendar.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/button.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/calendar.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/card.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/button.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/checkbox.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/command.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/dialog.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/command.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/context-menu.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/dialog.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/drawer.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/dropdown-menu.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/form.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/label.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/form.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/hover-card.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/input-otp.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/input.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/label.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/menubar.tsx", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:Carousel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:useCarousel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/carousel.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:Carousel", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartContainer", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartStyle", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartTooltipContent", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartLegendContent", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:getPayloadConfigFromPayload", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartContainer", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartStyle", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartTooltipContent", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/chart.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/chart.tsx:ChartLegendContent", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/form.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/form.tsx:useFormField", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/form.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/form.tsx:useFormField", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/calendar.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/calendar.tsx:Calendar", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/calendar.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/calendar.tsx:Calendar", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/command.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/command.tsx:CommandDialog", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:Design Front End UI_UX/src/app/components/ui/command.tsx", "target": "function:Design Front End UI_UX/src/app/components/ui/command.tsx:CommandDialog", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:Design Front End UI_UX/src/app/components/ui/carousel.tsx:Carousel", "target": "file:Design Front End UI_UX/src/app/components/ui/utils.ts", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:Design Front End UI_UX/src/app/components/ui/calendar.tsx:Calendar", "target": "function:Design Front End UI_UX/src/app/components/ui/button.tsx:buttonVariants", "type": "calls", "direction": "forward", "weight": 0.8}
+  ]
+}

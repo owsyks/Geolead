@@ -1,0 +1,183 @@
+{
+  "batchIndex": 16,
+  "nodes": [
+    {
+      "id": "file:check_followups.js",
+      "type": "file",
+      "label": "check_followups.js",
+      "path": "check_followups.js",
+      "language": "javascript",
+      "summary": "Standalone Prisma diagnostic script that connects to the database and reports queued email-log counts, the next 20 emails the scheduler would grab, per-campaign daily send usage, and per-sender daily/hourly quota usage, then disconnects.",
+      "metrics": { "totalLines": 47, "nonEmptyLines": 41, "importCount": 0, "functionCount": 0, "classCount": 0 }
+    },
+    {
+      "id": "file:check_unsub.js",
+      "type": "file",
+      "label": "check_unsub.js",
+      "path": "check_unsub.js",
+      "language": "javascript",
+      "summary": "Standalone Prisma diagnostic script used to inspect unsubscribe/suppression records in the database.",
+      "metrics": { "totalLines": 19, "nonEmptyLines": 19, "importCount": 0, "functionCount": 0, "classCount": 0 }
+    },
+    {
+      "id": "file:db.$disconnect())",
+      "type": "file",
+      "label": "db.$disconnect())",
+      "path": "db.$disconnect())",
+      "language": "unknown",
+      "summary": "Degraded scanner artifact (a misparsed fragment of a `.finally(() => db.$disconnect())` call); zero parseable content. Emitted to preserve a 1:1 node-per-file mapping.",
+      "metrics": { "totalLines": 1, "nonEmptyLines": 0 }
+    },
+    {
+      "id": "document:Design Front End UI_UX/guidelines/Guidelines.md",
+      "type": "document",
+      "label": "Guidelines.md",
+      "path": "Design Front End UI_UX/guidelines/Guidelines.md",
+      "language": "markdown",
+      "summary": "Design-system guideline document for the Vite/React design app, covering general guidelines plus button usage and variants conventions.",
+      "metrics": { "totalLines": 61, "nonEmptyLines": 46, "sectionCount": 5 },
+      "sections": ["General guidelines", "Design system guidelines", "Button", "Usage", "Variants"]
+    },
+    {
+      "id": "config:Design Front End UI_UX/postcss.config.mjs",
+      "type": "config",
+      "label": "postcss.config.mjs (design)",
+      "path": "Design Front End UI_UX/postcss.config.mjs",
+      "language": "javascript",
+      "summary": "PostCSS configuration for the Vite/React design app (Tailwind/autoprefixer plugin wiring).",
+      "metrics": { "totalLines": 15, "nonEmptyLines": 15 }
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/figma/ImageWithFallback.tsx",
+      "type": "file",
+      "label": "ImageWithFallback.tsx",
+      "path": "Design Front End UI_UX/src/app/components/figma/ImageWithFallback.tsx",
+      "language": "typescript",
+      "summary": "React component that renders an image and swaps to a fallback error placeholder when the source fails to load, using local useState error tracking.",
+      "metrics": { "totalLines": 27, "nonEmptyLines": 22, "exportCount": 1, "functionCount": 1 },
+      "exports": ["ImageWithFallback"]
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/aspect-ratio.tsx",
+      "type": "file",
+      "label": "aspect-ratio.tsx",
+      "path": "Design Front End UI_UX/src/app/components/ui/aspect-ratio.tsx",
+      "language": "typescript",
+      "summary": "Radix-based AspectRatio UI primitive wrapper for the design system component library.",
+      "metrics": { "totalLines": 11, "nonEmptyLines": 8, "exportCount": 1, "functionCount": 1 },
+      "exports": ["AspectRatio"]
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/collapsible.tsx",
+      "type": "file",
+      "label": "collapsible.tsx",
+      "path": "Design Front End UI_UX/src/app/components/ui/collapsible.tsx",
+      "language": "typescript",
+      "summary": "Radix-based Collapsible UI primitives (Collapsible, CollapsibleTrigger, CollapsibleContent) for the design system component library.",
+      "metrics": { "totalLines": 33, "nonEmptyLines": 28, "exportCount": 3, "functionCount": 3 },
+      "exports": ["Collapsible", "CollapsibleTrigger", "CollapsibleContent"]
+    },
+    {
+      "id": "file:Design Front End UI_UX/src/app/components/ui/sonner.tsx",
+      "type": "file",
+      "label": "sonner.tsx",
+      "path": "Design Front End UI_UX/src/app/components/ui/sonner.tsx",
+      "language": "typescript",
+      "summary": "Toaster component wrapping the Sonner toast library, themed via the app's useTheme hook.",
+      "metrics": { "totalLines": 25, "nonEmptyLines": 21, "exportCount": 1, "functionCount": 1 },
+      "exports": ["Toaster"]
+    },
+    {
+      "id": "document:Design Front End UI_UX/src/imports/pasted_text/aurora-terminal-prompt.md",
+      "type": "document",
+      "label": "aurora-terminal-prompt.md",
+      "path": "Design Front End UI_UX/src/imports/pasted_text/aurora-terminal-prompt.md",
+      "language": "markdown",
+      "summary": "Flagship UI/UX build specification ('Aurora Terminal' v2) for GeoLead AI: design language, color tokens, motion system, signature moments, app frame, full component library, and a page-by-page spec for every route plus global behaviors and data models.",
+      "metrics": { "totalLines": 324, "nonEmptyLines": 244, "sectionCount": 44 },
+      "sections": ["GeoLead AI — Flagship UI/UX Build Prompt (v2 \"Aurora Terminal\")", "0. NORTH STAR", "1. DESIGN LANGUAGE & VISUAL SYSTEM", "2. MOTION SYSTEM", "3. SIGNATURE \"WOW\" MOMENTS", "4. AI-NATIVE LAYER", "5. POWER-USER BACKBONE", "6. APP FRAME", "7. CORE COMPONENT LIBRARY", "8. PAGE-BY-PAGE SPECIFICATION", "9. GLOBAL BEHAVIORS", "10. DATA MODELS", "11. TASTE GUARDRAILS"]
+    },
+    {
+      "id": "config:Design Front End UI_UX/vite.config.ts",
+      "type": "config",
+      "label": "vite.config.ts",
+      "path": "Design Front End UI_UX/vite.config.ts",
+      "language": "typescript",
+      "summary": "Vite build configuration for the design app, including a custom figmaAssetResolver plugin that rewrites figma:asset import IDs to local resolved paths.",
+      "metrics": { "totalLines": 36, "nonEmptyLines": 32, "functionCount": 1 }
+    },
+    {
+      "id": "file:fix_sender.js",
+      "type": "file",
+      "label": "fix_sender.js",
+      "path": "fix_sender.js",
+      "language": "javascript",
+      "summary": "Standalone maintenance script that AES-GCM encrypts a sender-account secret (via a local encrypt() helper) and writes the fixed value, mirroring the backend secrets encryption scheme.",
+      "metrics": { "totalLines": 30, "nonEmptyLines": 25, "functionCount": 1 }
+    },
+    {
+      "id": "config:frontend/eslint.config.mjs",
+      "type": "config",
+      "label": "eslint.config.mjs",
+      "path": "frontend/eslint.config.mjs",
+      "language": "javascript",
+      "summary": "ESLint flat-config for the Next.js frontend, extending the next/core-web-vitals and TypeScript rule sets.",
+      "metrics": { "totalLines": 18, "nonEmptyLines": 16 }
+    },
+    {
+      "id": "config:frontend/next.config.ts",
+      "type": "config",
+      "label": "next.config.ts",
+      "path": "frontend/next.config.ts",
+      "language": "typescript",
+      "summary": "Next.js configuration: standalone output, disabled powered-by header, and a pinned Turbopack workspace root to resolve the correct lockfile.",
+      "metrics": { "totalLines": 15, "nonEmptyLines": 13 }
+    },
+    {
+      "id": "config:frontend/postcss.config.mjs",
+      "type": "config",
+      "label": "postcss.config.mjs (frontend)",
+      "path": "frontend/postcss.config.mjs",
+      "language": "javascript",
+      "summary": "PostCSS configuration for the Next.js frontend (Tailwind plugin wiring).",
+      "metrics": { "totalLines": 7, "nonEmptyLines": 6 }
+    },
+    {
+      "id": "file:frontend/src/app/globals.css",
+      "type": "file",
+      "label": "globals.css",
+      "path": "frontend/src/app/globals.css",
+      "language": "css",
+      "summary": "Global stylesheet for the Next.js frontend: Tailwind layers, CSS custom-property design tokens, base element styling, and shared utility classes imported by the root layout.",
+      "metrics": { "totalLines": 222, "nonEmptyLines": 198 }
+    },
+    {
+      "id": "file:frontend/src/app/lead-explorer/page.tsx",
+      "type": "file",
+      "label": "lead-explorer/page.tsx",
+      "path": "frontend/src/app/lead-explorer/page.tsx",
+      "language": "typescript",
+      "summary": "Next.js alias route page that redirects /lead-explorer to the dashboard via a server redirect.",
+      "metrics": { "totalLines": 5, "nonEmptyLines": 4, "exportCount": 1, "functionCount": 1 },
+      "exports": ["LeadExplorerAliasPage"]
+    },
+    {
+      "id": "file:frontend/src/app/pricing/page.tsx",
+      "type": "file",
+      "label": "pricing/page.tsx",
+      "path": "frontend/src/app/pricing/page.tsx",
+      "language": "typescript",
+      "summary": "Public pricing page for the Next.js frontend, rendering plan tiers and a FAQ section (scraping process, GDPR compliance, cancellation, AI relevance score).",
+      "metrics": { "totalLines": 168, "nonEmptyLines": 160, "exportCount": 1, "functionCount": 1 },
+      "exports": ["PricingPage"]
+    }
+  ],
+  "edges": [
+    {
+      "type": "imports",
+      "from": "file:frontend/src/app/layout.tsx",
+      "to": "file:frontend/src/app/globals.css",
+      "summary": "The Next.js root layout (batch 1) imports the global stylesheet."
+    }
+  ]
+}

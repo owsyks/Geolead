@@ -1,0 +1,7 @@
+{
+  "projectRoot": "C:/Users/VVV/Desktop/SaaS",
+  "batchFiles": [
+    { "path": "backend/src/services/crawler.ts", "language": "typescript", "sizeLines": 414, "fileCategory": "code" }
+  ],
+  "batchImportData": {}
+}

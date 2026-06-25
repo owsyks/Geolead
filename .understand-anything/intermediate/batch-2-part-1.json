@@ -1,0 +1,179 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/src/config/db.ts",
+      "type": "file",
+      "name": "db.ts",
+      "filePath": "backend/src/config/db.ts",
+      "summary": "Instantiates and exports the shared Prisma client singleton used by every backend service and route for PostgreSQL access.",
+      "tags": ["data-model", "singleton", "config", "database"],
+      "complexity": "simple",
+      "languageNotes": "Single shared PrismaClient instance avoids exhausting the connection pool across the app."
+    },
+    {
+      "id": "file:backend/src/config/secrets.ts",
+      "type": "file",
+      "name": "secrets.ts",
+      "filePath": "backend/src/config/secrets.ts",
+      "summary": "Provides AES-based symmetric encryption/decryption helpers for storing sensitive credentials (e.g. SMTP/provider keys) at rest.",
+      "tags": ["security", "utility", "serialization", "config"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/config/secrets.ts:encryptSecret",
+      "type": "function",
+      "name": "encryptSecret",
+      "filePath": "backend/src/config/secrets.ts",
+      "lineRange": [7, 13],
+      "summary": "Encrypts a plaintext secret value into a storable ciphertext string using the configured encryption key.",
+      "tags": ["security", "encryption", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/config/secrets.ts:decryptSecret",
+      "type": "function",
+      "name": "decryptSecret",
+      "filePath": "backend/src/config/secrets.ts",
+      "lineRange": [15, 24],
+      "summary": "Decrypts a previously encrypted secret string back into plaintext for runtime use.",
+      "tags": ["security", "encryption", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/middleware/auth.ts",
+      "type": "file",
+      "name": "auth.ts",
+      "filePath": "backend/src/middleware/auth.ts",
+      "summary": "Express middleware that extracts and verifies bearer JWTs, attaching the authenticated user to the request and gating protected routes.",
+      "tags": ["middleware", "security", "api-handler", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/middleware/auth.ts:requireAuth",
+      "type": "function",
+      "name": "requireAuth",
+      "filePath": "backend/src/middleware/auth.ts",
+      "lineRange": [26, 38],
+      "summary": "Middleware that rejects requests lacking a valid access token and otherwise populates req.user for downstream handlers.",
+      "tags": ["middleware", "authentication", "security"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/middleware/auth.ts:optionalAuth",
+      "type": "function",
+      "name": "optionalAuth",
+      "filePath": "backend/src/middleware/auth.ts",
+      "lineRange": [40, 50],
+      "summary": "Middleware that attaches the user when a valid token is present but allows unauthenticated requests to proceed.",
+      "tags": ["middleware", "authentication", "security"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/middleware/rateLimit.ts",
+      "type": "file",
+      "name": "rateLimit.ts",
+      "filePath": "backend/src/middleware/rateLimit.ts",
+      "summary": "In-memory sliding-window rate limiter middleware factory keyed by client identity to throttle abusive API traffic.",
+      "tags": ["middleware", "rate-limiting", "security", "api-handler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/src/middleware/rateLimit.ts:rateLimit",
+      "type": "function",
+      "name": "rateLimit",
+      "filePath": "backend/src/middleware/rateLimit.ts",
+      "lineRange": [24, 41],
+      "summary": "Factory returning an Express middleware that enforces a request limit per key within a rolling time window.",
+      "tags": ["middleware", "rate-limiting", "factory"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/queues/queues.ts",
+      "type": "file",
+      "name": "queues.ts",
+      "filePath": "backend/src/queues/queues.ts",
+      "summary": "Configures the shared Redis connection and BullMQ queue instances for scraping, outbound sending, and email verification jobs.",
+      "tags": ["service", "queue", "config", "infrastructure"],
+      "complexity": "simple",
+      "languageNotes": "BullMQ queues share a single ioredis connection to coordinate background job processing."
+    },
+    {
+      "id": "file:backend/src/routes/auth.ts",
+      "type": "file",
+      "name": "auth.ts",
+      "filePath": "backend/src/routes/auth.ts",
+      "summary": "Express router exposing authentication endpoints — register, login, token refresh, logout, email verification, and password reset — wiring requests to the auth service.",
+      "tags": ["api-handler", "authentication", "router", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/src/routes/email.ts",
+      "type": "file",
+      "name": "email.ts",
+      "filePath": "backend/src/routes/email.ts",
+      "summary": "Express router for email verification and deliverability assessment endpoints, queueing bulk jobs and summarizing per-email results.",
+      "tags": ["api-handler", "router", "email", "validation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/src/routes/email.ts:summarizeDeliverability",
+      "type": "function",
+      "name": "summarizeDeliverability",
+      "filePath": "backend/src/routes/email.ts",
+      "lineRange": [262, 282],
+      "summary": "Aggregates a list of deliverability assessment results into summary counts and distribution buckets for the API response.",
+      "tags": ["utility", "serialization", "email"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/src/routes/inbox.ts",
+      "type": "file",
+      "name": "inbox.ts",
+      "filePath": "backend/src/routes/inbox.ts",
+      "summary": "Express router managing IMAP mailbox configuration, manual sync triggers, and inbox message listing, redacting credentials before responding.",
+      "tags": ["api-handler", "router", "email", "inbox"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/src/routes/inbox.ts:redactMailbox",
+      "type": "function",
+      "name": "redactMailbox",
+      "filePath": "backend/src/routes/inbox.ts",
+      "lineRange": [191, 208],
+      "summary": "Strips secret IMAP credentials from a mailbox record so it can be safely returned to the client.",
+      "tags": ["security", "serialization", "utility"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/src/config/secrets.ts", "target": "function:backend/src/config/secrets.ts:encryptSecret", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/config/secrets.ts", "target": "function:backend/src/config/secrets.ts:decryptSecret", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/config/secrets.ts", "target": "function:backend/src/config/secrets.ts:encryptSecret", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/config/secrets.ts", "target": "function:backend/src/config/secrets.ts:decryptSecret", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "function:backend/src/middleware/auth.ts:requireAuth", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "function:backend/src/middleware/auth.ts:optionalAuth", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "function:backend/src/middleware/auth.ts:requireAuth", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "function:backend/src/middleware/auth.ts:optionalAuth", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/middleware/auth.ts", "target": "file:backend/src/services/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/middleware/rateLimit.ts", "target": "function:backend/src/middleware/rateLimit.ts:rateLimit", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/middleware/rateLimit.ts", "target": "function:backend/src/middleware/rateLimit.ts:rateLimit", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/src/routes/auth.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/auth.ts", "target": "file:backend/src/middleware/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/auth.ts", "target": "file:backend/src/middleware/rateLimit.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/auth.ts", "target": "file:backend/src/services/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/auth.ts", "target": "file:backend/src/services/mailer.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/email.ts", "target": "function:backend/src/routes/email.ts:summarizeDeliverability", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/routes/email.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/email.ts", "target": "file:backend/src/middleware/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/email.ts", "target": "file:backend/src/queues/queues.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/email.ts", "target": "file:backend/src/services/deliverabilityEngine.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/email.ts", "target": "file:backend/src/services/emailVerification.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "function:backend/src/routes/inbox.ts:redactMailbox", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "file:backend/src/config/db.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "file:backend/src/config/secrets.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "file:backend/src/middleware/auth.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "file:backend/src/services/inboxSync.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/src/routes/inbox.ts", "target": "file:backend/src/services/replyAnalysis.ts", "type": "imports", "direction": "forward", "weight": 0.7}
+  ]
+}
