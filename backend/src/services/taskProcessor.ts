@@ -330,9 +330,9 @@ export async function processSearchTask(taskId: string) {
           name: result.companyName || result.title || result.domain,
           website: result.url,
           location: result.address || undefined,
-          category: undefined,
-          rating: undefined,
-          reviewsCount: undefined,
+          category: result.category ?? undefined,
+          rating: typeof result.rating === 'number' ? result.rating : undefined,
+          reviewsCount: typeof result.reviewsCount === 'number' ? result.reviewsCount : undefined,
           phoneNumbers: result.phones.map(p => p.value),
           snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
           snippetPhones: result.phones.map(p => p.value),
@@ -349,6 +349,11 @@ export async function processSearchTask(taskId: string) {
           const existing = discoveredBusinesses.get(domainKey)!;
           existing.snippetEmails.push(...discovered.snippetEmails);
           existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
+          // Backfill richer fields if the duplicate (e.g. the Maps copy) has them.
+          if (existing.rating == null && discovered.rating != null) existing.rating = discovered.rating;
+          if (existing.reviewsCount == null && discovered.reviewsCount != null) existing.reviewsCount = discovered.reviewsCount;
+          if (!existing.category && discovered.category) existing.category = discovered.category;
+          if (!existing.location && discovered.location) existing.location = discovered.location;
         }
       }
     } catch (error: any) {
