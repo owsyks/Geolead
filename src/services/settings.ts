@@ -15,6 +15,7 @@ export interface SettingDefinition {
   envKey?: string; // process.env fallback name
   placeholder?: string;
   hint?: string;
+  hidden?: boolean; // resolved via env fallback but NOT shown on the Settings page
 }
 
 // The single source of truth for what the Settings page can edit. Add a row
@@ -45,6 +46,12 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   // Branding / compliance
   { key: 'physicalAddress', label: 'Physical mailing address', category: 'branding', envKey: 'OUTBOUND_PHYSICAL_ADDRESS', placeholder: 'Company, Street, City, ZIP', hint: 'Required in every cold email footer for CAN-SPAM compliance.' },
   { key: 'adminEmail', label: 'Admin / fallback email', category: 'branding', envKey: 'OUTBOUND_ADMIN_EMAIL', placeholder: 'admin@yourdomain.com' },
+
+  // Discovery (self-hosted crawler) — hidden from the UI, but the env-var fallback
+  // (CRAWLER_BASE_URL / CRAWLER_API_KEY) MUST stay registered here or getSetting()
+  // can't resolve the crawler and every search returns nothing.
+  { key: 'crawlerBaseUrl', label: 'Crawler URL', category: 'discovery', envKey: 'CRAWLER_BASE_URL', hidden: true },
+  { key: 'crawlerApiKey', label: 'Crawler API key', category: 'discovery', secret: true, envKey: 'CRAWLER_API_KEY', hidden: true },
 ];
 
 const DEF_BY_KEY = new Map(SETTING_DEFINITIONS.map((def) => [def.key, def]));
@@ -119,7 +126,7 @@ export async function setSettings(values: Record<string, string | null>, userId:
 // plaintext — we send a boolean `hasValue` and a masked hint instead.
 export async function getSettingsForDisplay(userId: string) {
   const store = await loadCache();
-  return SETTING_DEFINITIONS.map((def) => {
+  return SETTING_DEFINITIONS.filter((def) => !def.hidden).map((def) => {
     const stored = store.get(ck(userId, def.key));
     const hasDbValue = stored != null && stored !== '';
     const fromEnv = !hasDbValue && !!(def.envKey && process.env[def.envKey]);
