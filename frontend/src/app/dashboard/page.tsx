@@ -50,6 +50,24 @@ interface LeadEmail {
   sourcePage?: string;
 }
 
+interface SearchTask {
+  id: string;
+  keyword: string;
+  domainIdea: string;
+  country?: string;
+  cityState?: string;
+  searchDepth: number;
+  searchSource?: string;
+  proxyscrapeEnabled?: boolean;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED' | 'STOPPED';
+  progress: number;
+  totalLeads: number;
+  validEmails: number;
+  createdAt: string;
+}
+
+const TERMINAL_TASK_STATUSES: SearchTask['status'][] = ['COMPLETED', 'FAILED', 'PAUSED', 'CANCELLED', 'STOPPED'];
+
 interface Lead {
   id: string;
   businessName: string;
@@ -95,22 +113,6 @@ interface Lead {
   priorityScore?: number | null;
   buyerInsights?: Record<string, any> | null;
   contactStrategy?: string | null;
-}
-
-interface SearchTask {
-  id: string;
-  keyword: string;
-  domainIdea: string;
-  country?: string;
-  cityState?: string;
-  searchDepth: number;
-  searchSource?: string;
-  proxyscrapeEnabled?: boolean;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED';
-  progress: number;
-  totalLeads: number;
-  validEmails: number;
-  createdAt: string;
 }
 
 type ExportCellValue = string | number;
@@ -589,7 +591,7 @@ export default function DashboardPage() {
         setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
         setSelectedTask(updatedTask);
 
-        if (["COMPLETED", "FAILED", "PAUSED", "CANCELLED"].includes(updatedTask.status)) {
+        if (TERMINAL_TASK_STATUSES.includes(updatedTask.status)) {
           stopPolling();
           fetchHistory();
           return;
@@ -863,7 +865,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!selectedTask || isDemoMode) return;
     const { id, status, totalLeads } = selectedTask;
-    const terminal = ["COMPLETED", "PAUSED", "CANCELLED", "FAILED"].includes(status);
+    const terminal = TERMINAL_TASK_STATUSES.includes(status);
     const key = `${id}:${terminal ? status : `processing:${totalLeads}`}`;
     if (key === lastLeadFetchKey.current) return;
     lastLeadFetchKey.current = key;
@@ -1202,7 +1204,7 @@ export default function DashboardPage() {
     return true;
   }), [leads, channelFilter]);
 
-  const selectedTerminal = !!selectedTask && ["COMPLETED", "PAUSED", "CANCELLED"].includes(selectedTask.status);
+  const selectedTerminal = !!selectedTask && TERMINAL_TASK_STATUSES.includes(selectedTask.status);
   const { highPriorityCount, avgMatch } = useMemo(() => ({
     highPriorityCount: leads.filter(l => (l.priorityScore ?? l.domainMatchScore) >= 75).length,
     avgMatch: leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + l.domainMatchScore, 0) / leads.length) : 0,
