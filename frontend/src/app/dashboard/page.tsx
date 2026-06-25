@@ -1114,6 +1114,7 @@ export default function DashboardPage() {
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
           try {
+            if (typeof document !== "undefined" && document.hidden) return; // pause in background tabs
             const progressRes = await authFetch(`${BACKEND_URL}/api/email/verify-bulk/progress/${token}?offset=0`);
             if (!progressRes.ok) return;
             const progress = await progressRes.json();
@@ -1136,7 +1137,7 @@ export default function DashboardPage() {
             if (verifyPollInterval.current) { clearInterval(verifyPollInterval.current); verifyPollInterval.current = null; }
             setVerifying(false);
           }
-        }, 300);
+        }, 800);
         return;
       }
 
@@ -1154,6 +1155,7 @@ export default function DashboardPage() {
         if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
         verifyPollInterval.current = setInterval(async () => {
           try {
+            if (typeof document !== "undefined" && document.hidden) return; // pause in background tabs
             const statusRes = await authFetch(`${BACKEND_URL}/api/email/verify-bulk/${jobId}`);
             if (!statusRes.ok) return;
             const job = await statusRes.json();

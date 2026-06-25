@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { EmptyState, OutboundShell } from "@/components/OutboundShell";
+import { VirtualList } from "@/components/VirtualList";
 import { GlassCard, PillButton } from "@/components/ui";
 import { ClientDate } from "@/lib/ClientDate";
 import {
@@ -285,7 +286,7 @@ export default function InboxPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto divide-y divide-border">
+            <div className="flex-1 min-h-0">
               {loading ? (
                 <div className="p-6 text-sm text-text-muted">Loading…</div>
               ) : replies.length === 0 ? (
@@ -293,35 +294,41 @@ export default function InboxPage() {
                   <EmptyState title="No replies here" body="Connect your Gmail in Settings and hit Sync — matched replies will appear automatically." />
                 </div>
               ) : (
-                replies.map((reply) => {
-                  const active = selected?.id === reply.id;
-                  return (
-                    <button
-                      key={reply.id}
-                      onClick={() => void openReply(reply)}
-                      className={`w-full text-left p-4 cursor-pointer transition-colors relative block ${
-                        active ? "bg-brand/5 border-l-2 border-l-brand" : "hover:bg-surface-2/30 border-l-2 border-l-transparent"
-                      }`}
-                    >
-                      {!reply.isRead && <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand animate-pulse" />}
-                      <div className="flex justify-between items-start mb-1 pr-4">
-                        <div className={`text-[14px] truncate ${!reply.isRead ? "font-bold" : "font-medium"}`}>
-                          {reply.lead?.businessName || reply.fromEmail}
+                <VirtualList
+                  items={replies}
+                  getKey={(reply) => reply.id}
+                  estimateSize={128}
+                  gap={0}
+                  maxHeightClass="h-full"
+                  renderItem={(reply) => {
+                    const active = selected?.id === reply.id;
+                    return (
+                      <button
+                        onClick={() => void openReply(reply)}
+                        className={`w-full text-left p-4 cursor-pointer transition-colors relative block border-b border-border ${
+                          active ? "bg-brand/5 border-l-2 border-l-brand" : "hover:bg-surface-2/30 border-l-2 border-l-transparent"
+                        }`}
+                      >
+                        {!reply.isRead && <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand animate-pulse" />}
+                        <div className="flex justify-between items-start mb-1 pr-4">
+                          <div className={`text-[14px] truncate ${!reply.isRead ? "font-bold" : "font-medium"}`}>
+                            {reply.lead?.businessName || reply.fromEmail}
+                          </div>
+                          <div className="text-[11px] text-text-muted whitespace-nowrap"><ClientDate value={reply.receivedAt} /></div>
                         </div>
-                        <div className="text-[11px] text-text-muted whitespace-nowrap"><ClientDate value={reply.receivedAt} /></div>
-                      </div>
-                      <div className="text-[12px] text-text-muted truncate mb-2">{reply.subject}</div>
-                      <div className="text-[13px] text-text-muted line-clamp-2 leading-relaxed mb-3">
-                        {reply.aiSummary || reply.body.slice(0, 120)}
-                      </div>
-                      {reply.aiCategory ? (
-                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${categoryClass(reply.aiCategory)}`}>
-                          {reply.aiCategory.toUpperCase()}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })
+                        <div className="text-[12px] text-text-muted truncate mb-2">{reply.subject}</div>
+                        <div className="text-[13px] text-text-muted line-clamp-2 leading-relaxed mb-3">
+                          {reply.aiSummary || reply.body.slice(0, 120)}
+                        </div>
+                        {reply.aiCategory ? (
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${categoryClass(reply.aiCategory)}`}>
+                            {reply.aiCategory.toUpperCase()}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  }}
+                />
               )}
             </div>
           </div>

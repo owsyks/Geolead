@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { EmptyState, OutboundShell } from "@/components/OutboundShell";
+import { VirtualList } from "@/components/VirtualList";
 import { GlassCard, KanbanColumn, StatusBadge } from "@/components/ui";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
@@ -215,10 +216,12 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     let active = true;
-    const refreshQuota = () =>
-      fetchOutbound<SendQuota>("/api/outbound/quota")
+    const refreshQuota = () => {
+      if (typeof document !== "undefined" && document.hidden) return; // skip in background tabs
+      return fetchOutbound<SendQuota>("/api/outbound/quota")
         .then((q) => { if (active) setQuota(q); })
         .catch(() => {});
+    };
     void refreshQuota();
     const id = setInterval(refreshQuota, 30000);
     return () => { active = false; clearInterval(id); };
@@ -593,7 +596,7 @@ export default function CampaignsPage() {
                 )}
               </div>
 
-              <div className="mt-3 max-h-72 overflow-y-auto space-y-2 pr-1">
+              <div className="mt-3">
                 {leadsLoading ? (
                   <div className="py-8 flex items-center justify-center gap-2 text-xs text-text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading leads…</div>
                 ) : leads.length === 0 ? (
@@ -602,18 +605,25 @@ export default function CampaignsPage() {
                     body={leadsScopedToDomain ? "Run the Lead Explorer for this domain first, or switch to All my leads." : "Run the lead explorer first, or create the campaign without assigned leads."}
                   />
                 ) : (
-                  leads.map((lead) => (
-                    <label key={lead.id} className="flex gap-3 rounded-lg border border-border bg-bg p-3 text-sm">
-                      <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} className="mt-1 h-4 w-4 accent-brand" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold text-text truncate">{lead.businessName}</span>
-                        <span className="mt-1 block text-xs text-text-muted">
-                          {lead.location || lead.category || "Verified lead"} · {lead.domainMatchScore}% match
-                          {lead.emails.length > 0 ? ` · ${lead.emails.length} email${lead.emails.length > 1 ? "s" : ""}` : ""}
+                  <VirtualList
+                    items={leads}
+                    getKey={(lead) => lead.id}
+                    estimateSize={72}
+                    maxHeightClass="max-h-72"
+                    className="pr-1"
+                    renderItem={(lead) => (
+                      <label className="flex gap-3 rounded-lg border border-border bg-bg p-3 text-sm">
+                        <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} className="mt-1 h-4 w-4 accent-brand" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold text-text truncate">{lead.businessName}</span>
+                          <span className="mt-1 block text-xs text-text-muted">
+                            {lead.location || lead.category || "Verified lead"} · {lead.domainMatchScore}% match
+                            {lead.emails.length > 0 ? ` · ${lead.emails.length} email${lead.emails.length > 1 ? "s" : ""}` : ""}
+                          </span>
                         </span>
-                      </span>
-                    </label>
-                  ))
+                      </label>
+                    )}
+                  />
                 )}
               </div>
             </div>

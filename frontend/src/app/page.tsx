@@ -193,6 +193,10 @@ export default function HomePage() {
     const wsUrl = OUTBOUND_API_BASE.replace(/^http/, "ws") + "/ws/outbound";
     let socket: WebSocket | null = null;
 
+    // Coalesce bursts of socket messages into ONE render per animation frame
+    // (a chatty backend can emit many events/sec); skip rendering in hidden tabs.
+    const pending: OutboundEventSummary[] = [];
+    let rafScheduled = false;
     try {
       socket = new WebSocket(wsUrl);
       socket.onmessage = (message) => {
@@ -208,7 +212,16 @@ export default function HomePage() {
             variant: raw.payload?.variant || undefined,
             businessName: raw.payload?.businessName || undefined,
           };
-          setEvents((current) => [event, ...current].slice(0, 8));
+          pending.unshift(event);
+          if (!rafScheduled) {
+            rafScheduled = true;
+            requestAnimationFrame(() => {
+              rafScheduled = false;
+              const batch = pending.splice(0);
+              if (typeof document !== "undefined" && document.hidden) return;
+              setEvents((current) => [...batch, ...current].slice(0, 8));
+            });
+          }
         } catch {
           /* malformed message, ignore */
         }
@@ -234,9 +247,13 @@ export default function HomePage() {
     ? Math.round(overview.campaigns.reduce((s, c) => s + (c.engagementScore || 0), 0) / overview.campaigns.length)
     : Math.round(metrics.openRate);
 
-  const sparkData = overview.campaigns.length >= 2
-    ? overview.campaigns.map((c) => c.engagementScore || 0)
-    : [42, 55, 48, 63, 58, 72, engagement];
+  const sparkData = useMemo(
+    () =>
+      overview.campaigns.length >= 2
+        ? overview.campaigns.map((c) => c.engagementScore || 0)
+        : [42, 55, 48, 63, 58, 72, engagement],
+    [overview.campaigns, engagement]
+  );
 
   const geoPulse = useMemo(
     () =>
