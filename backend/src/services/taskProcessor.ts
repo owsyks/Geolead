@@ -299,7 +299,7 @@ export async function processSearchTask(taskId: string) {
       const crawlResult = await searchAndCrawl({
         keyword: searchQuery,
         region: mapCountryToRegion(task.country || undefined),
-        maxResults: Math.max(task.searchDepth, 10),
+        maxResults: 350,
         source: searchSource as 'web' | 'google_maps' | 'combined',
         proxyscrapeEnabled,
         userId: task.userId,
@@ -378,7 +378,7 @@ export async function processSearchTask(taskId: string) {
 
     const businessList = Array.from(discoveredBusinesses.values())
       .sort((a, b) => scoreDiscoveredBusiness(b, searchContext) - scoreDiscoveredBusiness(a, searchContext))
-      .slice(0, Math.max(task.searchDepth, 10));
+      .slice(0, 350);
     console.log(
       `[Processor] Funnel: raw=${rawResultCount} -> unique=${discoveredBusinesses.size} -> processing=${businessList.length} ` +
       `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} noEmail:${droppedNoEmail} wrongCountry:${droppedWrongCountry} filtered:${droppedFiltered})`,

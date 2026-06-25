@@ -10,7 +10,6 @@ import {
   Mail,
   RefreshCcw,
   Save,
-  Search,
   Server,
   ShieldAlert,
   Webhook,
@@ -69,14 +68,13 @@ const SECTION_META: Record<
   { title: string; description: string; icon: typeof Bot; provider?: string }
 > = {
   ai: { title: "AI (NVIDIA / Kimi)", description: "Email generation and AI lead scoring via NVIDIA NIM.", icon: Bot, provider: "nvidia" },
-  discovery: { title: "Search Provider (Crawler)", description: "Self-hosted crawler for lead discovery + email extraction.", icon: Search, provider: "crawler" },
   email: { title: "Email Sending (Resend)", description: "Outbound email delivery and reply routing.", icon: Mail, provider: "resend" },
   smtp: { title: "SMTP Server", description: "Reusable SMTP credentials for a custom sending server.", icon: Server, provider: "smtp" },
   inbound: { title: "Inbound Webhook", description: "Secret that protects the inbound reply webhook.", icon: Webhook },
   branding: { title: "Branding & Compliance", description: "Sender identity and the physical address required in every email footer.", icon: Globe2 },
 };
 
-const SECTION_ORDER: Category[] = ["ai", "discovery", "email", "smtp", "inbound", "branding"];
+const SECTION_ORDER: Category[] = ["ai", "email", "smtp", "inbound", "branding"];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingItem[]>([]);

@@ -417,7 +417,7 @@ export const REPLY_CATEGORIES = [
 export interface SettingItem {
   key: string;
   label: string;
-  category: "ai" | "discovery" | "email" | "inbound" | "smtp" | "branding";
+  category: "ai" | "email" | "inbound" | "smtp" | "branding";
   secret: boolean;
   placeholder: string;
   hint: string;

@@ -24,10 +24,6 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'nvidiaApiKey', label: 'NVIDIA API key', category: 'ai', secret: true, envKey: 'NVIDIA_API_KEY', placeholder: 'nvapi-…', hint: 'Powers AI email generation and lead scoring via integrate.api.nvidia.com. Falls back to local templates if empty.' },
   { key: 'nvidiaModel', label: 'NVIDIA model', category: 'ai', envKey: 'NVIDIA_MODEL', placeholder: 'moonshotai/kimi-k2.6', hint: 'Model id on NVIDIA NIM. Defaults to moonshotai/kimi-k2.6.' },
 
-  // Discovery (self-hosted crawler)
-  { key: 'crawlerBaseUrl', label: 'Crawler URL', category: 'discovery', envKey: 'CRAWLER_BASE_URL', placeholder: 'http://localhost:8000', hint: 'Your self-hosted crawler API address for lead discovery + email extraction.' },
-  { key: 'crawlerApiKey', label: 'Crawler API key', category: 'discovery', secret: true, envKey: 'CRAWLER_API_KEY', placeholder: 'X-API-Key', hint: 'Auth key set in the crawler .env (API_KEY=...).' },
-
   // Email (Resend)
   { key: 'resendApiKey', label: 'Resend API key', category: 'email', secret: true, envKey: 'RESEND_API_KEY', placeholder: 're_…', hint: 'Used to send outbound email via Resend.' },
   { key: 'resendFromEmail', label: 'Resend from email', category: 'email', envKey: 'RESEND_FROM_EMAIL', placeholder: 'you@yourdomain.com', hint: 'Verified sending address.' },
