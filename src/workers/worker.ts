@@ -4,7 +4,7 @@ dotenv.config();
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
-import { searchAndCrawl, stopCrawlerJob, stopAllCrawlerJobs } from '../services/crawlerClient.js';
+import { searchAndCrawl, stopCrawlerJob, stopAllCrawlerJobs, isWrongCountry } from '../services/crawlerClient.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
 import axios from 'axios';
@@ -122,6 +122,10 @@ const worker = new Worker<ScrapingJobData>(
           const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
           if (skipDomains.some(skip => domainKey.includes(skip))) continue;
 
+          if (result.emails.length === 0) continue;
+
+          if (isWrongCountry(result.address, task.country || '')) continue;
+
           if (!discoveredBusinesses.has(domainKey)) {
             discoveredBusinesses.set(domainKey, {
               name: result.companyName || result.title || result.domain,
@@ -157,8 +161,8 @@ const worker = new Worker<ScrapingJobData>(
         data: { progress: 30 },
       });
 
-      const businessList = Array.from(discoveredBusinesses.values()).slice(0, task.searchDepth);
-      console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length} based on depth limit.`);
+      const businessList = Array.from(discoveredBusinesses.values()).slice(0, Math.max(task.searchDepth, 10));
+      console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses (email-only, correct country). Crawling top ${businessList.length}.`);
 
       if (businessList.length === 0) {
         console.log('[Worker] No businesses discovered — crawler returned empty results.');
