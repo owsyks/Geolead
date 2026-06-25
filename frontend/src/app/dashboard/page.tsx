@@ -125,7 +125,7 @@ export default function DashboardPage() {
   const [domainIdea, setDomainIdea] = useState("");
   const [country, setCountry] = useState("United States");
   const [cityState, setCityState] = useState("");
-  const [searchDepth, setSearchDepth] = useState(10);
+  const [searchDepth, setSearchDepth] = useState(50);
   const [searchSource, setSearchSource] = useState<'combined' | 'web' | 'google_maps'>('web');
   const [railOpen, setRailOpen] = useState(false);
 

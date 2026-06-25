@@ -139,7 +139,7 @@ async function pollJob(
   // Combined Web+Maps searches at high max_results are slow on modest hardware.
   // Give them room; partial-result fetch on exit is the safety net so a long
   // search never silently yields zero leads.
-  const maxWaitMs = 30 * 60 * 1000;
+  const maxWaitMs = 40 * 60 * 1000;
   const intervalMs = 3000;
   const start = Date.now();
 

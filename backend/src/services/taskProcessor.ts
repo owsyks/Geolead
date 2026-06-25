@@ -270,7 +270,7 @@ export async function processSearchTask(taskId: string) {
     let rawResultCount = 0;
     let droppedNoDomain = 0;
     let droppedBlockedHost = 0;
-    let droppedNoEmail = 0;
+    let droppedNoContact = 0;
     let droppedWrongCountry = 0;
     let droppedFiltered = 0;
 
@@ -322,7 +322,10 @@ export async function processSearchTask(taskId: string) {
 
         if (isBlockedWebsiteHost(domainKey)) { droppedBlockedHost++; continue; }
 
-        if (result.emails.length === 0) { droppedNoEmail++; continue; }
+        // Keep a lead if it has ANY contact channel (email OR phone). Only drop
+        // results with no email AND no phone — e.g. a Maps business with just a
+        // phone (incl. .maps.local no-website ones) is still a valid lead.
+        if (result.emails.length === 0 && result.phones.length === 0) { droppedNoContact++; continue; }
 
         if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
 
@@ -386,14 +389,14 @@ export async function processSearchTask(taskId: string) {
       .slice(0, 350);
     console.log(
       `[Processor] Funnel: raw=${rawResultCount} -> unique=${discoveredBusinesses.size} -> processing=${businessList.length} ` +
-      `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} noEmail:${droppedNoEmail} wrongCountry:${droppedWrongCountry} filtered:${droppedFiltered})`,
+      `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} noEmail:${droppedNoContact} wrongCountry:${droppedWrongCountry} filtered:${droppedFiltered})`,
     );
 
     if (businessList.length === 0) {
       const zeroLeadsReason = rawResultCount === 0 ? 'crawler_returned_zero' : 'all_results_filtered';
       console.warn(
         `[Processor] SearchTask ${taskId} produced 0 leads. raw=${rawResultCount} ` +
-        `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, noEmail:${droppedNoEmail}, wrongCountry:${droppedWrongCountry}, filtered:${droppedFiltered}} ` +
+        `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, noEmail:${droppedNoContact}, wrongCountry:${droppedWrongCountry}, filtered:${droppedFiltered}} ` +
         `unique=${discoveredBusinesses.size} reason=${zeroLeadsReason}`,
       );
       await prisma.searchTask.update({
@@ -407,7 +410,7 @@ export async function processSearchTask(taskId: string) {
             ...taskMetadata,
             zeroLeadsReason,
             rawResultCount,
-            droppedCounts: { droppedNoDomain, droppedBlockedHost, droppedNoEmail, droppedWrongCountry, droppedFiltered },
+            droppedCounts: { droppedNoDomain, droppedBlockedHost, droppedNoContact, droppedWrongCountry, droppedFiltered },
           } as any,
         },
       });
