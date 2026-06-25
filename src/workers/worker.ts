@@ -233,6 +233,7 @@ const worker = new Worker<ScrapingJobData>(
           const createdLead = await prisma.lead.create({
             data: {
               taskId,
+              ownerId: task.userId,
               businessName: biz.name,
               website: biz.website || null,
               location: biz.location || null,

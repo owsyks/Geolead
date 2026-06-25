@@ -128,9 +128,12 @@ async function pollJob(
   apiKey: string | undefined,
   onProgress?: (processed: number, total: number) => void,
   shouldCancel?: () => Promise<boolean>,
-): Promise<void> {
+): Promise<'completed' | 'timeout' | 'stopped'> {
   const headers = makeHeaders(apiKey);
-  const maxWaitMs = 10 * 60 * 1000;
+  // Combined Web+Maps searches at high max_results are slow on modest hardware.
+  // Give them room; partial-result fetch on exit is the safety net so a long
+  // search never silently yields zero leads.
+  const maxWaitMs = 30 * 60 * 1000;
   const intervalMs = 3000;
   const start = Date.now();
 
@@ -159,14 +162,25 @@ async function pollJob(
       onProgress(job.processedUrls, job.totalUrls);
     }
 
-    if (job.status === 'completed') return;
-    if (job.status === 'failed' || job.status === 'stopped') {
-      throw new Error(`Crawler job ${jobId} ${job.status}: ${job.error || 'unknown error'}`);
+    if (job.status === 'completed') return 'completed';
+    // A 'stopped' job has usually already crawled some sites — do NOT discard them;
+    // return so the caller fetches whatever the crawler persisted.
+    if (job.status === 'stopped') {
+      console.warn(`[CrawlerClient] Job ${jobId} stopped — fetching partial results.`);
+      return 'stopped';
+    }
+    if (job.status === 'failed') {
+      throw new Error(`Crawler job ${jobId} failed: ${job.error || 'unknown error'}`);
     }
   }
 
+  // Timed out: stop the crawler to free resources, but RETURN (don't throw) so the
+  // caller still ingests the leads found so far. Throwing here was discarding a
+  // full crawl's worth of results on every long search.
+  const mins = Math.round(maxWaitMs / 60000);
+  console.warn(`[CrawlerClient] Job ${jobId} exceeded ${mins} min — stopping and fetching partial results.`);
   try { await axios.post(`${baseUrl}/api/jobs/${jobId}/stop`, {}, { headers, timeout: 10000 }); } catch { /* ignore */ }
-  throw new Error(`Crawler job ${jobId} timed out after 15 minutes`);
+  return 'timeout';
 }
 
 async function fetchResults(jobId: number, baseUrl: string, apiKey: string | undefined): Promise<CrawlerBusiness[]> {
@@ -259,9 +273,9 @@ export async function searchAndCrawl(params: {
   const jobId: number = startRes.data.id;
   console.log(`[CrawlerClient] Crawler job ${jobId} started for "${params.keyword}"`);
 
-  await pollJob(jobId, baseUrl, apiKey, params.onProgress, params.shouldCancel);
+  const outcome = await pollJob(jobId, baseUrl, apiKey, params.onProgress, params.shouldCancel);
   const results = await fetchResults(jobId, baseUrl, apiKey);
-  console.log(`[CrawlerClient] Job ${jobId} complete — ${results.length} businesses with contacts`);
+  console.log(`[CrawlerClient] Job ${jobId} ${outcome} — ${results.length} businesses with contacts${outcome !== 'completed' ? ' (partial)' : ''}`);
 
   return { results, jobId };
 }
