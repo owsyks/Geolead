@@ -276,7 +276,7 @@ export async function processSearchTask(taskId: string) {
 
     const taskMetadata = (task.metadata as any) || {};
     const searchSource = (taskMetadata.searchSource as string) || 'web';
-    const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled === true;
+    const proxyscrapeEnabled = taskMetadata.proxyscrapeEnabled !== false;
 
     // shouldCancel callback — checks DB task status on every poll iteration
     const shouldCancel = async (): Promise<boolean> => {

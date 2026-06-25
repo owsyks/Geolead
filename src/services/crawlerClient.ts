@@ -255,7 +255,7 @@ export async function searchAndCrawl(params: {
   const region = params.region || 'us-en';
   const maxResults = params.maxResults || 350;
   const source = params.source || 'web';
-  const proxyscrapeEnabled = params.proxyscrapeEnabled ?? false;
+  const proxyscrapeEnabled = params.proxyscrapeEnabled ?? true;
 
   console.log(`[CrawlerClient] Starting search+crawl: keyword="${params.keyword}" region=${region} max=${maxResults} source=${source} proxies=${proxyscrapeEnabled}`);
   const startRes = await axios.post(
