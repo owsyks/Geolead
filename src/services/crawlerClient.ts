@@ -239,7 +239,7 @@ export async function searchAndCrawl(params: {
   }
 
   const region = params.region || 'us-en';
-  const maxResults = params.maxResults || 10;
+  const maxResults = params.maxResults || 350;
   const source = params.source || 'web';
   const proxyscrapeEnabled = params.proxyscrapeEnabled ?? false;
 
@@ -301,7 +301,7 @@ export async function searchMaps(
   const { results } = await searchAndCrawl({
     keyword: query,
     source: 'google_maps',
-    maxResults: maxResults || 10,
+    maxResults: maxResults || 350,
     userId,
   });
   return results;

@@ -100,7 +100,7 @@ const worker = new Worker<ScrapingJobData>(
         const crawlResult = await searchAndCrawl({
           keyword: searchQuery,
           region: task.country ? mapCountryToRegion(task.country) : 'us-en',
-          maxResults: Math.max(task.searchDepth, 10),
+          maxResults: 350,
           source: searchSource as 'web' | 'google_maps' | 'combined',
           proxyscrapeEnabled,
           userId: task.userId,
@@ -161,7 +161,7 @@ const worker = new Worker<ScrapingJobData>(
         data: { progress: 30 },
       });
 
-      const businessList = Array.from(discoveredBusinesses.values()).slice(0, Math.max(task.searchDepth, 10));
+      const businessList = Array.from(discoveredBusinesses.values()).slice(0, 350);
       console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses (email-only, correct country). Crawling top ${businessList.length}.`);
 
       if (businessList.length === 0) {
