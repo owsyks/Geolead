@@ -10,6 +10,9 @@ export interface CrawlerBusiness {
   contactPage: string | null;
   source: string;
   relevance: number;
+  rating: number | null;
+  reviewsCount: number | null;
+  category: string | null;
   emails: { value: string; sourceUrl: string }[];
   phones: { value: string; sourceUrl: string }[];
   socials: { value: string; platform: string; sourceUrl: string }[];
@@ -52,6 +55,9 @@ interface CrawlerResultsResponse {
     contact_page: string | null;
     source: string;
     relevance: number;
+    rating: number | null;
+    reviews_count: number | null;
+    category: string | null;
     emails: { value: string; source_url: string }[];
     phones: { value: string; source_url: string }[];
     socials: { value: string; platform: string; source_url: string }[];
@@ -208,6 +214,9 @@ async function fetchResults(jobId: number, baseUrl: string, apiKey: string | und
             contactPage: item.contact_page,
             source: item.source || 'web',
             relevance: item.relevance || 0,
+            rating: item.rating ?? null,
+            reviewsCount: item.reviews_count ?? null,
+            category: item.category ?? null,
             emails: (item.emails || []).map((e) => ({ value: e.value, sourceUrl: e.source_url })),
             phones: (item.phones || []).map((p) => ({ value: p.value, sourceUrl: p.source_url })),
             socials: (item.socials || []).map((s) => ({ value: s.value, platform: s.platform, sourceUrl: s.source_url })),
