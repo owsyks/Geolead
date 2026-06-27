@@ -62,16 +62,24 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 
 // Thin wrapper around fetch that injects the Bearer token and returns the raw
 // Response — for call sites that need custom handling (blobs, status checks).
-// Does NOT auto-refresh; use fetchOutbound for JSON endpoints that should.
-export function authFetch(input: string, init?: RequestInit): Promise<Response> {
+// On 401 it transparently refreshes the access token once and replays, so an
+// expired session doesn't hard-fail the dashboard (search/history/leads/tasks).
+export async function authFetch(input: string, init?: RequestInit, _retried = false): Promise<Response> {
   const token = getAccessToken();
-  return fetch(input, {
+  const res = await fetch(input, {
     ...init,
     headers: {
       ...(init?.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+  if (res.status === 401 && !_retried) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return authFetch(input, init, true);
+    clearTokens();
+    onUnauthorized?.();
+  }
+  return res;
 }
 
 export class ApiError extends Error {
