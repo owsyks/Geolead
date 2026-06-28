@@ -67,7 +67,6 @@ const DIRECTORY_DOMAINS = [
 ];
 
 const HOME_SERVICE_RELATED_PATTERN = /\b(handyman|handywoman|handyperson|home repair|home repairs|home improvement|home improvements|property maintenance|general contractor|contractor|construction|remodel|remodeler|remodeling|renovation|drywall|dry wall|painting|flooring|roofing|carpentry|carpenter|plumbing|plumber|electrical|electrician|hvac|appliance repair|lawn care|landscaping|home services?|fix it|fixit|odd jobs?|maintenance)\b/i;
-const NON_HOME_REPAIR_PATTERN = /\b(auto|automotive|vehicle|car repair|diesel|transmission|brake|brakes|tire|tires|collision|phone repair|smartphone|mobile phone|iphone|computer repair|screen repair|engine repair|small engine|glass repair)\b/i;
 
 const STATE_ABBREVIATIONS: Record<string, string> = {
   alabama: 'al',
@@ -299,7 +298,7 @@ export async function processSearchTask(taskId: string) {
       const crawlResult = await searchAndCrawl({
         keyword: searchQuery,
         region: mapCountryToRegion(task.country || undefined),
-        maxResults: task.searchDepth,   // the UI "Depth" slider (1-200) drives volume
+        maxResults: Math.max(task.searchDepth * 3, 350),   // request 3x depth so filtering has more to work with
         source: searchSource as 'web' | 'google_maps' | 'combined',
         proxyscrapeEnabled,
         userId: task.userId,
@@ -731,38 +730,22 @@ function buildSearchContext(keyword: string, cityState?: string): SearchContext 
 // strong evidence: a known directory host, an explicit wrong-region match, or a
 // near-zero crawler relevance.
 function shouldSkipDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext) {
-  // 1. Known directory/aggregator hosts, .gov, .edu — always drop.
-  const websiteHost = getWebsiteHost(biz.website);
-  if (websiteHost && isBlockedWebsiteHost(websiteHost)) {
-    return true;
-  }
-
   const haystack = normalizeText(`${biz.name} ${biz.category || ''} ${biz.location || ''} ${biz.website || ''} ${biz.snippet || ''}`);
 
-  // 2. Explicit WRONG-region: a *different* US state literally named in the text
+  // 1. Explicit WRONG-region: a *different* US state literally named in the text
   //    (e.g. searching "Indianapolis, IN" but the text says "Indianapolis, OH").
   //    Positive-match only, so address-less web results are never affected.
   if (context.wrongRegionNeedles.some((needle) => needle && haystack.includes(needle))) {
     return true;
   }
 
-  // 3. Zero relevance floor. The crawler already scored & filtered earlier rows;
+  // 2. Zero relevance floor. The crawler already scored & filtered earlier rows;
   //    only drop results with literally zero relevance (complete junk).
-  //    Previously dropped <0.1, which was discarding valid low-confidence leads.
   if (typeof biz.relevance === 'number' && biz.relevance <= 0) {
     return true;
   }
 
-  // 4. Handyman niche: preserve the tighter home-service gating ONLY for handyman
-  //    searches so that niche doesn't regress (region is NOT required — web results
-  //    have no address, and wrong-region is already handled in step 2).
-  if (context.primaryKeyword.includes('handyman')) {
-    const isHomeServiceRelated = HOME_SERVICE_RELATED_PATTERN.test(haystack);
-    const isNonHomeRepair = NON_HOME_REPAIR_PATTERN.test(haystack) && !/(home|property|contractor|construction|remodel|handyman)/i.test(haystack);
-    return isNonHomeRepair || !isHomeServiceRelated;
-  }
-
-  // 5. Default: trust the crawler. Keep the result.
+  // 3. Default: trust the crawler. Keep the result.
   return false;
 }
 
