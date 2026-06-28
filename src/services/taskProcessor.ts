@@ -1,15 +1,16 @@
 import prisma from '../config/db.js';
 import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs, isWrongCountry } from './crawlerClient.js';
 import { crawlWebsite } from './crawler.js';
-import { validateAndCleanEmails, aiFilterEmails } from './extractor.js';
+import { validateAndCleanEmails, aiFilterEmails, validateEmail } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
 import { calculateMatchScore } from './aiScoring.js';
 import { getCompanyIntel, scoreBusinessQuality } from './companyIntelligence.js';
 import { discoverDecisionMaker } from './decisionMaker.js';
 import { analyzeBuyerIntent } from './buyerIntent.js';
-import { scoreDomainFit } from './domainFit.js';
 import { type EmailCandidate, extractEmailCandidates, extractPhoneCandidates, normalizePhoneList } from './contactUtils.js';
 import { scoreContactIntelligence } from './contactIntelligence.js';
+import { scoreDomainFit } from './domainFit.js';
+import { lookupDomainOwner } from './reverseWhois.js';
 
 interface DiscoveredBiz {
   name: string;
@@ -67,6 +68,133 @@ const DIRECTORY_DOMAINS = [
 ];
 
 const HOME_SERVICE_RELATED_PATTERN = /\b(handyman|handywoman|handyperson|home repair|home repairs|home improvement|home improvements|property maintenance|general contractor|contractor|construction|remodel|remodeler|remodeling|renovation|drywall|dry wall|painting|flooring|roofing|carpentry|carpenter|plumbing|plumber|electrical|electrician|hvac|appliance repair|lawn care|landscaping|home services?|fix it|fixit|odd jobs?|maintenance)\b/i;
+
+// Auto-expand a keyword into related searches so the crawler discovers
+// businesses that use different terminology (e.g. "handyman" → "contractor").
+// Each sub-search runs in parallel and results are deduplicated by domain.
+const KEYWORD_EXPANSIONS: Record<string, string[]> = {
+  handyman: ['contractor', 'home repair', 'home improvement', 'property maintenance', 'remodeling', 'handy person'],
+  'home repair': ['handyman', 'contractor', 'home improvement', 'property maintenance'],
+  plumber: ['plumbing', 'drain cleaning', 'water heater repair', 'sewer repair', 'pipe repair'],
+  plumbing: ['plumber', 'drain cleaning', 'water heater repair', 'sewer repair'],
+  electrician: ['electrical', 'electrical contractor', 'electrical repair', 'wiring'],
+  electrical: ['electrician', 'electrical contractor'],
+  painter: ['painting', 'painter contractor', 'house painter', 'interior painting', 'exterior painting'],
+  painting: ['painter', 'house painter', 'interior painting', 'exterior painting'],
+  roofer: ['roofing', 'roof repair', 'roof replacement', 'roofing contractor'],
+  roofing: ['roofer', 'roof repair', 'roof replacement'],
+  carpenter: ['carpentry', 'woodwork', 'cabinet maker', 'cabinetry'],
+  'landscaping': ['landscape', 'lawn care', 'lawn service', 'yard maintenance', 'gardener'],
+  'lawn care': ['landscaping', 'lawn service', 'yard maintenance', 'gardener'],
+  hvac: ['heating and cooling', 'ac repair', 'furnace repair', 'hvac contractor', 'air conditioning'],
+  'general contractor': ['contractor', 'home remodeling', 'home renovation', 'construction'],
+  cleaner: ['cleaning', 'cleaning service', 'house cleaning', 'commercial cleaning', 'janitorial'],
+  cleaning: ['cleaner', 'cleaning service', 'house cleaning'],
+  'real estate agent': ['realtor', 'real estate broker'],
+  dentist: ['dental', 'family dentist', 'cosmetic dentistry'],
+  'massage therapy': ['massage therapist', 'massage'],
+  photographer: ['photography', 'event photographer', 'wedding photographer'],
+  'personal trainer': ['fitness trainer', 'gym', 'fitness coach'],
+  'auto repair': ['mechanic', 'auto mechanic', 'car repair', 'automotive repair'],
+  mechanic: ['auto repair', 'car repair', 'automotive repair'],
+  'web developer': ['web designer', 'web development', 'freelance developer'],
+  'digital marketing': ['marketing agency', 'seo', 'social media marketing'],
+  'real estate': ['realtor', 'property management', 'real estate agent'],
+  'property management': ['property manager', 'real estate management'],
+  'home inspector': ['home inspection', 'property inspection'],
+};
+
+// Proximity cities for major US metros — when a search targets city X,
+// automatically expand to nearby cities in the same metro.
+const PROXIMITY_CITIES: Record<string, Record<string, string[]>> = {
+  seattle: { wa: ['bellevue', 'redmond', 'kirkland', 'renton', 'everett', 'shoreline', 'lynnwood', 'edmonds', 'kent', 'federal way', 'auburn', 'issaquah', 'sammamish'] },
+  portland: { or: ['beaverton', 'hillsboro', 'gresham', 'vancouver', 'tigard', 'lake oswego', 'clackamas'] },
+  'new york': { ny: ['brooklyn', 'queens', 'bronx', 'staten island', 'manhattan', 'jersey city', 'newark', 'yonkers'] },
+  'los angeles': { ca: ['beverly hills', 'santa monica', 'glendale', 'pasadena', 'long beach', 'burbank', 'culver city', 'inglewood', 'torrance'] },
+  chicago: { il: ['evanston', 'oak park', 'skokie', 'arlington heights', 'naperville', 'aurora', 'joliet', 'cicero'] },
+  'san francisco': { ca: ['oakland', 'berkeley', 'san mateo', 'palo alto', 'mountain view', 'sunnyvale', 'south san francisco', 'daly city'] },
+  'san jose': { ca: ['sunnyvale', 'santa clara', 'mountain view', 'milpitas', 'campbell', 'cupertino', 'los gatos'] },
+  boston: { ma: ['cambridge', 'somerville', 'brookline', 'quincy', 'newton', 'waltham', 'medford', 'malden'] },
+  denver: { co: ['aurora', 'lakewood', 'arvada', 'westminster', 'thornton', 'centennial', 'englewood'] },
+  dallas: { tx: ['fort worth', 'arlington', 'plano', 'garland', 'irving', 'carrollton', 'frisco', 'mckinney', 'richardson'] },
+  houston: { tx: ['sugar land', 'katy', 'the woodlands', 'pearland', 'pasadena', 'spring', 'conroe'] },
+  atlanta: { ga: ['marietta', 'sandy springs', 'roswell', 'alpharetta', 'decatur', 'smyrna', 'brookhaven', 'dunwoody'] },
+  miami: { fl: ['fort lauderdale', 'hollywood', 'hialeah', 'coral gables', 'miami beach', 'kendall', 'west palm beach'] },
+  phoenix: { az: ['mesa', 'chandler', 'glendale', 'scottsdale', 'tempe', 'peoria', 'surprise', 'gilbert'] },
+  philadelphia: { pa: ['camden', 'cherry hill', 'upper darby', 'bensalem', 'levittown', 'chester'] },
+  'san diego': { ca: ['chula vista', 'oceanside', 'escondido', 'carlsbad', 'el cajon', 'vista', 'san marcos'] },
+  minneapolis: { mn: ['st paul', 'bloomington', 'plymouth', 'eden prairie', 'maple grove', 'burnsville'] },
+  detroit: { mi: ['warren', 'dearborn', 'livonia', 'sterling heights', 'troy', 'southfield', 'farmington hills'] },
+  orlando: { fl: ['kissimmee', 'sanford', 'winter park', 'altamonte springs', 'lakeland'] },
+  tampa: { fl: ['st petersburg', 'clearwater', 'brandon', 'largo', 'sarasota', 'bradenton'] },
+  nashville: { tn: ['franklin', 'brentwood', 'murfreesboro', 'hendersonville', 'smyrna', 'gallatin'] },
+  austin: { tx: ['round rock', 'cedar park', 'kyle', 'pflugerville', 'san marcos', 'georgetown'] },
+  charlotte: { nc: ['concord', 'gastonia', 'huntersville', 'rock hill', 'matthews', 'pineville'] },
+  'las vegas': { nv: ['henderson', 'north las vegas', 'spring valley', 'enterprise', 'paradise'] },
+  'kansas city': { mo: ['overland park', 'independence', 'olathe', 'lenexa', 'kansas city ks', 'liberty'] },
+  memphis: { tn: ['germantown', 'collierville', 'bartlett', 'cordova', 'olive branch'] },
+  'salt lake city': { ut: ['west valley city', 'provo', 'orem', 'sandy', 'draper', 'murray', 'layton'] },
+  raleigh: { nc: ['durham', 'cary', 'chapel hill', 'apex', 'wake forest', 'garner'] },
+  indianapolis: { in: ['carmel', 'fishers', 'noblesville', 'greenwood', 'plainfield', 'avon'] },
+  louisville: { ky: ['jeffersontown', 'st matthews', 'shepherdsville', 'new albany'] },
+  milwaukee: { wi: ['wauwatosa', 'brookfield', 'greenfield', 'west allis', 'menomonee falls'] },
+  columbus: { oh: ['dublin', 'upper arlington', 'westerville', 'gahanna', 'hilliard', 'grove city'] },
+};
+
+const COMMON_EMAIL_PREFIXES = ['info', 'contact', 'hello', 'office', 'admin', 'sales', 'support', 'inquiries', 'team', 'care', 'hello', 'hiring'];
+
+/**
+ * Generates plausible email addresses for a domain and optionally SMTP-verifies them.
+ * Returns only the ones that pass SMTP validation.
+ */
+async function guessEmailsForDomain(
+  domain: string,
+  businessName: string,
+  maxGuesses: number = 8,
+): Promise<{ email: string; sourcePage: string }[]> {
+  const normalizedDomain = domain.toLowerCase().replace(/^www\./i, '');
+  const candidates = new Set<string>();
+
+  // 1. Common role-based prefixes
+  for (const prefix of COMMON_EMAIL_PREFIXES) {
+    candidates.add(`${prefix}@${normalizedDomain}`);
+  }
+
+  // 2. Try to extract a name from the business name
+  const nameWords = businessName
+    .replace(/[^a-zA-Z\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 1 && !['llc', 'inc', 'co', 'corp', 'and', 'the', 'for', 'of', '&'].includes(w.toLowerCase()));
+
+  if (nameWords.length >= 1) {
+    const first = nameWords[0].toLowerCase();
+    candidates.add(`${first}@${normalizedDomain}`);
+    if (nameWords.length >= 2) {
+      const last = nameWords[nameWords.length - 1].toLowerCase();
+      candidates.add(`${first}.${last}@${normalizedDomain}`);
+      candidates.add(`${first}${last}@${normalizedDomain}`);
+      candidates.add(`${last}@${normalizedDomain}`);
+    }
+  }
+
+  // 3. Service-specific prefixes common in the trades
+  candidates.add(`estimates@${normalizedDomain}`);
+  candidates.add(`service@${normalizedDomain}`);
+
+  const guessed = Array.from(candidates).slice(0, maxGuesses);
+
+  // SMTP-verify each guess, keep only valid/risky ones
+  const verified = await verifyEmailsBulk(guessed, 5);
+  const valid = verified
+    .filter(v => v.status === 'VALID' || v.status === 'RISKY')
+    .map(v => ({ email: v.email.toLowerCase(), sourcePage: `guessed:${normalizedDomain}` }));
+
+  if (valid.length > 0) {
+    console.log(`[EmailGuess] Generated ${guessed.length} candidates for ${normalizedDomain}, ${valid.length} verified valid`);
+  }
+
+  return valid;
+}
 
 const STATE_ABBREVIATIONS: Record<string, string> = {
   alabama: 'al',
@@ -252,9 +380,10 @@ export async function processSearchTask(taskId: string) {
       data: { status: 'PROCESSING', progress: 5 },
     });
 
-    // Build a single focused query: keyword + city/state (e.g. "marketing agencies Indianapolis")
-    const searchQuery = [task.keyword, task.cityState].filter(Boolean).join(' ').trim();
-    console.log(`[Processor] Search query: "${searchQuery}"`);
+    // Generate search queries: primary + keyword expansions + proximity cities
+    const searchQueries = buildSearchQueries(task.keyword, task.cityState || undefined);
+    const queryCount = searchQueries.length;
+    console.log(`[Processor] Generated ${queryCount} search queries: ${searchQueries.join(' | ')}`);
 
     await prisma.searchTask.update({
       where: { id: taskId },
@@ -284,99 +413,128 @@ export async function processSearchTask(taskId: string) {
     };
 
     // onProgress callback — update task progress during crawler search phase
-    const onCrawlerProgress = async (processed: number, total: number) => {
-      const pct = Math.floor(10 + (20 * (processed / Math.max(total, 1))));
+    const onCrawlerProgress = async (processed: number, total: number, queryIndex: number = 0) => {
+      // Spread progress across queries: first 10% for each query's search phase
+      const totalQueries = Math.max(searchQueries.length, 1);
+      const queryBasePct = (queryIndex / totalQueries) * 20;
+      const pct = Math.floor(queryBasePct + (20 / totalQueries) * (processed / Math.max(total, 1)));
       await prisma.searchTask.update({
         where: { id: taskId },
-        data: { progress: Math.min(pct, 30) },
+        data: { progress: Math.min(pct + 10, 29) },
       }).catch(() => undefined);
     };
 
-    console.log(`[Processor] Calling crawler: query="${searchQuery}" source=${searchSource} proxies=${proxyscrapeEnabled}`);
+    // Process each query sequentially to keep the crawler API fair, but accept partial results
+    const allCrawlerJobIds: number[] = [];
+    let queryIndex = 0;
 
-    try {
-      const crawlResult = await searchAndCrawl({
-        keyword: searchQuery,
-        region: mapCountryToRegion(task.country || undefined),
-        maxResults: Math.max(task.searchDepth * 3, 350),   // request 3x depth so filtering has more to work with
-        source: searchSource as 'web' | 'google_maps' | 'combined',
-        proxyscrapeEnabled,
-        userId: task.userId,
-        onProgress: onCrawlerProgress,
-        shouldCancel,
-      });
+    for (const query of searchQueries) {
+      queryIndex++;
+      const isPrimary = queryIndex === 1;
+      // Primary query gets full depth; expansions get proportionally less.
+      // Scale multiplier with depth so deep searches (200+) hunt aggressively.
+      const depthMultiplier = task.searchDepth >= 150 ? 4 : task.searchDepth >= 100 ? 3.5 : 3;
+      const expansionMultiplier = task.searchDepth >= 150 ? 2.5 : task.searchDepth >= 100 ? 2 : 1.5;
+      const queryMaxResults = isPrimary
+        ? Math.max(Math.round(task.searchDepth * depthMultiplier), 350)
+        : Math.max(Math.round(task.searchDepth * expansionMultiplier), 100);
+      const pctLabel = Math.floor((queryIndex / queryCount) * 100);
 
-      // Store crawler jobId in task metadata so Stop button can kill it
-      if (crawlResult.jobId) {
-        await prisma.searchTask.update({
-          where: { id: taskId },
-          data: { metadata: { ...taskMetadata, crawlerJobId: crawlResult.jobId } as any },
-        }).catch(() => undefined);
+      console.log(`[Processor] [${pctLabel}%] Crawler query ${queryIndex}/${queryCount}: "${query}"`);
+
+      // Check cancel/pause between queries
+      if (await shouldCancel()) {
+        console.log(`[Processor] SearchTask ${taskId} cancelled/paused — stopping multi-query expansion.`);
+        break;
       }
 
-      rawResultCount = crawlResult.results.length;
-      for (const result of crawlResult.results) {
-        const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+      try {
+        const crawlResult = await searchAndCrawl({
+          keyword: query,
+          region: mapCountryToRegion(task.country || undefined),
+          maxResults: queryMaxResults,
+          source: searchSource as 'web' | 'google_maps' | 'combined',
+          proxyscrapeEnabled,
+          userId: task.userId,
+          onProgress: (p, t) => onCrawlerProgress(p, t, queryIndex - 1),
+          shouldCancel,
+        });
 
-        // Check contact info FIRST — Maps results with a phone but no own
-        // website (domain=google.com) are still valid leads. Only drop if
-        // there's literally no way to reach the business.
-        if (result.emails.length === 0 && result.phones.length === 0) { droppedNoContact++; continue; }
-
-        if (!domainKey) { droppedNoDomain++; continue; }
-
-        if (isBlockedWebsiteHost(domainKey)) { droppedBlockedHost++; continue; }
-
-        if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
-
-        const discovered: DiscoveredBiz = {
-          name: result.companyName || result.title || result.domain,
-          website: result.url,
-          location: result.address || undefined,
-          category: result.category ?? undefined,
-          rating: typeof result.rating === 'number' ? result.rating : undefined,
-          reviewsCount: typeof result.reviewsCount === 'number' ? result.reviewsCount : undefined,
-          phoneNumbers: result.phones.map(p => p.value),
-          snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
-          snippetPhones: result.phones.map(p => p.value),
-          snippet: '',
-          source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
-          relevance: typeof result.relevance === 'number' ? result.relevance : undefined,
-        };
-
-        if (shouldSkipDiscoveredBusiness(discovered, searchContext)) { droppedFiltered++; continue; }
-
-        if (!discoveredBusinesses.has(domainKey)) {
-          discoveredBusinesses.set(domainKey, discovered);
-        } else {
-          const existing = discoveredBusinesses.get(domainKey)!;
-          existing.snippetEmails.push(...discovered.snippetEmails);
-          existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
-          // Backfill richer fields if the duplicate (e.g. the Maps copy) has them.
-          if (existing.rating == null && discovered.rating != null) existing.rating = discovered.rating;
-          if (existing.reviewsCount == null && discovered.reviewsCount != null) existing.reviewsCount = discovered.reviewsCount;
-          if (!existing.category && discovered.category) existing.category = discovered.category;
-          if (!existing.location && discovered.location) existing.location = discovered.location;
+        if (crawlResult.jobId) {
+          allCrawlerJobIds.push(crawlResult.jobId);
+          // Store the latest jobId so Stop button always has something to kill
+          await prisma.searchTask.update({
+            where: { id: taskId },
+            data: { metadata: { ...taskMetadata, crawlerJobId: crawlResult.jobId, allCrawlerJobIds } as any },
+          }).catch(() => undefined);
         }
+
+        rawResultCount += crawlResult.results.length;
+        for (const result of crawlResult.results) {
+          const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+
+          // Check contact info FIRST — Maps results with a phone but no own
+          // website (domain=google.com) are still valid leads. Only drop if
+          // there's literally no way to reach the business.
+          if (result.emails.length === 0 && result.phones.length === 0) { droppedNoContact++; continue; }
+
+          if (!domainKey) { droppedNoDomain++; continue; }
+
+          if (isBlockedWebsiteHost(domainKey)) {
+            // Block directory domains ONLY if they have zero emails (just the directory
+            // itself). If they have a business email, it's a genuine listing worth keeping.
+            if (result.emails.length === 0) { droppedBlockedHost++; continue; }
+          }
+
+          if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
+
+          const discovered: DiscoveredBiz = {
+            name: result.companyName || result.title || result.domain,
+            website: result.url,
+            location: result.address || undefined,
+            category: result.category ?? undefined,
+            rating: typeof result.rating === 'number' ? result.rating : undefined,
+            reviewsCount: typeof result.reviewsCount === 'number' ? result.reviewsCount : undefined,
+            phoneNumbers: result.phones.map(p => p.value),
+            snippetEmails: result.emails.map(e => ({ email: e.value, sourcePage: e.sourceUrl })),
+            snippetPhones: result.phones.map(p => p.value),
+            snippet: '',
+            source: result.source === 'google_maps' ? 'Google Maps' : 'Crawler',
+            relevance: typeof result.relevance === 'number' ? result.relevance : undefined,
+          };
+
+          if (shouldSkipDiscoveredBusiness(discovered, searchContext)) { droppedFiltered++; continue; }
+
+          if (!discoveredBusinesses.has(domainKey)) {
+            discoveredBusinesses.set(domainKey, discovered);
+          } else {
+            const existing = discoveredBusinesses.get(domainKey)!;
+            existing.snippetEmails.push(...discovered.snippetEmails);
+            existing.phoneNumbers.push(...discovered.phoneNumbers.filter(p => !existing.phoneNumbers.includes(p)));
+            // Backfill richer fields if the duplicate (e.g. the Maps copy) has them.
+            if (existing.rating == null && discovered.rating != null) existing.rating = discovered.rating;
+            if (existing.reviewsCount == null && discovered.reviewsCount != null) existing.reviewsCount = discovered.reviewsCount;
+            if (!existing.category && discovered.category) existing.category = discovered.category;
+            if (!existing.location && discovered.location) existing.location = discovered.location;
+          }
+        }
+      } catch (error: any) {
+        if (error.message?.includes('cancelled by user')) {
+          console.log(`[Processor] SearchTask ${taskId} cancelled during crawler search (query: "${query}").`);
+          // Don't return — still process results from completed queries
+          break;
+        }
+        if (error.message?.includes('Crawler is offline')) {
+          console.error(`[Processor] SearchTask ${taskId} FAILED — crawler offline: ${error.message}`);
+          await prisma.searchTask.update({
+            where: { id: taskId },
+            data: { status: 'FAILED', progress: 100, metadata: { ...taskMetadata, error: error.message } as any },
+          });
+          return;
+        }
+        console.error(`[Processor] Crawler search failed for query "${query}": ${error.message}`);
+        // Continue with other queries
       }
-    } catch (error: any) {
-      if (error.message?.includes('cancelled by user')) {
-        console.log(`[Processor] SearchTask ${taskId} cancelled during crawler search.`);
-        await prisma.searchTask.update({
-          where: { id: taskId },
-          data: { status: 'CANCELLED', progress: 100 },
-        });
-        return;
-      }
-      if (error.message?.includes('Crawler is offline')) {
-        console.error(`[Processor] SearchTask ${taskId} FAILED — crawler offline: ${error.message}`);
-        await prisma.searchTask.update({
-          where: { id: taskId },
-          data: { status: 'FAILED', progress: 100, metadata: { ...taskMetadata, error: error.message } as any },
-        });
-        return;
-      }
-      console.error(`[Processor] Crawler search failed: ${error.message}`);
     }
 
     await prisma.searchTask.update({
@@ -453,13 +611,53 @@ export async function processSearchTask(taskId: string) {
             ? await crawlWebsite(biz.website, maxInnerPages)
             : { emails: [], phones: [], socials: [], companySize: 'Unknown' as const, hasContactForm: false, notes: 'No website available' };
 
-          const validatedEmails = rankAndCapEmails(
+          let validatedEmails = rankAndCapEmails(
             await aiFilterEmails(
               await validateAndCleanEmails([...biz.snippetEmails, ...crawlData.emails]),
               { businessName: biz.name, website: biz.website, userId: task.userId }
             ),
             biz.website,
           );
+
+          // === Email Guessing: if no emails found but website exists, guess & verify ===
+          if (validatedEmails.length === 0 && biz.website) {
+            const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+            const guessed = await guessEmailsForDomain(domain, biz.name);
+            if (guessed.length > 0) {
+              const validated = rankAndCapEmails(
+                await aiFilterEmails(
+                  await validateAndCleanEmails(guessed),
+                  { businessName: biz.name, website: biz.website, userId: task.userId }
+                ),
+                biz.website,
+              );
+              if (validated.length > 0) {
+                console.log(`[Processor] Email guessing found ${validated.length} verified emails for ${biz.name} via ${domain}`);
+                validatedEmails = validated;
+              }
+            }
+          }
+
+          // === Reverse Whois: if still no emails, try domain registrant lookup ===
+          if (validatedEmails.length === 0 && biz.website) {
+            const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+            const whoisContacts = await lookupDomainOwner(domain);
+            if (whoisContacts.length > 0) {
+              const whoisEmailItems = whoisContacts.map(c => ({ email: c.email, sourcePage: `whois:${domain}` }));
+              const validated = rankAndCapEmails(
+                await aiFilterEmails(
+                  await validateAndCleanEmails(whoisEmailItems),
+                  { businessName: biz.name, website: biz.website, userId: task.userId }
+                ),
+                biz.website,
+              );
+              if (validated.length > 0) {
+                console.log(`[Processor] Reverse whois found ${validated.length} emails for ${biz.name} via ${domain}`);
+                validatedEmails = validated;
+              }
+            }
+          }
+
           const phoneNumbers = normalizePhoneList(
             [...biz.phoneNumbers, ...biz.snippetPhones, ...crawlData.phones],
             2
@@ -677,6 +875,60 @@ function extractEmails(text: string, sourcePage: string) {
 function extractPhones(text: string) {
   return extractPhoneCandidates(text)
     .flatMap((phone) => normalizePhoneList([phone]));
+}
+
+/**
+ * Generates all search queries for a task: the primary keyword+city, plus
+ * related keyword expansions and proximity-city variants. Results are ordered
+ * so the primary (most relevant) query runs first.
+ */
+function buildSearchQueries(keyword: string, cityState?: string): string[] {
+  const queries = new Set<string>();
+
+  // 1. Primary: keyword + city (e.g. "handyman Seattle, WA")
+  const primary = [keyword, cityState].filter(Boolean).join(' ').trim();
+  queries.add(primary);
+
+  // 2. Keyword expansions — check normalized keyword against expansion map
+  const keywordLower = keyword.toLowerCase().trim();
+  const expansions = KEYWORD_EXPANSIONS[keywordLower];
+  if (expansions && expansions.length > 0) {
+    for (const expanded of expansions) {
+      const q = [expanded, cityState].filter(Boolean).join(' ').trim();
+      if (q !== primary) queries.add(q);
+    }
+  }
+
+  // 3. Proximity cities — if cityState has a known metro, search nearby cities
+  if (cityState) {
+    const cityLower = normalizeText(cityState.split(',')[0]?.trim() || '');
+    const stateAbbrev = normalizeText(cityState.split(',')[1]?.trim() || '').toLowerCase();
+    const metro = PROXIMITY_CITIES[cityLower];
+    if (metro) {
+      // Verify the state matches (e.g. "Seattle, WA" matches the "seattle" entry under "wa")
+      for (const [metroState, nearbyCities] of Object.entries(metro)) {
+        if (metroState === stateAbbrev || stateAbbrev.includes(metroState)) {
+          for (const nearby of nearbyCities) {
+            const q = [keyword, `${nearby}, ${metroState.toUpperCase()}`].filter(Boolean).join(' ').trim();
+            if (q !== primary && !queries.has(q)) queries.add(q);
+          }
+        }
+      }
+    }
+  }
+
+  // Ensure primary is first, then deduplicate while preserving order
+  const result = Array.from(queries);
+  // Move primary to front if it isn't already
+  const primaryIdx = result.indexOf(primary);
+  if (primaryIdx > 0) {
+    result.splice(primaryIdx, 1);
+    result.unshift(primary);
+  }
+
+  // Cap total queries to avoid overwhelming the crawler
+  const MAX_QUERIES = 10;
+  return result.slice(0, MAX_QUERIES);
 }
 
 function buildSearchContext(keyword: string, cityState?: string): SearchContext {
