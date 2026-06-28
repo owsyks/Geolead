@@ -122,10 +122,13 @@ export async function validateEmail(email: string, sourcePage?: string): Promise
   let status: 'VALID' | 'RISKY' | 'INVALID' = 'VALID';
   const mailCheckStatus = await getDomainMailStatus(domain);
   if (mailCheckStatus === 'NO_MAIL_HOST') {
+    // Domain has no MX records, but the email MAY still work via forwarding,
+    // a subdomain provider, or a secondary infrastructure. Don't discard —
+    // mark it RISKY so the user gets the chance, but with low confidence.
     return {
       email: cleanedEmail,
-      status: 'INVALID',
-      confidenceScore: 0.2,
+      status: 'RISKY',
+      confidenceScore: 0.3,
       sourcePage
     };
   }

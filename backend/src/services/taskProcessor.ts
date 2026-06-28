@@ -318,14 +318,15 @@ export async function processSearchTask(taskId: string) {
       rawResultCount = crawlResult.results.length;
       for (const result of crawlResult.results) {
         const domainKey = result.domain.toLowerCase().replace(/^www\./, '');
+
+        // Check contact info FIRST — Maps results with a phone but no own
+        // website (domain=google.com) are still valid leads. Only drop if
+        // there's literally no way to reach the business.
+        if (result.emails.length === 0 && result.phones.length === 0) { droppedNoContact++; continue; }
+
         if (!domainKey) { droppedNoDomain++; continue; }
 
         if (isBlockedWebsiteHost(domainKey)) { droppedBlockedHost++; continue; }
-
-        // Keep a lead if it has ANY contact channel (email OR phone). Only drop
-        // results with no email AND no phone — e.g. a Maps business with just a
-        // phone (incl. .maps.local no-website ones) is still a valid lead.
-        if (result.emails.length === 0 && result.phones.length === 0) { droppedNoContact++; continue; }
 
         if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
 
@@ -428,8 +429,10 @@ export async function processSearchTask(taskId: string) {
       return current?.status;
     };
 
-    for (const biz of businessList) {
-      processedCount++;
+    const ENRICH_CONCURRENCY = Number(process.env.ENRICH_CONCURRENCY || 3);
+
+    for (let i = 0; i < businessList.length; i += ENRICH_CONCURRENCY) {
+      const chunk = businessList.slice(i, i + ENRICH_CONCURRENCY);
 
       const taskStatus = await checkTaskStatus();
       if (taskStatus === 'PAUSED') {
@@ -441,186 +444,192 @@ export async function processSearchTask(taskId: string) {
         break;
       }
 
-      console.log(`[Processor] [${processedCount}/${businessList.length}] Crawling site: ${biz.website}`);
+      await Promise.all(chunk.map(async (biz) => {
+        processedCount++;
+        console.log(`[Processor] [${processedCount}/${businessList.length}] Crawling site: ${biz.website}`);
 
-      try {
-        const maxInnerPages = task.searchDepth >= 100 ? 8 : task.searchDepth >= 50 ? 6 : 4;
-        const crawlData = biz.website
-          ? await crawlWebsite(biz.website, maxInnerPages)
-          : { emails: [], phones: [], socials: [], companySize: 'Unknown' as const, hasContactForm: false, notes: 'No website available' };
+        try {
+          const maxInnerPages = task.searchDepth >= 100 ? 8 : task.searchDepth >= 50 ? 6 : 4;
+          const crawlData = biz.website
+            ? await crawlWebsite(biz.website, maxInnerPages)
+            : { emails: [], phones: [], socials: [], companySize: 'Unknown' as const, hasContactForm: false, notes: 'No website available' };
 
-        const validatedEmails = await aiFilterEmails(
-          await validateAndCleanEmails([...biz.snippetEmails, ...crawlData.emails]),
-          { businessName: biz.name, website: biz.website, userId: task.userId }
-        );
-        const phoneNumbers = normalizePhoneList(
-          [...biz.phoneNumbers, ...biz.snippetPhones, ...crawlData.phones],
-          2
-        );
+          const validatedEmails = rankAndCapEmails(
+            await aiFilterEmails(
+              await validateAndCleanEmails([...biz.snippetEmails, ...crawlData.emails]),
+              { businessName: biz.name, website: biz.website, userId: task.userId }
+            ),
+            biz.website,
+          );
+          const phoneNumbers = normalizePhoneList(
+            [...biz.phoneNumbers, ...biz.snippetPhones, ...crawlData.phones],
+            2
+          );
 
-        // Skip leads that have neither a website nor any contact info — they're noise
-        if (!biz.website && validatedEmails.length === 0 && phoneNumbers.length === 0) {
-          console.log(`[Processor] Skipping lead "${biz.name}" — no website, emails, or phones.`);
-          continue;
-        }
+          // Skip leads that have neither a website nor any contact info — they're noise
+          if (!biz.website && validatedEmails.length === 0 && phoneNumbers.length === 0) {
+            console.log(`[Processor] Skipping lead "${biz.name}" — no website, emails, or phones.`);
+            return;
+          }
 
-        const businessName = refineBusinessName(biz.name, crawlData.pageTitle, biz.website, task.keyword);
-        const scoreData = await calculateMatchScore(
-          task.domainIdea,
-          businessName,
-          biz.category || undefined,
-          biz.location || undefined
-        );
-
-        const contactIntel = scoreContactIntelligence({
-          businessName,
-          website: biz.website,
-          location: biz.location,
-          googleMapsLink: biz.googleMapsLink,
-          category: biz.category,
-          phoneNumbers,
-          socialLinks: crawlData.socials,
-          hasValidEmail: validatedEmails.some(e => e.status === 'VALID'),
-          hasAnyEmail: validatedEmails.length > 0,
-        });
-
-        const createdLead = await prisma.lead.create({
-          data: {
-            taskId,
-            ownerId: task.userId,
+          const businessName = refineBusinessName(biz.name, crawlData.pageTitle, biz.website, task.keyword);
+          const scoreData = await calculateMatchScore(
+            task.domainIdea,
             businessName,
-            website: biz.website || null,
-            location: biz.location || null,
-            googleMapsLink: biz.googleMapsLink || null,
-            category: biz.category || null,
-            rating: biz.rating || null,
-            reviewsCount: biz.reviewsCount || null,
+            biz.category || undefined,
+            biz.location || undefined
+          );
+
+          const contactIntel = scoreContactIntelligence({
+            businessName,
+            website: biz.website,
+            location: biz.location,
+            googleMapsLink: biz.googleMapsLink,
+            category: biz.category,
             phoneNumbers,
             socialLinks: crawlData.socials,
-            domainMatchScore: scoreData.score,
-            scoreExplanation: scoreData.explanation,
-            companySize: crawlData.companySize,
-            summary: `${businessName} is a local business categorized as a ${biz.category || 'general service provider'}. AI evaluation scored this business ${scoreData.score}% relevant to the domain "${task.domainIdea}".`,
-            notes: crawlData.notes,
-            whatsappScore: contactIntel.whatsappScore,
-            whatsappConfidence: contactIntel.whatsappConfidence,
-            bestContactChannel: contactIntel.bestContactChannel,
-            contactChannelScores: contactIntel.channelScores as any,
-          },
-        });
-
-        // Email verification and the decision-maker/intelligence pipeline are
-        // independent (both only need createdLead.id), so run them concurrently
-        // instead of back-to-back. The whole enrichment is bounded by an overall
-        // timeout so one slow site or rate-limited AI call can't stall the loop
-        // (the inner work has its own timeouts; this is a final safety net).
-        const verifyEmailsTask = async () => {
-          if (validatedEmails.length === 0) return;
-          const verifications = await verifyEmailsBulk(
-            validatedEmails.map((ve) => ve.email),
-            5
-          );
-          const byEmail = new Map(verifications.map((v) => [v.email.toLowerCase(), v]));
-
-          await prisma.leadEmail.createMany({
-            data: validatedEmails.map((ve) => {
-              const v = byEmail.get(ve.email.toLowerCase());
-              return {
-                leadId: createdLead.id,
-                email: ve.email,
-                status: v?.status ?? ve.status,
-                confidenceScore: v ? v.confidenceScore / 100 : ve.confidenceScore,
-                sourcePage: ve.sourcePage,
-                provider: v?.provider ?? null,
-                mxHost: v?.mxHost ?? null,
-                mxValid: v?.mxValid ?? false,
-                disposable: v?.disposable ?? false,
-                roleAccount: v?.roleAccount ?? false,
-                freeProvider: v?.freeProvider ?? false,
-                catchAllRisk: v?.catchAllRisk ?? null,
-                riskLevel: v?.riskLevel ?? null,
-                reputationScore: v?.reputationScore ?? null,
-                verifiedAt: v ? new Date() : null,
-                verificationMetadata: v ? (v.verificationMetadata as any) : undefined,
-              };
-            }),
+            hasValidEmail: validatedEmails.some(e => e.status === 'VALID'),
+            hasAnyEmail: validatedEmails.length > 0,
           });
 
-          totalEmailsCount += validatedEmails.length;
-        };
-
-        // === Decision Maker & Buyer Intelligence Pipeline ===
-        const intelligenceTask = async () => {
-          if (!biz.website) return;
-          const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
-          const intel = await getCompanyIntel(domain);
-          const staffNames = intel.staffNames;
-          const pageText = crawlData.notes || '';
-
-          const dm = await discoverDecisionMaker(
-            businessName, biz.website, [pageText, crawlData.notes || ''],
-            staffNames, task.userId,
-          );
-
-          const intentScore = analyzeBuyerIntent({
-            businessName, currentDomain: domain, targetDomain: task.domainIdea,
-            category: biz.category || null, location: biz.location || null,
-            websiteText: pageText, domainMatchScore: scoreData.score,
-          });
-
-          const fitScore = scoreDomainFit({
-            businessName, currentDomain: domain, targetDomain: task.domainIdea,
-            location: biz.location || null, category: biz.category || null,
-          });
-
-          const qualityScore = scoreBusinessQuality(
-            intel, biz.rating || null, biz.reviewsCount || null,
-            biz.category || null, crawlData.companySize,
-          );
-
-          const dmScore = dm.score || 40;
-          const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
-
-          let contactStrategy = 'contact_form';
-          if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
-          else if (validatedEmails.length > 0) contactStrategy = 'email_general';
-          else if (phoneNumbers.length > 0) contactStrategy = 'call_business';
-
-          await prisma.lead.update({
-            where: { id: createdLead.id },
+          const createdLead = await prisma.lead.create({
             data: {
-              decisionMakerName: dm.name, decisionMakerRole: dm.role,
-              decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
-              buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
-              businessQualityScore: qualityScore, priorityScore, contactStrategy,
+              taskId,
+              ownerId: task.userId,
+              businessName,
+              website: biz.website || null,
+              location: biz.location || null,
+              googleMapsLink: biz.googleMapsLink || null,
+              category: biz.category || null,
+              rating: biz.rating || null,
+              reviewsCount: biz.reviewsCount || null,
+              phoneNumbers,
+              socialLinks: crawlData.socials,
+              domainMatchScore: scoreData.score,
+              scoreExplanation: scoreData.explanation,
+              companySize: crawlData.companySize,
+              summary: `${businessName} is a local business categorized as a ${biz.category || 'general service provider'}. AI evaluation scored this business ${scoreData.score}% relevant to the domain "${task.domainIdea}".`,
+              notes: crawlData.notes,
+              whatsappScore: contactIntel.whatsappScore,
+              whatsappConfidence: contactIntel.whatsappConfidence,
+              bestContactChannel: contactIntel.bestContactChannel,
+              contactChannelScores: contactIntel.channelScores as any,
             },
           });
-        };
 
-        await runWithTimeout(
-          Promise.allSettled([verifyEmailsTask(), intelligenceTask()]),
-          PER_BUSINESS_ENRICH_TIMEOUT_MS,
-          biz.name,
-        );
+          // Email verification and the decision-maker/intelligence pipeline are
+          // independent (both only need createdLead.id), so run them concurrently
+          // instead of back-to-back. The whole enrichment is bounded by an overall
+          // timeout so one slow site or rate-limited AI call can't stall the loop
+          // (the inner work has its own timeouts; this is a final safety net).
+          const verifyEmailsTask = async () => {
+            if (validatedEmails.length === 0) return;
+            const verifications = await verifyEmailsBulk(
+              validatedEmails.map((ve) => ve.email),
+              5
+            );
+            const byEmail = new Map(verifications.map((v) => [v.email.toLowerCase(), v]));
 
-        totalLeadsCount++;
-      } catch (bizError: any) {
-        failedBusinesses++;
-        if (failureReasons.length < 20) {
-          failureReasons.push(`${biz.name}: ${bizError.message || 'unknown error'}`);
+            await prisma.leadEmail.createMany({
+              data: validatedEmails.map((ve) => {
+                const v = byEmail.get(ve.email.toLowerCase());
+                return {
+                  leadId: createdLead.id,
+                  email: ve.email,
+                  status: v?.status ?? ve.status,
+                  confidenceScore: v ? v.confidenceScore / 100 : ve.confidenceScore,
+                  sourcePage: ve.sourcePage,
+                  provider: v?.provider ?? null,
+                  mxHost: v?.mxHost ?? null,
+                  mxValid: v?.mxValid ?? false,
+                  disposable: v?.disposable ?? false,
+                  roleAccount: v?.roleAccount ?? false,
+                  freeProvider: v?.freeProvider ?? false,
+                  catchAllRisk: v?.catchAllRisk ?? null,
+                  riskLevel: v?.riskLevel ?? null,
+                  reputationScore: v?.reputationScore ?? null,
+                  verifiedAt: v ? new Date() : null,
+                  verificationMetadata: v ? (v.verificationMetadata as any) : undefined,
+                };
+              }),
+            });
+
+            totalEmailsCount += validatedEmails.length;
+          };
+
+          // === Decision Maker & Buyer Intelligence Pipeline ===
+          const intelligenceTask = async () => {
+            if (!biz.website) return;
+            const domain = new URL(biz.website.startsWith('http') ? biz.website : `https://${biz.website}`).hostname;
+            const intel = await getCompanyIntel(domain);
+            const staffNames = intel.staffNames;
+            const pageText = crawlData.notes || '';
+
+            const dm = await discoverDecisionMaker(
+              businessName, biz.website, [pageText, crawlData.notes || ''],
+              staffNames, task.userId,
+            );
+
+            const intentScore = analyzeBuyerIntent({
+              businessName, currentDomain: domain, targetDomain: task.domainIdea,
+              category: biz.category || null, location: biz.location || null,
+              websiteText: pageText, domainMatchScore: scoreData.score,
+            });
+
+            const fitScore = scoreDomainFit({
+              businessName, currentDomain: domain, targetDomain: task.domainIdea,
+              location: biz.location || null, category: biz.category || null,
+            });
+
+            const qualityScore = scoreBusinessQuality(
+              intel, biz.rating || null, biz.reviewsCount || null,
+              biz.category || null, crawlData.companySize,
+            );
+
+            const dmScore = dm.score || 40;
+            const priorityScore = Math.round(dmScore * 0.35 + intentScore * 0.25 + qualityScore * 0.20 + fitScore * 0.20);
+
+            let contactStrategy = 'contact_form';
+            if (dmScore >= 85 && validatedEmails.length > 0) contactStrategy = 'email_decision_maker';
+            else if (validatedEmails.length > 0) contactStrategy = 'email_general';
+            else if (phoneNumbers.length > 0) contactStrategy = 'call_business';
+
+            await prisma.lead.update({
+              where: { id: createdLead.id },
+              data: {
+                decisionMakerName: dm.name, decisionMakerRole: dm.role,
+                decisionMakerScore: dmScore, decisionMakerEmail: dm.email,
+                buyerIntentScore: intentScore, domainUpgradeScore: fitScore,
+                businessQualityScore: qualityScore, priorityScore, contactStrategy,
+              },
+            });
+          };
+
+          await runWithTimeout(
+            Promise.allSettled([verifyEmailsTask(), intelligenceTask()]),
+            PER_BUSINESS_ENRICH_TIMEOUT_MS,
+            biz.name,
+          );
+
+          totalLeadsCount++;
+        } catch (bizError: any) {
+          failedBusinesses++;
+          if (failureReasons.length < 20) {
+            failureReasons.push(`${biz.name}: ${bizError.message || 'unknown error'}`);
+          }
+          console.error(`[Processor] Error processing lead ${biz.name}: ${bizError.message}`);
         }
-        console.error(`[Processor] Error processing lead ${biz.name}: ${bizError.message}`);
-      }
 
-      const crawlProgress = Math.floor(30 + (65 * (processedCount / businessList.length)));
-      await prisma.searchTask.update({
-        where: { id: taskId },
-        data: {
-          progress: crawlProgress,
-          totalLeads: totalLeadsCount,
-          validEmails: totalEmailsCount,
-        },
-      });
+        const crawlProgress = Math.floor(30 + (65 * (processedCount / businessList.length)));
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: {
+            progress: crawlProgress,
+            totalLeads: totalLeadsCount,
+            validEmails: totalEmailsCount,
+          },
+        });
+      }));
     }
 
     const finalStatus = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
@@ -737,9 +746,10 @@ function shouldSkipDiscoveredBusiness(biz: DiscoveredBiz, context: SearchContext
     return true;
   }
 
-  // 3. Near-zero relevance floor. The crawler already scored & filtered; only drop
-  //    obvious junk. Maps = 1.0; undefined relevance is treated as PASS.
-  if (typeof biz.relevance === 'number' && biz.relevance < 0.1) {
+  // 3. Zero relevance floor. The crawler already scored & filtered earlier rows;
+  //    only drop results with literally zero relevance (complete junk).
+  //    Previously dropped <0.1, which was discarding valid low-confidence leads.
+  if (typeof biz.relevance === 'number' && biz.relevance <= 0) {
     return true;
   }
 
@@ -878,6 +888,29 @@ function isBlockedWebsiteHost(websiteHost: string) {
     websiteHost.endsWith('.gov') ||
     websiteHost.endsWith('.edu')
   );
+}
+
+// Keep only the best N emails per lead. Prevents directory pages (e.g. a tourism
+// board's 50-person staff list) from bloating a lead AND from blowing the 45s
+// verification budget — fewer emails => SMTP verification completes => they show
+// as validated instead of "unverified". Prefers the business's own-domain inbox
+// and real people/role mailboxes; demotes noreply/artifacts and free providers.
+function rankAndCapEmails<T extends { email: string }>(emails: T[], website?: string, cap = 8): T[] {
+  const bizDomain = getWebsiteHost(website);
+  const score = (raw: string): number => {
+    const e = (raw || '').toLowerCase();
+    const at = e.indexOf('@');
+    const prefix = at >= 0 ? e.slice(0, at) : e;
+    const domain = at >= 0 ? e.slice(at + 1) : '';
+    let s = 0;
+    if (bizDomain && (domain === bizDomain || domain.endsWith('.' + bizDomain))) s += 100;
+    if (/^[a-z]+[._-][a-z]+$/.test(prefix)) s += 30;                                   // first.last
+    if (/^(info|contact|sales|hello|office|admin|team|support|inquiries|enquiries)$/.test(prefix)) s += 20;
+    if (/(noreply|no-?reply|donotreply|do-not-reply|mailer|postmaster|abuse|sentry|wixpress|example|test)/.test(e)) s -= 60;
+    if (/@(gmail|yahoo|outlook|hotmail|aol|icloud|proton)\./.test(e)) s -= 15;         // not the business inbox
+    return s;
+  };
+  return [...emails].sort((a, b) => score(b.email) - score(a.email)).slice(0, cap);
 }
 
 function stateToAbbrev(state: string) {
