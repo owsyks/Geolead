@@ -129,6 +129,28 @@ export async function crawlWebsite(url: string, maxInnerPages = 4): Promise<Craw
       }
     }
 
+    // 3. Sitemap crawling — fetch sitemap.xml for additional URLs to crawl
+    const sitemapUrls = await fetchSitemapUrls(targetUrl);
+    if (sitemapUrls.length > 0) {
+      const maxSitemapUrls = Math.min(sitemapUrls.length, maxInnerPages * 2);
+      const sitemapSlice = sitemapUrls.slice(0, maxSitemapUrls);
+      console.log(`[Crawler] Sitemap found: ${sitemapUrls.length} URLs, crawling ${sitemapSlice.length}`);
+      for (const sitemapUrl of sitemapSlice) {
+        // Skip URLs already crawled as inner pages
+        if (uniqueInnerLinks.some(l => l.url === sitemapUrl)) continue;
+        const sitemapHtml = await fetchHtml(sitemapUrl);
+        if (sitemapHtml) {
+          const $sitemap = cheerio.load(sitemapHtml);
+          extractContactsFromText(sitemapHtml, sitemapUrl, result);
+          extractContactsFromHtml($sitemap, sitemapUrl, result);
+          $sitemap('script, style, noscript, svg, iframe, template').remove();
+          const sitemapText = $sitemap('body').text();
+          extractContactsFromText(sitemapText, sitemapUrl, result);
+          extractSocialsFromHtml($sitemap, sitemapUrl, result);
+        }
+      }
+    }
+
     // Clean up lists (unique values)
     const seenEmails = new Set<string>();
     result.emails = result.emails.filter(item => {
@@ -410,4 +432,45 @@ function detectCompanySize(text: string, result: CrawlResult) {
     // Default to Small if it seems like a typical local business
     result.companySize = result.companySize === 'Unknown' ? 'Small' : result.companySize;
   }
+}
+
+/**
+ * Fetches and parses sitemap.xml / sitemap_index.xml from a domain.
+ * Returns up to `maxUrls` unique URLs found in the sitemap.
+ */
+async function fetchSitemapUrls(baseUrl: string, maxUrls = 30): Promise<string[]> {
+  const sitemapPaths = ['/sitemap.xml', '/sitemap_index.xml', '/sitemap/', '/sitemap/sitemap.xml'];
+  const fetched = new Set<string>();
+  const found = new Set<string>();
+
+  for (const path of sitemapPaths) {
+    if (fetched.size >= maxUrls) break;
+    try {
+      const url = new URL(path, baseUrl).toString();
+      const xml = await fetchHtml(url);
+      if (!xml) continue;
+
+      // Parse <loc> entries — works for both sitemap index and URL sets
+      const locRegex = /<loc[^>]*>([^<]+)<\/loc>/gi;
+      let match;
+      let count = 0;
+      while ((match = locRegex.exec(xml)) !== null && count < maxUrls) {
+        const loc = match[1].trim();
+        // Skip non-HTML URLs (images, videos, PDFs, etc.)
+        if (/\.(jpg|jpeg|png|gif|svg|webp|pdf|doc|docx|xls|xlsx|zip|tar|gz)$/i.test(loc)) continue;
+        if (!fetched.has(loc)) {
+          fetched.add(loc);
+          const pageHtml = await fetchHtml(loc);
+          if (pageHtml) {
+            found.add(loc);
+            count++;
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed sitemap URLs
+    }
+  }
+
+  return Array.from(found);
 }
