@@ -480,11 +480,10 @@ export async function processSearchTask(taskId: string) {
 
           if (!domainKey) { droppedNoDomain++; continue; }
 
-          if (isBlockedWebsiteHost(domainKey)) {
-            // Block directory domains ONLY if they have zero emails (just the directory
-            // itself). If they have a business email, it's a genuine listing worth keeping.
-            if (result.emails.length === 0) { droppedBlockedHost++; continue; }
-          }
+                    // Blocked host check REMOVED — any result that survived the no-contact filter
+          // (above) has at least a phone or email, so it's a genuine business listing
+          // regardless of host domain. The old check was dropping Maps results with
+          // phones but no emails — destroying the main lead source.
 
           if (isWrongCountry(result.address, task.country || '')) { droppedWrongCountry++; continue; }
 
@@ -889,13 +888,35 @@ function buildSearchQueries(keyword: string, cityState?: string): string[] {
   const primary = [keyword, cityState].filter(Boolean).join(' ').trim();
   queries.add(primary);
 
-  // 2. Keyword expansions — check normalized keyword against expansion map
+  // 2. Keyword expansions — fuzzy match against expansion map.
+  //    Check if any expansion KEY is contained in the search keyword OR
+  //    the keyword is a key itself. This way "roofing contractors" matches
+  //    the "roofing" key, and "handyman" matches directly.
   const keywordLower = keyword.toLowerCase().trim();
-  const expansions = KEYWORD_EXPANSIONS[keywordLower];
-  if (expansions && expansions.length > 0) {
-    for (const expanded of expansions) {
-      const q = [expanded, cityState].filter(Boolean).join(' ').trim();
-      if (q !== primary) queries.add(q);
+  const keywordWords = new Set(keywordLower.split(/\s+/).filter(Boolean));
+  const matchedKeys = new Set<string>();
+
+  // Direct key match
+  if (KEYWORD_EXPANSIONS[keywordLower]) matchedKeys.add(keywordLower);
+
+  // Fuzzy: keyword contains a key, or key contains a word from keyword
+  for (const key of Object.keys(KEYWORD_EXPANSIONS)) {
+    const keyWords = new Set(key.split(/\s+/).filter(Boolean));
+    // Key is a word inside the keyword (e.g. "roofing" in "roofing contractors")
+    if (keywordLower.includes(key)) matchedKeys.add(key);
+    // A word from the keyword matches a key (e.g. "roofing" in "roofing contractors")
+    for (const kw of keywordWords) {
+      if (kw.length > 2 && (key.includes(kw) || kw.includes(key))) matchedKeys.add(key);
+    }
+  }
+
+  for (const matchedKey of matchedKeys) {
+    const expansions = KEYWORD_EXPANSIONS[matchedKey];
+    if (expansions) {
+      for (const expanded of expansions) {
+        const q = [expanded, cityState].filter(Boolean).join(' ').trim();
+        if (q !== primary) queries.add(q);
+      }
     }
   }
 
