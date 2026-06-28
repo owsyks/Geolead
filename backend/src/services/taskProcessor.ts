@@ -299,7 +299,7 @@ export async function processSearchTask(taskId: string) {
       const crawlResult = await searchAndCrawl({
         keyword: searchQuery,
         region: mapCountryToRegion(task.country || undefined),
-        maxResults: 350,
+        maxResults: task.searchDepth,   // the UI "Depth" slider (1-200) drives volume
         source: searchSource as 'web' | 'google_maps' | 'combined',
         proxyscrapeEnabled,
         userId: task.userId,
@@ -386,7 +386,7 @@ export async function processSearchTask(taskId: string) {
 
     const businessList = Array.from(discoveredBusinesses.values())
       .sort((a, b) => scoreDiscoveredBusiness(b, searchContext) - scoreDiscoveredBusiness(a, searchContext))
-      .slice(0, 350);
+      .slice(0, task.searchDepth);   // keep at most "Depth" leads
     console.log(
       `[Processor] Funnel: raw=${rawResultCount} -> unique=${discoveredBusinesses.size} -> processing=${businessList.length} ` +
       `(dropped noDomain:${droppedNoDomain} blockedHost:${droppedBlockedHost} noEmail:${droppedNoContact} wrongCountry:${droppedWrongCountry} filtered:${droppedFiltered})`,
