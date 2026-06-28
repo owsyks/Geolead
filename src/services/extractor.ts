@@ -168,9 +168,9 @@ export async function validateEmail(email: string, sourcePage?: string): Promise
 
   // Adjust status based on score thresholds if not already marked RISKY
   if (status !== 'RISKY') {
-    if (confidenceScore >= 0.7) {
+    if (confidenceScore >= 0.5) {
       status = 'VALID';
-    } else if (confidenceScore >= 0.4) {
+    } else if (confidenceScore >= 0.2) {
       status = 'RISKY';
     } else {
       status = 'INVALID';
