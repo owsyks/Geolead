@@ -34,9 +34,9 @@ interface CrawlerJobResponse {
   id: number;
   keyword: string;
   status: string;
-  totalUrls: number;
-  processedUrls: number;
-  contactsFound: number;
+  total_urls: number;
+  processed_urls: number;
+  contacts_found: number;
   error: string | null;
 }
 
@@ -164,8 +164,8 @@ async function pollJob(
     }
     const job: CrawlerJobResponse = res.data;
 
-    if (onProgress && job.totalUrls > 0) {
-      onProgress(job.processedUrls, job.totalUrls);
+    if (onProgress && job.total_urls > 0) {
+      onProgress(job.processed_urls, job.total_urls);
     }
 
     if (job.status === 'completed') return 'completed';
