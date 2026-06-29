@@ -88,12 +88,7 @@ async function pickSource(
     return 'vm';
   }
 
-  const vmUp = await isVmHealthy(userId);
-
-  if (!vmUp) {
-    if (SERPER_KEYS.length > 0) {
-      return 'serper';
-    }
+  if (SERPER_KEYS.length === 0) {
     return 'vm';
   }
 
@@ -107,11 +102,12 @@ async function pickSource(
   const remainingPct = remaining / MAX_PER_KEY_PER_DAY;
 
   if (remainingPct < 0.05) {
-    return 'vm';
+    const vmUp = await isVmHealthy(userId);
+    return vmUp ? 'vm' : 'serper';
   }
 
-  const serperBias = Math.min(remainingPct, 0.5);
-  return Math.random() < serperBias ? 'serper' : 'vm';
+  // Serper is fast (~2s), VM is slow (~3-6min) — always prefer Serper when quota allows
+  return 'serper';
 }
 
 async function serperSearchWrapper(

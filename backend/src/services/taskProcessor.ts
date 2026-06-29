@@ -364,8 +364,8 @@ export async function processSearchTask(taskId: string) {
       data: { status: 'PROCESSING', progress: 5 },
     });
 
-    // Generate search queries: primary + keyword expansions + proximity cities
-    const searchQueries = buildSearchQueries(task.keyword, task.cityState || undefined);
+    // Generate search queries: primary + keyword expansions + proximity cities (scaled by depth)
+    const searchQueries = buildSearchQueries(task.keyword, task.cityState || undefined, task.searchDepth);
     const queryCount = searchQueries.length;
     console.log(`[Processor] Generated ${queryCount} search queries: ${searchQueries.join(' | ')}`);
 
@@ -415,13 +415,10 @@ export async function processSearchTask(taskId: string) {
     for (const query of searchQueries) {
       queryIndex++;
       const isPrimary = queryIndex === 1;
-      // Primary query gets full depth; expansions get proportionally less.
-      // Scale multiplier with depth so deep searches (200+) hunt aggressively.
-      const depthMultiplier = task.searchDepth >= 150 ? 4 : task.searchDepth >= 100 ? 3.5 : 3;
-      const expansionMultiplier = task.searchDepth >= 150 ? 2.5 : task.searchDepth >= 100 ? 2 : 1.5;
+      // Scale max results to depth — low depth needs few results, high depth needs more
       const queryMaxResults = isPrimary
-        ? Math.max(Math.round(task.searchDepth * depthMultiplier), 350)
-        : Math.max(Math.round(task.searchDepth * expansionMultiplier), 100);
+        ? Math.min(Math.max(task.searchDepth * 4, 50), 500)
+        : Math.min(Math.max(task.searchDepth * 3, 30), 300);
       const pctLabel = Math.floor((queryIndex / queryCount) * 100);
 
       console.log(`[Processor] [${pctLabel}%] Crawler query ${queryIndex}/${queryCount}: "${query}"`);
@@ -501,6 +498,12 @@ export async function processSearchTask(taskId: string) {
             if (!existing.category && discovered.category) existing.category = discovered.category;
             if (!existing.location && discovered.location) existing.location = discovered.location;
           }
+        }
+
+        // Early exit — we have enough leads, skip remaining queries
+        if (discoveredBusinesses.size >= task.searchDepth) {
+          console.log(`[Processor] Collected ${discoveredBusinesses.size} leads (need ${task.searchDepth}), skipping ${searchQueries.length - queryIndex} remaining queries.`);
+          break;
         }
       } catch (error: any) {
         if (error.message?.includes('cancelled by user')) {
@@ -866,56 +869,56 @@ function extractPhones(text: string) {
 }
 
 /**
- * Generates all search queries for a task: the primary keyword+city, plus
- * related keyword expansions and proximity-city variants. Results are ordered
- * so the primary (most relevant) query runs first.
+ * Generates search queries scaled by depth. Low depth → few fast queries.
+ * High depth → more queries (expansions + proximity cities).
  */
-function buildSearchQueries(keyword: string, cityState?: string): string[] {
+function buildSearchQueries(keyword: string, cityState?: string, depth: number = 10): string[] {
   const queries = new Set<string>();
 
   // 1. Primary: keyword + city (e.g. "handyman Seattle, WA")
   const primary = [keyword, cityState].filter(Boolean).join(' ').trim();
   queries.add(primary);
 
-  // 2. Keyword expansions — fuzzy match against expansion map.
-  //    Check if any expansion KEY is contained in the search keyword OR
-  //    the keyword is a key itself. This way "roofing contractors" matches
-  //    the "roofing" key, and "handyman" matches directly.
+  // Depth-based query count — low depth rarely needs more than 1 query
+  if (depth <= 20) return Array.from(queries);
+
   const keywordLower = keyword.toLowerCase().trim();
   const keywordWords = new Set(keywordLower.split(/\s+/).filter(Boolean));
   const matchedKeys = new Set<string>();
 
-  // Direct key match
   if (KEYWORD_EXPANSIONS[keywordLower]) matchedKeys.add(keywordLower);
 
-  // Fuzzy: keyword contains a key, or key contains a word from keyword
   for (const key of Object.keys(KEYWORD_EXPANSIONS)) {
-    const keyWords = new Set(key.split(/\s+/).filter(Boolean));
-    // Key is a word inside the keyword (e.g. "roofing" in "roofing contractors")
     if (keywordLower.includes(key)) matchedKeys.add(key);
-    // A word from the keyword matches a key (e.g. "roofing" in "roofing contractors")
     for (const kw of keywordWords) {
       if (kw.length > 2 && (key.includes(kw) || kw.includes(key))) matchedKeys.add(key);
     }
   }
 
+  let expansionsAdded = 0;
+  const maxExpansions = depth <= 50 ? 1 : depth <= 100 ? 2 : 4;
+
   for (const matchedKey of matchedKeys) {
+    if (expansionsAdded >= maxExpansions) break;
     const expansions = KEYWORD_EXPANSIONS[matchedKey];
     if (expansions) {
       for (const expanded of expansions) {
+        if (expansionsAdded >= maxExpansions) break;
         const q = [expanded, cityState].filter(Boolean).join(' ').trim();
-        if (q !== primary) queries.add(q);
+        if (q !== primary && !queries.has(q)) {
+          queries.add(q);
+          expansionsAdded++;
+        }
       }
     }
   }
 
-  // 3. Proximity cities — if cityState has a known metro, search nearby cities
-  if (cityState) {
+  // Proximity cities only for deep searches (depth > 50)
+  if (cityState && depth > 50) {
     const cityLower = normalizeText(cityState.split(',')[0]?.trim() || '');
     const stateAbbrev = normalizeText(cityState.split(',')[1]?.trim() || '').toLowerCase();
     const metro = PROXIMITY_CITIES[cityLower];
     if (metro) {
-      // Verify the state matches (e.g. "Seattle, WA" matches the "seattle" entry under "wa")
       for (const [metroState, nearbyCities] of Object.entries(metro)) {
         if (metroState === stateAbbrev || stateAbbrev.includes(metroState)) {
           for (const nearby of nearbyCities) {
@@ -927,18 +930,17 @@ function buildSearchQueries(keyword: string, cityState?: string): string[] {
     }
   }
 
-  // Ensure primary is first, then deduplicate while preserving order
+  // Ensure primary is first
   const result = Array.from(queries);
-  // Move primary to front if it isn't already
   const primaryIdx = result.indexOf(primary);
   if (primaryIdx > 0) {
     result.splice(primaryIdx, 1);
     result.unshift(primary);
   }
 
-  // Cap total queries to avoid overwhelming the crawler
-  const MAX_QUERIES = 10;
-  return result.slice(0, MAX_QUERIES);
+  // Cap queries — depth determines max
+  const maxQueries = depth <= 20 ? 1 : depth <= 50 ? 2 : depth <= 100 ? 5 : 10;
+  return result.slice(0, maxQueries);
 }
 
 function buildSearchContext(keyword: string, cityState?: string): SearchContext {
