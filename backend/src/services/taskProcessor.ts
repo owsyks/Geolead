@@ -1,4 +1,5 @@
 import prisma from '../config/db.js';
+import { scrapingQueue } from '../queues/queues.js';
 import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs, isWrongCountry } from './crawlerClient.js';
 import { orchestrateSearch, resetTaskUsage } from './crawlerOrchestrator.js';
 import { crawlWebsite } from './crawler.js';
@@ -258,14 +259,6 @@ const STATE_NAMES_BY_ABBREV = Object.entries(STATE_ABBREVIATIONS).reduce<Record<
   {}
 );
 
-const runningTasks = new Set<string>();
-const queuedTaskIds: string[] = [];
-// Each search runs a heavy per-business pipeline (crawl + multiple AI calls)
-// inline on the web dyno. Running many at once saturates the single-threaded
-// event loop and trips NVIDIA/Serper rate limits, which makes every search
-// appear frozen. Cap how many run concurrently; the rest wait their turn.
-const MAX_CONCURRENT_SEARCHES = Number(process.env.MAX_CONCURRENT_SEARCHES || 2);
-
 // Hard cap on per-business enrichment (email verify + intelligence). Inner calls
 // have their own timeouts; this guarantees the crawl loop keeps advancing even if
 // something downstream stalls.
@@ -285,48 +278,36 @@ function runWithTimeout<T>(promise: Promise<T>, ms: number, label: string): Prom
   ]);
 }
 
-export function startSearchTaskProcessing(taskId: string) {
-  if (runningTasks.has(taskId) || queuedTaskIds.includes(taskId)) {
-    console.log(`[Processor] SearchTask ${taskId} is already running or queued.`);
+const enqueuedTasks = new Set<string>();
+
+export async function startSearchTaskProcessing(taskId: string) {
+  if (enqueuedTasks.has(taskId)) {
+    console.log(`[Processor] SearchTask ${taskId} is already enqueued.`);
     return;
   }
-
-  if (runningTasks.size >= MAX_CONCURRENT_SEARCHES) {
-    queuedTaskIds.push(taskId);
-    console.log(`[Processor] SearchTask ${taskId} queued (${runningTasks.size} running, ${queuedTaskIds.length} waiting).`);
-    return;
-  }
-
-  launchSearchTask(taskId);
-}
-
-function launchSearchTask(taskId: string) {
-  runningTasks.add(taskId);
-  void processSearchTask(taskId)
-    .catch((err) => console.error(`[Processor] SearchTask ${taskId} failed:`, err?.message || err))
-    .finally(() => {
-      runningTasks.delete(taskId);
-      drainSearchQueue();
+  enqueuedTasks.add(taskId);
+  try {
+    await scrapingQueue.add('search-task', { taskId }, {
+      jobId: `search-${taskId}`,
+      removeOnComplete: true,
+      removeOnFail: false,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
     });
-}
-
-function drainSearchQueue() {
-  while (runningTasks.size < MAX_CONCURRENT_SEARCHES && queuedTaskIds.length > 0) {
-    const next = queuedTaskIds.shift()!;
-    launchSearchTask(next);
+    console.log(`[Processor] SearchTask ${taskId} enqueued to scraping-queue.`);
+  } catch (err) {
+    enqueuedTasks.delete(taskId);
+    console.error(`[Processor] Failed to enqueue SearchTask ${taskId}:`, err);
   }
 }
 
 export async function resumePendingSearchTasks() {
   try {
-    // Reconcile ONLY the crawler jobs this GeoLead DB actually started. Never
-    // enumerate the shared crawler's global job list — that would stop other
-    // users'/instances' running jobs (the cross-user kill bug).
+    // Stop owned crawler jobs from interrupted tasks
     const interrupted = await prisma.searchTask.findMany({
       where: { status: 'PROCESSING' },
       select: { userId: true, metadata: true },
     });
-    // Group owned job ids by userId so each stop uses that user's crawler config.
     const jobsByUser = new Map<string | null, number[]>();
     for (const t of interrupted) {
       const jobId = (t.metadata as any)?.crawlerJobId;
@@ -341,20 +322,22 @@ export async function resumePendingSearchTasks() {
       stoppedJobs += jobIds.length;
     }
 
-    // Interrupted in-flight searches can't be resumed (the in-memory poller died
-    // with the process) — fail them so the user can retry.
+    // Fail interrupted PROCESSING tasks (their queue jobs are lost on crash)
+    // BullMQ will retry failed jobs up to 3 attempts, so mark them as FAILED
+    // to prevent duplicate processing.
     const failedProcessing = await prisma.searchTask.updateMany({
       where: { status: 'PROCESSING' },
       data: { status: 'FAILED' },
     });
 
-    // PENDING tasks never started a crawler job — re-enqueue instead of cancelling,
-    // so work queued just before a restart isn't silently lost.
+    // Re-enqueue PENDING tasks via BullMQ
     const pending = await prisma.searchTask.findMany({
       where: { status: 'PENDING' },
       select: { id: true },
     });
-    for (const t of pending) startSearchTaskProcessing(t.id);
+    for (const t of pending) {
+      await startSearchTaskProcessing(t.id);
+    }
 
     if (failedProcessing.count > 0 || pending.length > 0 || stoppedJobs > 0) {
       console.log(`[Processor] Startup reconcile: ${failedProcessing.count} interrupted→FAILED, ${pending.length} pending re-enqueued, ${stoppedJobs} owned crawler job(s) stopped.`);
