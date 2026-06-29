@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: geolead_ai
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -27,9 +27,10 @@ services:
       OUTBOUND_BASE_URL: http://localhost:5000
       OUTBOUND_ADMIN_EMAIL: admin@geoleadai.local
       OUTBOUND_PHYSICAL_ADDRESS: GeoLead AI, 123 Market St, Austin, TX 78701
-      OUTBOUND_SECRET_KEY: geolead-local-dev-key
+      OUTBOUND_SECRET_KEY: ${OUTBOUND_SECRET_KEY:-geolead-local-dev-key}
       SERPER_API_KEY: ${SERPER_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-}
     depends_on:
       - postgres
       - redis
@@ -46,9 +47,10 @@ services:
       OUTBOUND_BASE_URL: http://localhost:5000
       OUTBOUND_ADMIN_EMAIL: admin@geoleadai.local
       OUTBOUND_PHYSICAL_ADDRESS: GeoLead AI, 123 Market St, Austin, TX 78701
-      OUTBOUND_SECRET_KEY: geolead-local-dev-key
+      OUTBOUND_SECRET_KEY: ${OUTBOUND_SECRET_KEY:-geolead-local-dev-key}
       SERPER_API_KEY: ${SERPER_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-}
     depends_on:
       - postgres
       - redis

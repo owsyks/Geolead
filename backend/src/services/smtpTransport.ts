@@ -5,6 +5,10 @@
 import net from 'node:net';
 import tls from 'node:tls';
 
+// In production, reject unauthorized connections. In development, set
+// SMTP_REJECT_UNAUTHORIZED=false to allow self-signed certificates.
+const SMTP_REJECT_UNAUTHORIZED = process.env.SMTP_REJECT_UNAUTHORIZED !== 'false';
+
 export interface SmtpClient {
   expect(codes: number[]): Promise<void>;
   command(command: string, codes: number[]): Promise<void>;
@@ -16,7 +20,7 @@ export interface SmtpClient {
 
 export async function connectSmtp(host: string, port: number, secure: boolean, timeoutMs: number): Promise<SmtpClient> {
   const socket = secure
-    ? tls.connect({ host, port, servername: host, rejectUnauthorized: false })
+    ? tls.connect({ host, port, servername: host, rejectUnauthorized: SMTP_REJECT_UNAUTHORIZED })
     : net.connect({ host, port });
   await onceEvent(socket, secure ? 'secureConnect' : 'connect', timeoutMs);
   return new SmtpSession(socket, timeoutMs);
@@ -62,7 +66,7 @@ class SmtpSession implements SmtpClient {
     const secureSocket = tls.connect({
       socket: this.socket,
       servername: this.socket.remoteAddress || undefined,
-      rejectUnauthorized: false,
+      rejectUnauthorized: SMTP_REJECT_UNAUTHORIZED,
     });
     await onceEvent(secureSocket, 'secureConnect', this.timeoutMs);
     this.socket.removeAllListeners();

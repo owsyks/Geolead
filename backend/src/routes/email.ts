@@ -73,7 +73,7 @@ router.post(
 
     // Inline: stream per-email progress via token
     if (emails.length <= MAX_INLINE_BULK) {
-      const token = randomBytes(12).toString('hex');
+      const token = randomBytes(32).toString('hex');
       const now = Date.now();
       const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
       progressStore.set(token, slot);

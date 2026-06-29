@@ -559,7 +559,8 @@ router.get('/track/open/:trackingToken', wrap(async (req, res) => {
 
 router.post('/audit', requireRoles('ADMIN', 'MANAGER'), wrap(async (req, res) => {
   const actor = getActor(req);
-  await writeAudit(actor, asString(req.body.entityType) || 'System', asString(req.body.entityId) || null, asString(req.body.action) || 'MANUAL_EVENT', req.body as Record<string, unknown>);
+  const safePayload = sanitizePayload(req.body as Record<string, unknown>);
+  await writeAudit(actor, asString(req.body.entityType) || 'System', asString(req.body.entityId) || null, asString(req.body.action) || 'MANUAL_EVENT', safePayload);
   res.json({ ok: true });
 }));
 
@@ -654,6 +655,22 @@ async function writeAudit(
       payload: payload as Prisma.InputJsonObject,
     },
   });
+}
+
+const SENSITIVE_FIELDS = ['apiKey', 'api_key', 'API_KEY', 'password', 'passwordHash', 'token', 'secret', 'authorization', 'Authorization', 'accessKeyId', 'secretAccessKey', 'sessionToken'];
+
+function sanitizePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(payload)) {
+    if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f.toLowerCase()))) {
+      sanitized[key] = '[REDACTED]';
+    } else if (val && typeof val === 'object') {
+      sanitized[key] = sanitizePayload(val as Record<string, unknown>);
+    } else {
+      sanitized[key] = val;
+    }
+  }
+  return sanitized;
 }
 
 function asString(value: unknown) {

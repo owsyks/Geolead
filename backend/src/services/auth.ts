@@ -15,7 +15,11 @@ const VERIFY_TTL_HOURS = 48;
 const BCRYPT_ROUNDS = 12;
 
 function jwtSecret(): string {
-  return process.env.JWT_SECRET || process.env.OUTBOUND_SECRET_KEY || 'geolead-ai-local-dev-jwt';
+  const secret = process.env.JWT_SECRET || process.env.OUTBOUND_SECRET_KEY;
+  if (!secret) {
+    throw new Error('JWT_SECRET or OUTBOUND_SECRET_KEY must be set. Server cannot start.');
+  }
+  return secret;
 }
 
 // ---- Validation ---------------------------------------------------------
@@ -167,14 +171,18 @@ export async function ensureUserWorkspace(userId: string): Promise<void> {
 
 // ---- Admin seed + claim of pre-existing data ---------------------------
 
-const ADMIN_EMAIL = (process.env.SEED_ADMIN_EMAIL || 'elmountaknat@gmail.com').toLowerCase();
-const ADMIN_NAME = process.env.SEED_ADMIN_NAME || 'owsyks';
+const ADMIN_EMAIL = (process.env.SEED_ADMIN_EMAIL || '').toLowerCase();
+const ADMIN_NAME = process.env.SEED_ADMIN_NAME || 'Admin';
 
 // Idempotent. Runs at boot. Creates the admin user if missing and assigns every
 // orphaned (userId/ownerId NULL) row from the single-user era to that admin so
 // the live workspace remains intact once data becomes per-user. The admin's
 // password is set out-of-band via the forgot-password flow (no plaintext seed).
 export async function seedAdminAndClaim(): Promise<void> {
+  if (!ADMIN_EMAIL) {
+    console.warn('[Auth] SEED_ADMIN_EMAIL not set — skipping admin seed.');
+    return;
+  }
   try {
     let admin = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
     if (!admin) {

@@ -28,7 +28,9 @@ export function isEncrypted(value: unknown): value is string {
 }
 
 function encryptionKey() {
-  return createHash('sha256')
-    .update(process.env.OUTBOUND_SECRET_KEY || process.env.DATABASE_URL || 'geolead-ai-local-dev-key')
-    .digest();
+  const secret = process.env.OUTBOUND_SECRET_KEY || process.env.DATABASE_URL;
+  if (!secret) {
+    throw new Error('OUTBOUND_SECRET_KEY or DATABASE_URL must be set for encryption. Server cannot start.');
+  }
+  return createHash('sha256').update(secret).digest();
 }

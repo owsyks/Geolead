@@ -4,6 +4,7 @@ dotenv.config();
 import http from 'node:http';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import prisma from './config/db.js';
 import * as xlsx from 'xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
@@ -35,10 +36,14 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
+app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || true,
+  origin: (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean).length > 0
+    ? (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean)
+    : true,
   credentials: true,
 }));
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/outbound', outboundRouter);
@@ -370,7 +375,7 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), asyn
           },
         },
         orderBy: {
-          [safeSortField]: sortOrder as 'asc' | 'desc',
+          [safeSortField]: (sortOrder === 'asc' || sortOrder === 'desc' ? sortOrder : 'desc') as 'asc' | 'desc',
         },
         skip: offset,
         take: limitNum,
@@ -639,10 +644,10 @@ server.listen(Number(PORT), process.env.HOST || '0.0.0.0', async () => {
   startWatchlistScheduler();
   // Defer heavy startup tasks so the server is ready to accept requests first
   setTimeout(() => {
-    void seedAdminAndClaim();
-    void cleanupStoredContacts();
-    void resumePendingSearchTasks();
-    void ensureOutboundSeedData();
+    seedAdminAndClaim().catch(err => console.error('[Startup] seedAdminAndClaim failed:', err));
+    cleanupStoredContacts().catch(err => console.error('[Startup] cleanupStoredContacts failed:', err));
+    resumePendingSearchTasks().catch(err => console.error('[Startup] resumePendingSearchTasks failed:', err));
+    ensureOutboundSeedData().catch(err => console.error('[Startup] ensureOutboundSeedData failed:', err));
   }, 3000);
 });
 
@@ -682,15 +687,10 @@ function sanitizeLeads<T extends { emails?: any[]; phoneNumbers?: string[] }>(le
 
 async function cleanupStoredContacts() {
   try {
-    const [invalidEmails, leads] = await Promise.all([
-      prisma.leadEmail.findMany({
-        where: { status: { in: ['VALID', 'RISKY'] } },
-        select: { id: true, email: true },
-      }),
-      prisma.lead.findMany({
-        select: { id: true, phoneNumbers: true },
-      }),
-    ]);
+    const invalidEmails = await prisma.leadEmail.findMany({
+      where: { status: { in: ['VALID', 'RISKY'] } },
+      select: { id: true, email: true },
+    });
 
     const invalidEmailIds = invalidEmails
       .filter((item) => isPlaceholderEmail(item.email))
@@ -703,16 +703,33 @@ async function cleanupStoredContacts() {
       console.log(`[Server] Removed ${invalidEmailIds.length} placeholder email(s) from stored leads.`);
     }
 
+    // Paginate phone normalization to avoid loading all leads into memory
     let updatedPhones = 0;
-    for (const lead of leads) {
-      const phoneNumbers = normalizePhoneList(lead.phoneNumbers, 2);
+    const BATCH = 1000;
+    let cursor: string | undefined;
+    let hasMore = true;
 
-      if (phoneNumbers.join('|') !== lead.phoneNumbers.join('|')) {
-        await prisma.lead.update({
-          where: { id: lead.id },
-          data: { phoneNumbers },
-        });
-        updatedPhones++;
+    while (hasMore) {
+      const batch = await prisma.lead.findMany({
+        select: { id: true, phoneNumbers: true },
+        take: BATCH,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { id: 'asc' },
+      });
+
+      if (batch.length < BATCH) hasMore = false;
+      if (batch.length > 0) cursor = batch[batch.length - 1].id;
+
+      for (const lead of batch) {
+        const phoneNumbers = normalizePhoneList(lead.phoneNumbers, 2);
+
+        if (phoneNumbers.join('|') !== lead.phoneNumbers.join('|')) {
+          await prisma.lead.update({
+            where: { id: lead.id },
+            data: { phoneNumbers },
+          });
+          updatedPhones++;
+        }
       }
     }
 

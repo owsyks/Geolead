@@ -64,7 +64,7 @@ router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (
       const updated = await prisma.user.update({ where: { id: existing.id }, data: { name, passwordHash } });
       await ensureUserWorkspace(updated.id);
       const token = await createVerificationToken(updated.id);
-      void sendVerificationEmail(updated.email, token);
+      sendVerificationEmail(updated.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
       const access = issueAccessToken(updated.id, updated.email);
       const refresh = await issueRefreshToken(updated.id, sessionMeta(req));
       return res.status(201).json({ user: publicUser(updated), accessToken: access, refreshToken: refresh.token });
@@ -77,7 +77,7 @@ router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (
   await ensureUserWorkspace(user.id);
 
   const token = await createVerificationToken(user.id);
-  void sendVerificationEmail(user.email, token);
+  sendVerificationEmail(user.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, sessionMeta(req));
@@ -128,7 +128,7 @@ router.post('/forgot-password', rateLimit('auth-forgot', 10, 15 * 60 * 1000), as
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
       const token = await createResetToken(user.id);
-      void sendPasswordResetEmail(user.email, token);
+      sendPasswordResetEmail(user.email, token).catch(err => console.error('[Auth] Failed to send password reset email:', err));
     }
   }
   return res.json({ ok: true, message: 'If an account exists for that email, a reset link has been sent.' });
@@ -163,7 +163,7 @@ router.post('/resend-verification', requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found.' });
   if (user.emailVerified) return res.json({ ok: true, message: 'Email already verified.' });
   const token = await createVerificationToken(user.id);
-  void sendVerificationEmail(user.email, token);
+  sendVerificationEmail(user.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
   return res.json({ ok: true });
 });
 

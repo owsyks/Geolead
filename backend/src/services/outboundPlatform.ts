@@ -2707,7 +2707,8 @@ async function sendViaProvider(log: any, sender: any) {
       { headers: { Authorization: `Bearer ${config.apiKey}` }, timeout: 12000, validateStatus: (s) => s < 500 }
     );
     if (response.status >= 400) {
-      throw new Error(`Resend ${response.status}: ${response.data?.message || response.data?.error || JSON.stringify(response.data).slice(0, 200)}`);
+      const safeMsg = typeof response.data?.message === 'string' ? response.data.message : typeof response.data?.error === 'string' ? response.data.error : `HTTP ${response.status}`;
+      throw new Error(`Resend ${response.status}: ${safeMsg.slice(0, 200)}`);
     }
     return { providerMessageId: response.data?.id || randomUUID(), dryRun: false };
   }
@@ -2728,8 +2729,7 @@ async function sendViaProvider(log: any, sender: any) {
       { headers: { Authorization: `Bearer ${config.apiKey}` }, timeout: 12000, validateStatus: (status) => status < 500 }
     );
     if (response.status >= 400) {
-      const errBody = typeof response.data === 'string' ? response.data : JSON.stringify(response.data).slice(0, 200);
-      throw new Error(`SendGrid ${response.status}: ${errBody}`);
+      throw new Error(`SendGrid ${response.status}: ${response.statusText || 'send failed'}`);
     }
     return { providerMessageId: response.headers['x-message-id'] || randomUUID(), dryRun: false, status: response.status };
   }
@@ -2824,8 +2824,7 @@ async function sendViaSes(log: any, sender: any, config: Record<string, any>) {
   });
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`SES send failed (${response.status}): ${detail || response.statusText}`);
+    throw new Error(`SES send failed (${response.status}): ${response.statusText || 'send failed'}`);
   }
 
   return {
