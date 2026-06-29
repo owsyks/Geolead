@@ -1,5 +1,6 @@
 import prisma from '../config/db.js';
 import { searchAndCrawl, stopCrawlerJob, stopCrawlerJobs, isWrongCountry } from './crawlerClient.js';
+import { orchestrateSearch, resetTaskUsage } from './crawlerOrchestrator.js';
 import { crawlWebsite } from './crawler.js';
 import { validateAndCleanEmails, aiFilterEmails, validateEmail } from './extractor.js';
 import { verifyEmailsBulk } from './emailVerification.js';
@@ -449,7 +450,7 @@ export async function processSearchTask(taskId: string) {
       }
 
       try {
-        const crawlResult = await searchAndCrawl({
+        const crawlResult = await orchestrateSearch({
           keyword: query,
           region: mapCountryToRegion(task.country || undefined),
           maxResults: queryMaxResults,
@@ -458,6 +459,7 @@ export async function processSearchTask(taskId: string) {
           userId: task.userId,
           onProgress: (p, t) => onCrawlerProgress(p, t, queryIndex - 1),
           shouldCancel,
+          taskId,
         });
 
         if (crawlResult.jobId) {
@@ -556,6 +558,7 @@ export async function processSearchTask(taskId: string) {
         `dropped{noDomain:${droppedNoDomain}, blockedHost:${droppedBlockedHost}, noEmail:${droppedNoContact}, wrongCountry:${droppedWrongCountry}, filtered:${droppedFiltered}} ` +
         `unique=${discoveredBusinesses.size} reason=${zeroLeadsReason}`,
       );
+      resetTaskUsage(taskId);
       await prisma.searchTask.update({
         where: { id: taskId },
         data: {
@@ -841,11 +844,13 @@ export async function processSearchTask(taskId: string) {
           metadata: failedBusinesses > 0 ? { failureReasons } as any : undefined,
         },
       });
+      resetTaskUsage(taskId);
       if (failedBusinesses > 0) {
         console.warn(`[Processor] SearchTask ${taskId}: ${totalLeadsCount} leads saved, ${failedBusinesses} failed.`);
       }
       console.log(`[Processor] Finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, ${totalEmailsCount} emails.`);
     } else {
+      if (finalStatus?.status === 'CANCELLED') resetTaskUsage(taskId);
       console.log(`[Processor] SearchTask ${taskId} is ${finalStatus.status} — ${totalLeadsCount} leads collected so far.`);
       await prisma.searchTask.update({
         where: { id: taskId },
@@ -855,6 +860,7 @@ export async function processSearchTask(taskId: string) {
   } catch (taskError) {
     console.error(`[Processor] Critical error processing SearchTask ${taskId}:`, taskError);
 
+    resetTaskUsage(taskId);
     await prisma.searchTask.update({
       where: { id: taskId },
       data: {
