@@ -1,3 +1,3 @@
-release: npx prisma migrate deploy
-web: node dist/server.js
-worker: node dist/workers/worker.js
+web: cd backend && node dist/server.js
+release: cd backend && npx prisma migrate deploy
+worker: cd backend && node dist/workers/worker.js
