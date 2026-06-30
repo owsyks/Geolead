@@ -812,7 +812,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
     if (recipient.lead.doNotContact || recipient.lead.unsubscribed) continue;
 
     const email = recipient.lead.emails[0]?.email;
-    if (!email || (await isSuppressed(email))) continue;
+    if (!email || (await isSuppressed(email, campaign.userId))) continue;
 
     const scheduledAt = recipient.nextSendAt || nextSendTime(campaign, queued);
     const trackingToken = randomToken();
@@ -894,7 +894,7 @@ export async function forceSendCampaign(campaignId: string, userId?: string) {
   let sent = 0;
   for (const log of logs) {
     if (log.campaign.status !== 'ACTIVE') continue;
-    if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail))) continue;
+    if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail, log.campaign?.userId))) continue;
     if (log.campaignLead?.status && ['REPLIED', 'INTERESTED', 'UNSUBSCRIBED', 'SUPPRESSED'].includes(log.campaignLead.status)) continue;
 
     const sender = log.senderAccount || (await getRotatedSender());
@@ -1032,7 +1032,7 @@ async function runOutboundQueueTick() {
       });
       continue;
     }
-    if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail))) {
+    if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail, log.campaign?.userId))) {
       await prisma.emailLog.update({
         where: { id: log.id },
         data: { status: 'UNSUBSCRIBED', unsubscribedAt: now, errorMessage: 'Lead is suppressed or unsubscribed.' },
@@ -1174,7 +1174,7 @@ async function queueNextSequenceStep(emailLogId: string) {
     return null;
   }
 
-  if (campaignLead.lead.doNotContact || campaignLead.lead.unsubscribed || (await isSuppressed(log.toEmail))) {
+  if (campaignLead.lead.doNotContact || campaignLead.lead.unsubscribed || (await isSuppressed(log.toEmail, log.campaign?.userId))) {
     await prisma.campaignLead.update({
       where: { id: campaignLead.id },
       data: { status: 'SUPPRESSED', pausedReason: 'Lead is unsubscribed or suppressed.' },
@@ -1462,9 +1462,10 @@ export async function updateLeadCrm(id: string, input: Record<string, unknown>, 
   });
 }
 
-export async function listAuditLogs(limit = 25) {
+export async function listAuditLogs(userId: string, limit = 25) {
   await ensureOutboundSeedData();
   const logs = await prisma.auditLog.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: clamp(limit, 1, 100),
     include: { user: true },
@@ -1505,8 +1506,9 @@ export async function listWebhookEvents(limit = 25) {
   }));
 }
 
-export async function listSuppressionEntries(limit = 25) {
+export async function listSuppressionEntries(userId: string, limit = 25) {
   const entries = await prisma.suppressionEntry.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: clamp(limit, 1, 100),
   });
@@ -1523,6 +1525,32 @@ export async function listSuppressionEntries(limit = 25) {
   }));
 }
 
+// Per-user upsert into the suppression list. SuppressionEntry is scoped by
+// (userId, email); we resolve manually instead of upsert-on-composite so a NULL
+// userId (legacy/unattributed) is handled cleanly.
+async function upsertSuppression(params: {
+  email: string;
+  userId?: string | null;
+  reason: string;
+  source: string;
+  campaignId?: string | null;
+  leadId?: string | null;
+}) {
+  const email = params.email.trim().toLowerCase();
+  const userId = params.userId ?? null;
+  const data = {
+    reason: params.reason,
+    source: params.source,
+    campaignId: params.campaignId ?? null,
+    leadId: params.leadId ?? null,
+  };
+  const existing = await prisma.suppressionEntry.findFirst({ where: { email, userId } });
+  if (existing) {
+    return prisma.suppressionEntry.update({ where: { id: existing.id }, data });
+  }
+  return prisma.suppressionEntry.create({ data: { email, userId, ...data } });
+}
+
 export async function addSuppressionEntry(
   input: {
     email: string;
@@ -1531,39 +1559,32 @@ export async function addSuppressionEntry(
     campaignId?: string;
     leadId?: string;
   },
-  userId?: string
+  userId: string
 ) {
   const email = input.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('A valid email address is required for suppression.');
   }
 
+  // Only match leads owned by this user, so suppression never reaches across tenants.
   const matchingEmails = await prisma.leadEmail.findMany({
-    where: { email: { equals: email, mode: 'insensitive' } },
+    where: { email: { equals: email, mode: 'insensitive' }, lead: { ownerId: userId } },
     select: { leadId: true },
   });
   const leadIds = Array.from(new Set([input.leadId, ...matchingEmails.map((item) => item.leadId)].filter(Boolean))) as string[];
 
-  const entry = await prisma.suppressionEntry.upsert({
-    where: { email },
-    update: {
-      reason: input.reason || 'manual',
-      source: input.source || 'manual',
-      campaignId: input.campaignId,
-      leadId: leadIds[0],
-    },
-    create: {
-      email,
-      reason: input.reason || 'manual',
-      source: input.source || 'manual',
-      campaignId: input.campaignId,
-      leadId: leadIds[0],
-    },
+  const entry = await upsertSuppression({
+    email,
+    userId,
+    reason: input.reason || 'manual',
+    source: input.source || 'manual',
+    campaignId: input.campaignId,
+    leadId: leadIds[0],
   });
 
   if (leadIds.length > 0) {
     await prisma.lead.updateMany({
-      where: { id: { in: leadIds } },
+      where: { id: { in: leadIds }, ownerId: userId },
       data: { doNotContact: true, pipelineStage: 'Suppressed', leadStatus: 'Suppressed' },
     });
   }
@@ -2094,15 +2115,19 @@ export async function recordClick(trackingToken: string, requestInfo: RequestInf
 }
 
 export async function unsubscribe(unsubscribeToken: string) {
-  const log = await prisma.emailLog.findFirst({ where: { unsubscribeToken }, include: { lead: true, campaignLead: true } });
+  const log = await prisma.emailLog.findFirst({ where: { unsubscribeToken }, include: { lead: true, campaignLead: true, campaign: true } });
   if (!log) return null;
 
+  await upsertSuppression({
+    email: log.toEmail,
+    userId: log.campaign?.userId ?? log.lead?.ownerId ?? null,
+    reason: 'unsubscribe',
+    source: 'tracking-link',
+    campaignId: log.campaignId,
+    leadId: log.leadId,
+  });
+
   await prisma.$transaction([
-    prisma.suppressionEntry.upsert({
-      where: { email: log.toEmail },
-      update: { reason: 'unsubscribe', source: 'tracking-link', campaignId: log.campaignId, leadId: log.leadId },
-      create: { email: log.toEmail, reason: 'unsubscribe', source: 'tracking-link', campaignId: log.campaignId, leadId: log.leadId },
-    }),
     prisma.lead.update({
       where: { id: log.leadId },
       data: { unsubscribed: true, doNotContact: true, pipelineStage: 'Unsubscribed', leadStatus: 'Unsubscribed' },
@@ -2313,12 +2338,22 @@ async function suppressLogRecipient(
     emailLogUpdate.unsubscribedAt = log.unsubscribedAt || now;
   }
 
+  const ownerId =
+    log.campaign?.userId ??
+    (log.campaignId
+      ? (await prisma.campaign.findUnique({ where: { id: log.campaignId }, select: { userId: true } }))?.userId
+      : null) ??
+    null;
+  await upsertSuppression({
+    email: log.toEmail,
+    userId: ownerId,
+    reason: config.reason,
+    source: config.source,
+    campaignId: log.campaignId,
+    leadId: log.leadId,
+  });
+
   await prisma.$transaction([
-    prisma.suppressionEntry.upsert({
-      where: { email: log.toEmail },
-      update: { reason: config.reason, source: config.source, campaignId: log.campaignId, leadId: log.leadId },
-      create: { email: log.toEmail, reason: config.reason, source: config.source, campaignId: log.campaignId, leadId: log.leadId },
-    }),
     prisma.emailLog.update({
       where: { id: log.id },
       data: emailLogUpdate,
@@ -2620,8 +2655,12 @@ async function senderWithinLimits(senderAccountId: string, _hourlyLimit: number,
   return daily < dailyLimit;
 }
 
-async function isSuppressed(email: string) {
-  return Boolean(await prisma.suppressionEntry.findUnique({ where: { email: email.toLowerCase() } }));
+async function isSuppressed(email: string, userId?: string | null) {
+  return Boolean(
+    await prisma.suppressionEntry.findFirst({
+      where: { email: email.toLowerCase(), ...(userId ? { userId } : {}) },
+    })
+  );
 }
 
 async function sendWithRetry(log: any, sender: any, maxAttempts = 3): Promise<any> {

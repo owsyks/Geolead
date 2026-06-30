@@ -112,6 +112,7 @@ model User {
   templates     Template[]
   senderAccounts SenderAccount[]
   auditLogs     AuditLog[]
+  suppressionEntries SuppressionEntry[]
   leads         Lead[]
   domains       Domain[]
   searchTasks   SearchTask[]
@@ -504,13 +505,18 @@ model WebhookEvent {
 
 model SuppressionEntry {
   id             String      @id @default(uuid())
-  email          String      @unique
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email          String
   reason         String
   source         String      @default("manual")
   campaignId     String?
   leadId         String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+
+  @@unique([userId, email])
+  @@index([userId])
 }
 
 model AuditLog {

@@ -290,7 +290,7 @@ interface MatchResult {
   leadId: string;
   campaignLeadId: string | null;
   emailLogId: string | null;
-  campaign: { id: string; geoDomain: string; niche: string; domainId: string | null } | null;
+  campaign: { id: string; geoDomain: string; niche: string; domainId: string | null; userId: string | null } | null;
   lead: { id: string; businessName: string } | null;
   confidence: number;
   method: string;
@@ -365,7 +365,7 @@ function toMatch(log: any, confidence: number, method: string): MatchResult {
     campaignLeadId: log.campaignLeadId ?? null,
     emailLogId: log.id,
     campaign: log.campaign
-      ? { id: log.campaign.id, geoDomain: log.campaign.geoDomain, niche: log.campaign.niche, domainId: log.campaign.domainId }
+      ? { id: log.campaign.id, geoDomain: log.campaign.geoDomain, niche: log.campaign.niche, domainId: log.campaign.domainId, userId: log.campaign.userId ?? null }
       : null,
     lead: log.lead ? { id: log.lead.id, businessName: log.lead.businessName } : null,
     confidence,
@@ -453,16 +453,20 @@ async function applyReplyEffects(match: MatchResult, analysis: ReplyAnalysis) {
     }
   }
 
-  // Unsubscribe → suppression list.
+  // Unsubscribe → suppression list (scoped to the campaign owner).
   if (unsubscribe) {
     const reply = await prisma.lead.findUnique({ where: { id: match.leadId }, include: { emails: true } });
-    const email = reply?.emails?.[0]?.email;
+    const email = reply?.emails?.[0]?.email?.toLowerCase();
     if (email) {
-      await prisma.suppressionEntry.upsert({
-        where: { email },
-        update: { reason: 'unsubscribe', source: 'imap-reply' },
-        create: { email, reason: 'unsubscribe', source: 'imap-reply', leadId: match.leadId, campaignId: match.campaignId },
-      });
+      const ownerId = match.campaign?.userId ?? reply?.ownerId ?? null;
+      const existing = await prisma.suppressionEntry.findFirst({ where: { email, userId: ownerId } });
+      if (existing) {
+        await prisma.suppressionEntry.update({ where: { id: existing.id }, data: { reason: 'unsubscribe', source: 'imap-reply' } });
+      } else {
+        await prisma.suppressionEntry.create({
+          data: { email, userId: ownerId, reason: 'unsubscribe', source: 'imap-reply', leadId: match.leadId, campaignId: match.campaignId },
+        });
+      }
     }
   }
 }

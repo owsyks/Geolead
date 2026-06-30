@@ -379,7 +379,7 @@ router.get(
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
     const limit = Number.parseInt(asString(req.query.limit) || '25', 10);
-    res.json(await listAuditLogs(Number.isFinite(limit) ? limit : 25));
+    res.json(await listAuditLogs(req.userId!, Number.isFinite(limit) ? limit : 25));
   })
 );
 
@@ -397,7 +397,7 @@ router.get(
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
     const limit = Number.parseInt(asString(req.query.limit) || '25', 10);
-    res.json(await listSuppressionEntries(Number.isFinite(limit) ? limit : 25));
+    res.json(await listSuppressionEntries(req.userId!, Number.isFinite(limit) ? limit : 25));
   })
 );
 
@@ -406,14 +406,13 @@ router.post(
   rateLimit({ key: 'suppression-create', limit: 40, windowMs: 15 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
-    const actor = getActor(req);
     const entry = await addSuppressionEntry(
       {
         email: asString(req.body.email) || '',
         reason: asString(req.body.reason),
         source: 'manual',
       },
-      actor.userId || undefined
+      req.userId!
     );
     res.status(201).json(entry);
   })
