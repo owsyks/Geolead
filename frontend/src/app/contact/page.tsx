@@ -29,7 +29,9 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text overflow-x-hidden">
+    // `dark` is pinned so this marketing page always renders dark (same dark-only
+    // design as the Landing), regardless of the user's app theme.
+    <div className="dark min-h-screen bg-bg text-text overflow-x-hidden">
       {/* aurora */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <GlowOrb className="top-[-10%] left-[-5%] w-[50%] h-[50%] bg-brand/8 opacity-60" />

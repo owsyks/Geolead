@@ -275,7 +275,10 @@ export default function Landing() {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   return (
-    <div className="min-h-screen bg-bg text-text overflow-x-hidden">
+    // `dark` is pinned here so the marketing page always renders on its dark
+    // palette (it's designed dark-only and mixes theme tokens with hardcoded
+    // dark colors) regardless of the user's app theme.
+    <div className="dark min-h-screen bg-bg text-text overflow-x-hidden">
 
       {/* ticker keyframe */}
       <style>{`
