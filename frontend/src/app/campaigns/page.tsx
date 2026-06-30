@@ -1,15 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
+  BarChart2,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Eye,
   Gauge,
   Loader2,
+  Mail,
   Pause,
   Play,
   Plus,
   RefreshCcw,
+  Search,
   Send,
   Sparkles,
   Trash2,
@@ -21,7 +26,6 @@ import {
 } from "lucide-react";
 import { EmptyState, OutboundShell } from "@/components/OutboundShell";
 import { VirtualList } from "@/components/VirtualList";
-import { GlassCard, KanbanColumn, StatusBadge } from "@/components/ui";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
 import {
@@ -87,7 +91,39 @@ const demoCampaigns: OutboundCampaignSummary[] = [
   },
 ];
 
-const statusColumns: CampaignStatus[] = ["DRAFT", "ACTIVE", "PAUSED", "COMPLETED"];
+const STATUS_ORDER: Record<string, number> = { ACTIVE: 0, PAUSED: 1, DRAFT: 2, COMPLETED: 3 };
+const STATUS_PILL: Record<string, string> = {
+  ACTIVE: "text-brand bg-brand/10 border-brand/25",
+  PAUSED: "text-copper bg-copper/10 border-copper/25",
+  DRAFT: "text-text-muted bg-surface-2 border-border",
+  COMPLETED: "text-success bg-success/10 border-success/25",
+};
+const STATUS_FILTERS = ["ALL", "ACTIVE", "PAUSED", "DRAFT", "COMPLETED"] as const;
+
+/* Relative "next send" label + urgency flag derived from a campaign's next follow-up. */
+function nextSendLabel(at: string | null | undefined): { text: string; urgent: boolean } {
+  if (!at) return { text: "—", urgent: false };
+  const diff = new Date(at).getTime() - Date.now();
+  if (diff <= 0) return { text: "now", urgent: true };
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return { text: `${days}d ${hours % 24}h`, urgent: days < 1 };
+  return { text: `${hours}h ${Math.floor((diff % 3_600_000) / 60_000)}m`, urgent: true };
+}
+
+function fmtDay(d: string | null | undefined): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/* Thin proportional bar used in the campaign table cells. */
+function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
+  return (
+    <div className="w-full h-1 bg-surface-2 rounded-full overflow-hidden mt-1">
+      <div className="h-full rounded-full" style={{ width: `${Math.min((value / max) * 100, 100)}%`, background: color }} />
+    </div>
+  );
+}
 
 const THROTTLE_PRESETS: Record<string, { label: string; delayMin: number; delayMax: number }> = {
   "instant": { label: "⚡ Instant send (all now, no delay)", delayMin: 0, delayMax: 0 },
@@ -116,6 +152,10 @@ export default function CampaignsPage() {
   const [variantsFor, setVariantsFor] = useState<{ id: string; name: string } | null>(null);
   const [eventsFor, setEventsFor] = useState<{ id: string; name: string } | null>(null);
   const [quota, setQuota] = useState<SendQuota | null>(null);
+  const [showNew, setShowNew] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [form, setForm] = useState({
     name: "Geo-domain buyer outreach",
     geoDomain: "TexasCarVendor.com",
@@ -422,6 +462,30 @@ export default function CampaignsPage() {
     );
   };
 
+  const visibleCampaigns = campaigns
+    .filter((c) => statusFilter === "ALL" || c.status === statusFilter)
+    .filter((c) => {
+      if (search === "") return true;
+      const q = search.toLowerCase();
+      return c.name.toLowerCase().includes(q) || (c.geoDomain || "").toLowerCase().includes(q);
+    })
+    .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9));
+
+  const activeCampaigns = campaigns.filter((c) => c.status === "ACTIVE");
+  const totalSent = campaigns.reduce((sum, c) => sum + (c.sent || 0), 0);
+  const avgOpen = activeCampaigns.length
+    ? Math.round(activeCampaigns.reduce((sum, c) => sum + (c.openRate || 0), 0) / activeCampaigns.length)
+    : 0;
+  const avgReply = activeCampaigns.length
+    ? (activeCampaigns.reduce((sum, c) => sum + (c.replyRate || 0), 0) / activeCampaigns.length).toFixed(1)
+    : "0";
+  const kpis = [
+    { label: "Active", val: String(activeCampaigns.length), sub: "campaigns running", icon: Zap, color: "text-brand" },
+    { label: "Total Sent", val: totalSent.toLocaleString(), sub: "emails delivered", icon: Send, color: "text-info" },
+    { label: "Avg Open Rate", val: `${avgOpen}%`, sub: "across active campaigns", icon: Mail, color: "text-success" },
+    { label: "Avg Reply Rate", val: `${avgReply}%`, sub: "across active campaigns", icon: TrendingUp, color: "text-brand" },
+  ];
+
   return (
     <OutboundShell
       title="Campaigns"
@@ -464,15 +528,313 @@ export default function CampaignsPage() {
           <div className="shrink-0 mx-6 mt-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-muted">{message}</div>
         ) : null}
 
-        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-          {/* Create form — full-width on mobile, side panel on desktop */}
-          <form
-            className="w-full lg:w-[400px] lg:min-w-[400px] shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-surface-2/30 overflow-y-auto p-3 lg:p-6 space-y-3 lg:space-y-5 max-h-[55vh] lg:max-h-none"
-            onSubmit={(event) => { event.preventDefault(); void createCampaign(); }}
-          >
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-brand" />
-              <h2 className="font-black text-lg text-text">New Campaign</h2>
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-5 bg-bg">
+
+          {/* ── KPI bar ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpis.map((m) => (
+              <div key={m.label} className="bg-surface border border-border rounded-xl p-4 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <m.icon className={`w-4 h-4 ${m.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted truncate">{m.label}</div>
+                  <div className={`text-2xl font-black font-mono tabular-nums leading-tight ${m.color}`}>{m.val}</div>
+                  <div className="text-[10px] text-text-faint">{m.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── toolbar ── */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-faint" />
+                <input
+                  type="text"
+                  placeholder="Search campaigns..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-surface border border-border rounded-lg pl-8 pr-3 py-2 text-[13px] focus:border-brand focus:outline-none w-[180px] placeholder:text-text-faint"
+                />
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {STATUS_FILTERS.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg border transition-colors ${
+                      statusFilter === f
+                        ? "bg-brand/10 border-brand/30 text-brand"
+                        : "bg-surface border-border text-text-muted hover:text-text hover:border-border-strong"
+                    }`}
+                  >
+                    {f === "ALL" ? `All (${campaigns.length})` : `${f} (${campaigns.filter((c) => c.status === f).length})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowNew(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-brand text-bg text-[13px] font-bold rounded-lg hover:bg-brand-hover transition-all shadow-[0_0_12px_rgba(20,184,166,0.2)] flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" /> New Campaign
+            </button>
+          </div>
+
+          {/* ── table (desktop) ── */}
+          <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="border-b border-border bg-surface-2/50">
+                <tr className="text-[10px] uppercase tracking-wider text-text-faint font-black">
+                  <th className="px-4 py-3">Campaign</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Sent</th>
+                  <th className="px-4 py-3">Open %</th>
+                  <th className="px-4 py-3">Reply %</th>
+                  <th className="px-4 py-3">Bounce</th>
+                  <th className="px-4 py-3">Next Send</th>
+                  <th className="px-4 py-3 w-40"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleCampaigns.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-12 text-text-faint text-sm">No campaigns match your filter.</td>
+                  </tr>
+                ) : visibleCampaigns.map((c) => {
+                  const open = expanded === c.id;
+                  const ns = nextSendLabel(c.nextFollowUpAt);
+                  const isActive = c.status === "ACTIVE";
+                  const isPaused = c.status === "PAUSED";
+                  const isDraft = c.status === "DRAFT";
+                  return (
+                    <Fragment key={c.id}>
+                      <tr
+                        className={`border-b border-border transition-colors cursor-pointer group ${open ? "bg-brand/[0.03]" : "hover:bg-surface-2/40"}`}
+                        onClick={() => setExpanded(open ? null : c.id)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-4 h-4 flex items-center justify-center text-text-faint transition-transform ${open ? "rotate-90" : ""}`}>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-[13px] flex items-center gap-2">
+                                {c.name}
+                                {ns.urgent && c.status !== "DRAFT" && <span className="w-1.5 h-1.5 rounded-full bg-copper inline-block shadow-[0_0_6px_var(--copper)]" />}
+                              </div>
+                              <div className="text-[11px] text-text-faint font-mono mt-0.5">{c.geoDomain}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`font-mono text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border ${STATUS_PILL[c.status] || STATUS_PILL.DRAFT}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="font-mono font-bold text-sm tabular-nums">{c.sent > 0 ? c.sent : "—"}</div>
+                          {c.recipients > 0 && <div className="text-[10px] text-text-faint">{c.recipients} leads</div>}
+                        </td>
+                        <td className="px-4 py-3 min-w-[90px]">
+                          {c.sent > 0 ? (
+                            <>
+                              <div className="font-mono font-bold text-sm text-success tabular-nums">{Math.round(c.openRate)}%</div>
+                              <MiniBar value={c.openRate} max={60} color="#10b981" />
+                            </>
+                          ) : <span className="text-text-faint text-[12px]">—</span>}
+                        </td>
+                        <td className="px-4 py-3 min-w-[90px]">
+                          {c.sent > 0 ? (
+                            <>
+                              <div className="font-mono font-bold text-sm text-brand tabular-nums">{c.replyRate.toFixed(1)}%</div>
+                              <MiniBar value={c.replyRate} max={10} color="#14b8a6" />
+                            </>
+                          ) : <span className="text-text-faint text-[12px]">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {c.sent > 0 ? (
+                            <span className={`font-mono text-[12px] font-bold tabular-nums ${c.bounceRate > 3 ? "text-danger" : "text-text-muted"}`}>
+                              {c.bounceRate.toFixed(1)}%
+                            </span>
+                          ) : <span className="text-text-faint text-[12px]">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className={`text-[12px] font-mono font-bold ${ns.urgent && c.status !== "DRAFT" ? "text-copper" : "text-text-muted"}`}>{ns.text}</div>
+                        </td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isActive && (
+                              <button onClick={() => void updateStatus(c.id, "PAUSED")} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="Pause">
+                                <Pause className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {isPaused && (
+                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-success transition-all" title="Resume">
+                                <Play className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {isDraft && (
+                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="px-2.5 py-1 bg-brand/10 text-brand text-[11px] font-bold rounded border border-brand/20 hover:bg-brand hover:text-bg transition-all">
+                                Launch
+                              </button>
+                            )}
+                            <button onClick={() => setVariantsFor({ id: c.id, name: c.name })} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="AI variants">
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => setEventsFor({ id: c.id, name: c.name })} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-text transition-all" title="Analytics & events">
+                              <BarChart2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {open && (
+                        <tr className="border-b border-brand/10 bg-brand/[0.02]">
+                          <td colSpan={8} className="px-6 py-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {/* performance */}
+                              <div className="space-y-3">
+                                <div className="text-[10px] font-black uppercase tracking-wider text-text-faint mb-2">Performance</div>
+                                {[
+                                  { label: "Click rate", val: `${c.clickRate.toFixed(1)}%`, color: "text-info" },
+                                  { label: "Bounce rate", val: `${c.bounceRate.toFixed(1)}%`, color: c.bounceRate > 3 ? "text-danger" : "text-text-muted" },
+                                  { label: "Emails sent", val: c.sent.toString(), color: "text-text" },
+                                ].map((m) => (
+                                  <div key={m.label} className="flex justify-between items-center text-[12px]">
+                                    <span className="text-text-faint">{m.label}</span>
+                                    <span className={`font-mono font-bold ${m.color}`}>{m.val}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* lead pool */}
+                              <div className="space-y-3">
+                                <div className="text-[10px] font-black uppercase tracking-wider text-text-faint mb-2">Lead Pool</div>
+                                {[
+                                  { label: "Recipients", val: c.recipients },
+                                  { label: "Delivered", val: c.delivered },
+                                  { label: "Remaining", val: Math.max(c.recipients - c.sent, 0) },
+                                ].map((m) => (
+                                  <div key={m.label} className="flex justify-between items-center text-[12px]">
+                                    <span className="text-text-faint">{m.label}</span>
+                                    <span className="font-mono font-bold text-text">{m.val}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* variants */}
+                              <div>
+                                <div className="text-[10px] font-black uppercase tracking-wider text-text-faint mb-3">Email Variants</div>
+                                <button
+                                  onClick={() => setVariantsFor({ id: c.id, name: c.name })}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border rounded text-[11px] font-bold text-text-muted hover:text-copper hover:border-copper/30 transition-all"
+                                >
+                                  <Sparkles className="w-3 h-3" /> Manage AI variants
+                                </button>
+                              </div>
+
+                              {/* details + actions */}
+                              <div>
+                                <div className="text-[10px] font-black uppercase tracking-wider text-text-faint mb-3">Details</div>
+                                <div className="space-y-1.5 text-[12px] text-text-faint mb-4">
+                                  <div>{[c.niche, c.cityState].filter(Boolean).join(" · ") || "—"}</div>
+                                  <div>Created {fmtDay(c.createdAt)}</div>
+                                </div>
+                                {renderActions(c)}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── mobile: stacked cards ── */}
+          <div className="md:hidden space-y-3">
+            {visibleCampaigns.length === 0 ? (
+              <div className="text-center py-10 text-text-faint text-sm">No campaigns match your filter.</div>
+            ) : visibleCampaigns.map((c) => {
+              const open = expanded === c.id;
+              const ns = nextSendLabel(c.nextFollowUpAt);
+              return (
+                <div key={c.id} className={`bg-surface border rounded-xl overflow-hidden transition-colors ${open ? "border-brand/30" : "border-border"}`}>
+                  <button className="w-full text-left p-4 flex items-start justify-between gap-3" onClick={() => setExpanded(open ? null : c.id)}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`font-mono text-[10px] font-black uppercase px-2 py-0.5 rounded border ${STATUS_PILL[c.status] || STATUS_PILL.DRAFT}`}>{c.status}</span>
+                        {ns.urgent && c.status !== "DRAFT" && <span className="w-1.5 h-1.5 rounded-full bg-copper shadow-[0_0_6px_var(--copper)]" />}
+                      </div>
+                      <div className="font-bold text-[14px]">{c.name}</div>
+                      <div className="text-[11px] text-text-faint font-mono">{c.geoDomain}</div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-text-muted flex-shrink-0 mt-1 transition-transform ${open ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {c.sent > 0 && (
+                    <div className="grid grid-cols-3 gap-0 border-t border-border divide-x divide-border">
+                      {[
+                        { label: "Sent", val: c.sent.toString(), color: "text-text" },
+                        { label: "Open", val: `${Math.round(c.openRate)}%`, color: "text-success" },
+                        { label: "Reply", val: `${c.replyRate.toFixed(1)}%`, color: "text-brand" },
+                      ].map((m) => (
+                        <div key={m.label} className="px-3 py-2.5 text-center">
+                          <div className={`font-mono font-black text-[15px] tabular-nums ${m.color}`}>{m.val}</div>
+                          <div className="text-[9px] text-text-faint uppercase font-bold tracking-wider">{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {open && (
+                    <div className="border-t border-border p-4 space-y-4 bg-surface-2/20">
+                      <div className="grid grid-cols-2 gap-3 text-[12px]">
+                        {[
+                          { l: "Click rate", v: `${c.clickRate.toFixed(1)}%` },
+                          { l: "Bounce", v: `${c.bounceRate.toFixed(1)}%` },
+                          { l: "Recipients", v: c.recipients },
+                          { l: "Delivered", v: c.delivered },
+                          { l: "Niche", v: c.niche || "—" },
+                          { l: "Next send", v: ns.text },
+                        ].map((item) => (
+                          <div key={item.l} className="flex justify-between">
+                            <span className="text-text-faint">{item.l}</span>
+                            <span className="font-mono font-bold">{item.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {renderActions(c)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── New Campaign slide-over ── */}
+        {showNew && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowNew(false)} />
+            <form
+              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[440px] bg-bg border-l border-border overflow-y-auto p-5 lg:p-6 space-y-5 shadow-2xl"
+              onSubmit={(event) => { event.preventDefault(); void createCampaign(); }}
+            >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-brand" />
+                <h2 className="font-black text-lg text-text">New Campaign</h2>
+              </div>
+              <button type="button" onClick={() => setShowNew(false)} className="p-1.5 rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div>
@@ -632,75 +994,8 @@ export default function CampaignsPage() {
               <Plus className="h-4 w-4" /> Create campaign
             </button>
           </form>
-
-          {/* Kanban board */}
-          <div className="flex-1 overflow-x-auto p-6 bg-bg flex gap-6">
-            {statusColumns.map((status) => {
-              const columnCampaigns = campaigns.filter((campaign) => campaign.status === status);
-              return (
-                <KanbanColumn key={status} title={status} count={columnCampaigns.length}>
-                  {columnCampaigns.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border p-4 text-xs text-text-muted">No campaigns</div>
-                  ) : (
-                    columnCampaigns.map((campaign) => (
-                      <GlassCard key={campaign.id} className="p-4 flex flex-col gap-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h4 className="text-[15px] font-bold text-text truncate leading-tight">{campaign.name}</h4>
-                            <p className="mt-1 text-[12px] text-text-muted truncate">{campaign.geoDomain}</p>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-success shrink-0">{campaign.engagementScore}</span>
-                        </div>
-
-                        {campaign.status !== "DRAFT" && (
-                          <div className="grid grid-cols-3 gap-2 py-2 border-y border-border/50 text-center">
-                            <div>
-                              <div className="text-[10px] text-text-muted uppercase font-bold">Sent</div>
-                              <div className="font-mono text-sm font-bold">{campaign.sent}</div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-text-muted uppercase font-bold">Open</div>
-                              <div className="font-mono text-sm font-bold text-success">{campaign.opens}</div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-text-muted uppercase font-bold">Reply</div>
-                              <div className="font-mono text-sm font-bold text-brand">{campaign.replies}</div>
-                            </div>
-                          </div>
-                        )}
-
-                        {campaign.status !== "DRAFT" && (
-                          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-                            <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(campaign.engagementScore, 100)}%` }} />
-                          </div>
-                        )}
-
-                        {campaign.nextFollowUpAt && (
-                          <div className="text-[11px] font-bold">
-                            {(() => {
-                              const diff = new Date(campaign.nextFollowUpAt).getTime() - Date.now();
-                              if (diff <= 0) return <span className="text-success">Next follow-up: now</span>;
-                              const hours = Math.floor(diff / 3600000);
-                              const days = Math.floor(hours / 24);
-                              const remainHours = hours % 24;
-                              return (
-                                <span className={days <= 1 ? "text-copper" : "text-text-muted"}>
-                                  Next follow-up: {days > 0 ? `${days}d ` : ""}{remainHours}h
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        )}
-
-                        {renderActions(campaign)}
-                      </GlassCard>
-                    ))
-                  )}
-                </KanbanColumn>
-              );
-            })}
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {variantsFor ? <VariantsModal campaign={variantsFor} onClose={() => setVariantsFor(null)} /> : null}
