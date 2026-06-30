@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
     if (user && (pathname === "/login" || pathname === "/register")) {
-      router.replace("/");
+      router.replace("/overview");
     }
   }, [loading, user, pathname, router]);
 

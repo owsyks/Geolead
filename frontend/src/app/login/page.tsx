@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await login(form.email, form.password, true);
       const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(next && next.startsWith("/") ? next : "/");
+      router.replace(next && next.startsWith("/") ? next : "/overview");
     } catch (err: any) {
       setError(err?.message || "Login failed.");
       setLoading(false);

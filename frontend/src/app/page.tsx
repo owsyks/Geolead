@@ -1,13 +1,8 @@
-"use client";
-
-import { useAuth } from "@/lib/auth";
 import Landing from "@/components/Landing";
-import CommandCenter from "@/components/CommandCenter";
 
-// `/` serves the public marketing Landing to logged-out visitors and the
-// authenticated Command Center dashboard to signed-in users.
+// `/` always serves the public marketing Landing — to logged-out and signed-in
+// visitors alike. The authenticated dashboard lives at /overview (signed-in
+// users land there after login; see lib/auth and the login/register redirects).
 export default function HomePage() {
-  const { user } = useAuth();
-  if (!user) return <Landing />;
-  return <CommandCenter />;
+  return <Landing />;
 }

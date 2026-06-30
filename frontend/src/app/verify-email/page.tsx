@@ -40,7 +40,7 @@ export default function VerifyEmailPage() {
     <AuthShell
       title="Email verification"
       footer={
-        <Link href="/" className="font-medium text-brand hover:text-brand-hover">
+        <Link href="/overview" className="font-medium text-brand hover:text-brand-hover">
           Go to dashboard
         </Link>
       }

@@ -63,7 +63,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form.name, form.email, form.password);
-      router.replace("/");
+      router.replace("/overview");
     } catch (err: any) {
       setError(err?.message || "Registration failed.");
       setStep(1);

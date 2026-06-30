@@ -30,7 +30,7 @@ import { useTheme } from "./ThemeProvider";
 import { cn } from "./ui";
 
 const navItems = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/portfolio", label: "Portfolio", icon: Globe2 },
   { href: "/portfolio/kanban", label: "Sales Kanban", icon: Kanban },
   { href: "/acquisition", label: "Acquisition Advisor", icon: ShoppingCart },
@@ -48,7 +48,7 @@ const navItems = [
 
 // Key nav items for mobile bottom bar
 const bottomNavItems = [
-  { href: "/", label: "Home", icon: LayoutDashboard },
+  { href: "/overview", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard", label: "Leads", icon: Search },
   { href: "/campaigns", label: "Campaigns", icon: Send },
   { href: "/inbox", label: "Inbox", icon: Inbox },
