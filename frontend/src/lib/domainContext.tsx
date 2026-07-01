@@ -13,8 +13,10 @@ import {
   type ReactNode,
 } from "react";
 import { fetchOutbound, type PortfolioDomain } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
 
 const STORAGE_KEY = "geolead.activeDomainId";
+const DOMAINS_CACHE_KEY = "domains";
 
 interface DomainContextValue {
   domains: PortfolioDomain[];
@@ -28,7 +30,7 @@ interface DomainContextValue {
 const DomainContext = createContext<DomainContextValue | null>(null);
 
 export function DomainContextProvider({ children }: { children: ReactNode }) {
-  const [domains, setDomains] = useState<PortfolioDomain[]>([]);
+  const [domains, setDomains] = useState<PortfolioDomain[]>(() => readCache<PortfolioDomain[]>(DOMAINS_CACHE_KEY) ?? []);
   const [activeDomainId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +38,7 @@ export function DomainContextProvider({ children }: { children: ReactNode }) {
     try {
       const data = await fetchOutbound<PortfolioDomain[]>("/api/domains");
       setDomains(data);
+      writeCache(DOMAINS_CACHE_KEY, data);
       // If the previously selected domain was deleted, clear the selection.
       if (activeDomainId && !data.some((d) => d.id === activeDomainId)) {
         setActiveId(null);

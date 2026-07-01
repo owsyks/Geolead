@@ -12,6 +12,9 @@ import {
   type OutboundEventSummary,
   type OutboundOverview,
 } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
+
+const OVERVIEW_CACHE_KEY = "overview";
 
 const demoOverview: OutboundOverview = {
   metrics: {
@@ -140,8 +143,10 @@ function eventTone(type?: string) {
 }
 
 export default function CommandCenter() {
-  const [overview, setOverview] = useState<OutboundOverview>(demoOverview);
-  const [events, setEvents] = useState<OutboundEventSummary[]>(demoOverview.activity);
+  // Seed from the last-known cached overview so returning users see their real
+  // numbers instantly; the fetch below revalidates. Falls back to demo data.
+  const [overview, setOverview] = useState<OutboundOverview>(() => readCache<OutboundOverview>(OVERVIEW_CACHE_KEY) ?? demoOverview);
+  const [events, setEvents] = useState<OutboundEventSummary[]>(() => (readCache<OutboundOverview>(OVERVIEW_CACHE_KEY) ?? demoOverview).activity);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
 
@@ -150,6 +155,7 @@ export default function CommandCenter() {
       const data = await fetchOutbound<OutboundOverview>("/api/outbound/overview");
       setOverview(data);
       setEvents(data.activity);
+      writeCache(OVERVIEW_CACHE_KEY, data);
       setOffline(false);
     } catch {
       setOverview(demoOverview);
@@ -169,6 +175,7 @@ export default function CommandCenter() {
         if (!active) return;
         setOverview(data);
         setEvents(data.activity);
+        writeCache(OVERVIEW_CACHE_KEY, data);
         setOffline(false);
       } catch {
         if (!active) return;

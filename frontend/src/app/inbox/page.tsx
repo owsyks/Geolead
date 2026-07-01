@@ -34,6 +34,9 @@ import {
   type OutboundSenderSummary,
   type SyncResult,
 } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
+
+const INBOX_CACHE_KEY = "inbox";
 
 const FILTERS: Array<{ key: string; label: string }> = [
   { key: "all", label: "All" },
@@ -71,7 +74,8 @@ interface MailboxStatus {
 }
 
 export default function InboxPage() {
-  const [data, setData] = useState<InboxResponse | null>(null);
+  // Seed the default (unfiltered) inbox view from cache for an instant paint.
+  const [data, setData] = useState<InboxResponse | null>(() => readCache<InboxResponse>(INBOX_CACHE_KEY));
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<InboxReply | null>(null);
@@ -92,6 +96,8 @@ export default function InboxPage() {
       ]);
       setData(inboxRes);
       setMailbox(mbRes.mailbox);
+      // Only cache the default view so the seed matches the initial paint.
+      if (filter === "all" && !search) writeCache(INBOX_CACHE_KEY, inboxRes);
     } catch {
       setMessage("Backend offline — inbox unavailable.");
       setMailbox(null);

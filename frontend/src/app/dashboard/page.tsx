@@ -8,6 +8,7 @@ import { OutboundShell, MetricCard } from "@/components/OutboundShell";
 import { GlassCard, ScoreRing } from "@/components/ui";
 import { useDomainContext } from "@/lib/domainContext";
 import { authFetch, fetchOutbound } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
 import {
   Search,
   MapPin,
@@ -38,6 +39,8 @@ const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
 const DEMO_TASK_ONE_CREATED_AT = "2026-05-21T23:00:00.000Z";
 const DEMO_TASK_TWO_CREATED_AT = "2026-05-21T22:00:00.000Z";
+
+const HISTORY_CACHE_KEY = "dashboard.history";
 
 const INPUT = "w-full h-10 bg-bg border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand transition-colors";
 const LABEL = "block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5";
@@ -144,7 +147,7 @@ export default function DashboardPage() {
   }, [activeDomain]);
 
   // Data States
-  const [tasks, setTasks] = useState<SearchTask[]>([]);
+  const [tasks, setTasks] = useState<SearchTask[]>(() => readCache<SearchTask[]>(HISTORY_CACHE_KEY) ?? []);
   const [selectedTask, setSelectedTask] = useState<SearchTask | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
@@ -312,6 +315,7 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error();
       const data = await response.json();
       setTasks(data);
+      writeCache(HISTORY_CACHE_KEY, data);
       setIsDemoMode(false);
 
       // Auto-select latest task if available

@@ -28,6 +28,7 @@ import { EmptyState, OutboundShell } from "@/components/OutboundShell";
 import { VirtualList } from "@/components/VirtualList";
 import { DomainSelector } from "@/components/DomainSelector";
 import { useDomainContext } from "@/lib/domainContext";
+import { readCache, writeCache } from "@/lib/cache";
 import {
   fetchOutbound,
   type CampaignStatus,
@@ -137,10 +138,14 @@ const THROTTLE_PRESETS: Record<string, { label: string; delayMin: number; delayM
   "custom": { label: "Custom interval", delayMin: 5, delayMax: 30 },
 };
 
+const CAMPAIGNS_CACHE_KEY = "campaigns";
+const OVERVIEW_CACHE_KEY = "overview";
+
 export default function CampaignsPage() {
   const { activeDomain, activeDomainId } = useDomainContext();
-  const [campaigns, setCampaigns] = useState<OutboundCampaignSummary[]>(demoCampaigns);
-  const [overview, setOverview] = useState<OutboundOverview | null>(null);
+  // Seed the campaign list from cache so it renders instantly on revisit.
+  const [campaigns, setCampaigns] = useState<OutboundCampaignSummary[]>(() => readCache<OutboundCampaignSummary[]>(CAMPAIGNS_CACHE_KEY) ?? demoCampaigns);
+  const [overview, setOverview] = useState<OutboundOverview | null>(() => readCache<OutboundOverview>(OVERVIEW_CACHE_KEY));
   const [leads, setLeads] = useState<AvailableLead[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [templates, setTemplates] = useState<Array<{ id: string; name: string; subject: string }>>([]);
@@ -197,6 +202,8 @@ export default function CampaignsPage() {
       setCampaigns(campaignData);
       setOverview(overviewData);
       setTemplates(templateData);
+      writeCache(CAMPAIGNS_CACHE_KEY, campaignData);
+      writeCache(OVERVIEW_CACHE_KEY, overviewData);
       setMessage("");
       void fetchOutbound<SendQuota>("/api/outbound/quota").then(setQuota).catch(() => setQuota(null));
     } catch {
@@ -242,6 +249,8 @@ export default function CampaignsPage() {
         setOverview(overviewData);
         setLeads(leadData.leads);
         setTemplates(templateData);
+        writeCache(CAMPAIGNS_CACHE_KEY, campaignData);
+        writeCache(OVERVIEW_CACHE_KEY, overviewData);
       } catch {
         if (!active) return;
         setCampaigns(demoCampaigns);

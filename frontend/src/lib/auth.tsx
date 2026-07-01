@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -22,6 +23,14 @@ import {
   getRefreshToken,
   setUnauthorizedHandler,
 } from "@/lib/outbound";
+import { readCache, writeCache, clearAllCache } from "@/lib/cache";
+
+// Cache key for the signed-in user, so returning visitors render instantly.
+const USER_CACHE_KEY = "user";
+
+// useLayoutEffect warns during SSR; fall back to useEffect on the server so the
+// pre-paint hydration only runs client-side without noise.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export interface AuthUser {
   id: string;
@@ -66,13 +75,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadMe = useCallback(async () => {
     if (!getAccessToken() && !getRefreshToken()) {
       setUser(null);
+      clearAllCache();
       return;
     }
     try {
       const data = await fetchOutbound<{ user: AuthUser }>("/api/auth/me");
       setUser(data.user);
+      writeCache(USER_CACHE_KEY, data.user);
     } catch {
       setUser(null);
+    }
+  }, []);
+
+  // Instant hydration: before the first paint, seed the user from the last
+  // session's cache so returning visitors skip the blocking "Loading…" gate and
+  // the app renders immediately. The effect below still revalidates via /me.
+  // (Initial state stays null/true so SSR and first client render match.)
+  useIsoLayoutEffect(() => {
+    const cached = readCache<AuthUser>(USER_CACHE_KEY);
+    if (cached && (getAccessToken() || getRefreshToken())) {
+      setUser(cached);
+      setLoading(false);
     }
   }, []);
 
@@ -92,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setUser(null);
+      clearAllCache();
       if (!isPublic(window.location.pathname)) router.replace("/login");
     });
     return () => setUnauthorizedHandler(null);
@@ -117,7 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Login failed.");
     setTokens(data.accessToken, data.refreshToken);
+    clearAllCache(); // drop any previous account's cached page data
     setUser(data.user);
+    writeCache(USER_CACHE_KEY, data.user);
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
@@ -129,7 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Registration failed.");
     setTokens(data.accessToken, data.refreshToken);
+    clearAllCache();
     setUser(data.user);
+    writeCache(USER_CACHE_KEY, data.user);
   }, []);
 
   const logout = useCallback(async () => {
@@ -144,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* best-effort */
     }
     clearTokens();
+    clearAllCache();
     setUser(null);
     router.replace("/login");
   }, [router]);

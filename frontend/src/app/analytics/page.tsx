@@ -6,6 +6,9 @@ import { EmptyState, MetricCard, OutboundShell } from "@/components/OutboundShel
 import { GlassCard, Sparkline, StatusBadge } from "@/components/ui";
 import { ClientDate } from "@/lib/ClientDate";
 import { fetchOutbound, type OutboundAnalytics } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
+
+const ANALYTICS_CACHE_KEY = "analytics";
 
 const demoAnalytics: OutboundAnalytics = {
   overview: {
@@ -66,7 +69,7 @@ const demoAnalytics: OutboundAnalytics = {
 };
 
 export default function AnalyticsPage() {
-  const [analytics, setAnalytics] = useState<OutboundAnalytics>(demoAnalytics);
+  const [analytics, setAnalytics] = useState<OutboundAnalytics>(() => readCache<OutboundAnalytics>(ANALYTICS_CACHE_KEY) ?? demoAnalytics);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -74,6 +77,7 @@ export default function AnalyticsPage() {
     try {
       const data = await fetchOutbound<OutboundAnalytics>("/api/outbound/analytics");
       setAnalytics(data);
+      writeCache(ANALYTICS_CACHE_KEY, data);
     } catch {
       setAnalytics(demoAnalytics);
       setMessage("Backend offline. Showing demo analytics data.");
@@ -90,6 +94,7 @@ export default function AnalyticsPage() {
         const data = await fetchOutbound<OutboundAnalytics>("/api/outbound/analytics");
         if (!active) return;
         setAnalytics(data);
+        writeCache(ANALYTICS_CACHE_KEY, data);
       } catch {
         if (!active) return;
         setAnalytics(demoAnalytics);

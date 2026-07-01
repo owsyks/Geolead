@@ -28,6 +28,10 @@ import {
   type PortfolioDomain,
   type PortfolioStatus,
 } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
+
+const PORTFOLIO_CACHE_KEY = "portfolio.domains";
+const PORTFOLIO_DASH_CACHE_KEY = "portfolio.dashboard";
 
 const INPUT = "h-10 w-full rounded-md border border-border bg-bg px-3 text-sm text-text focus:border-brand outline-none transition-colors";
 
@@ -60,8 +64,8 @@ type FormState = typeof EMPTY_FORM;
 
 export default function PortfolioPage() {
   const { setActiveDomainId, refresh } = useDomainContext();
-  const [domains, setDomains] = useState<PortfolioDomain[]>([]);
-  const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(null);
+  const [domains, setDomains] = useState<PortfolioDomain[]>(() => readCache<PortfolioDomain[]>(PORTFOLIO_CACHE_KEY) ?? []);
+  const [dashboard, setDashboard] = useState<PortfolioDashboard | null>(() => readCache<PortfolioDashboard>(PORTFOLIO_DASH_CACHE_KEY));
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
@@ -86,6 +90,11 @@ export default function PortfolioPage() {
       ]);
       setDomains(list);
       setDashboard(stats);
+      // Cache only the default (non-archived) view so the seed matches the paint.
+      if (!showArchived) {
+        writeCache(PORTFOLIO_CACHE_KEY, list);
+        writeCache(PORTFOLIO_DASH_CACHE_KEY, stats);
+      }
     } catch {
       setMessage("Could not reach the backend. Portfolio data may be stale.");
     } finally {

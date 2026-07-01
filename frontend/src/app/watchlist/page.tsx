@@ -33,6 +33,10 @@ import {
   type WatchlistNotification,
   type WatchlistReminder,
 } from "@/lib/outbound";
+import { readCache, writeCache } from "@/lib/cache";
+
+const WATCHLIST_CACHE_KEY = "watchlist.domains";
+const WATCHLIST_NOTIFS_CACHE_KEY = "watchlist.notifications";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -65,8 +69,8 @@ type Tab = "all" | "available" | "high_priority" | "reminders" | "notifications"
 
 export default function WatchlistPage() {
   const [tab, setTab] = useState<Tab>("all");
-  const [domains, setDomains] = useState<WatchedDomain[]>([]);
-  const [notifications, setNotifications] = useState<WatchlistNotification[]>([]);
+  const [domains, setDomains] = useState<WatchedDomain[]>(() => readCache<WatchedDomain[]>(WATCHLIST_CACHE_KEY) ?? []);
+  const [notifications, setNotifications] = useState<WatchlistNotification[]>(() => readCache<WatchlistNotification[]>(WATCHLIST_NOTIFS_CACHE_KEY) ?? []);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -83,6 +87,8 @@ export default function WatchlistPage() {
       ]);
       setDomains(list);
       setNotifications(notifs);
+      writeCache(WATCHLIST_CACHE_KEY, list);
+      writeCache(WATCHLIST_NOTIFS_CACHE_KEY, notifs);
     } catch {
       setMessage("Could not load watchlist.");
     } finally {
