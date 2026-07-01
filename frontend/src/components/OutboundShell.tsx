@@ -13,6 +13,7 @@ import {
   Kanban,
   Layers3,
   LayoutDashboard,
+  LogOut,
   Mail,
   Menu,
   Moon,
@@ -103,6 +104,47 @@ function useUnreadCount() {
   return count;
 }
 
+// Two-letter initials from the display name (fallback to the email).
+function initialsFor(name?: string, email?: string): string {
+  const src = (name || email || "?").trim();
+  const parts = src.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
+}
+
+// Signed-in account row for the sidebar footer: avatar + name/email, a link to
+// Profile, and a Sign out button. `logout()` clears the session and routes to
+// /login, so no extra handling is needed here.
+function AccountBlock({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        href="/profile"
+        onClick={onNavigate}
+        className="flex items-center gap-2.5 min-w-0 flex-1 rounded-lg px-2 py-1.5 hover:bg-surface-2 transition-colors"
+      >
+        <div className="w-8 h-8 shrink-0 rounded-full bg-brand-soft border border-brand/20 text-brand flex items-center justify-center text-xs font-black">
+          {initialsFor(user.name, user.email)}
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-bold text-text truncate">{user.name || "Account"}</div>
+          <div className="text-[11px] text-text-muted truncate">{user.email}</div>
+        </div>
+      </Link>
+      <button
+        onClick={() => logout()}
+        title="Sign out"
+        aria-label="Sign out"
+        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-danger hover:border-danger/30 transition-colors"
+      >
+        <LogOut className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 export function OutboundShell({
   children,
   title,
@@ -165,13 +207,16 @@ export function OutboundShell({
             })}
           </nav>
           {/* Footer */}
-          <div className="p-4 border-t border-border flex items-center justify-between">
-            <button onClick={toggle} className="p-2 hover:bg-surface-2 rounded-lg text-text-muted hover:text-text transition-colors">
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-            <div className="flex items-center gap-3 text-xs text-text-muted">
-              <span>Opt-outs & limits enforced</span>
-              <ShieldCheck className="w-4 h-4 text-success" />
+          <div className="p-4 border-t border-border space-y-3">
+            <AccountBlock onNavigate={() => setSidebarOpen(false)} />
+            <div className="flex items-center justify-between">
+              <button onClick={toggle} className="p-2 hover:bg-surface-2 rounded-lg text-text-muted hover:text-text transition-colors">
+                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              <div className="flex items-center gap-3 text-xs text-text-muted">
+                <span>Opt-outs & limits enforced</span>
+                <ShieldCheck className="w-4 h-4 text-success" />
+              </div>
             </div>
           </div>
         </div>
@@ -206,6 +251,9 @@ export function OutboundShell({
           <div className="bg-success/10 border border-success/20 rounded-lg p-3 flex gap-2 items-start text-success">
             <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
             <div className="text-[12px] leading-relaxed font-medium">Opt-outs, limits, & suppression enforced by default.</div>
+          </div>
+          <div className="mt-3">
+            <AccountBlock />
           </div>
           <div className="mt-3 flex items-center justify-between">
             <button onClick={toggle} className="text-xs text-text-muted hover:text-text transition-colors flex items-center gap-1.5">
