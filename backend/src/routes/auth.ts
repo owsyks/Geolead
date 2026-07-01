@@ -22,6 +22,7 @@ import {
   ensureUserWorkspace,
 } from '../services/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/mailer.js';
+import { trialEndFromNow } from '../services/billing.js';
 
 const router = Router();
 
@@ -33,6 +34,8 @@ function publicUser(u: any) {
     avatarUrl: u.avatarUrl ?? null,
     emailVerified: u.emailVerified,
     plan: u.plan,
+    planStatus: u.planStatus,
+    trialEndsAt: u.trialEndsAt ?? null,
     role: u.role,
     timezone: u.timezone ?? 'UTC',
     locale: u.locale ?? 'en',
@@ -61,7 +64,17 @@ router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (
     // If the seeded admin (no password yet) registers, let them set it here.
     if (!existing.passwordHash) {
       const passwordHash = await hashPassword(password);
-      const updated = await prisma.user.update({ where: { id: existing.id }, data: { name, passwordHash } });
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          passwordHash,
+          // Only start a trial clock if this account has never had a plan set.
+          ...(existing.planStatus === 'trialing' && !existing.trialEndsAt
+            ? { plan: 'trial', trialEndsAt: trialEndFromNow() }
+            : {}),
+        },
+      });
       await ensureUserWorkspace(updated.id);
       const token = await createVerificationToken(updated.id);
       sendVerificationEmail(updated.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
@@ -73,7 +86,9 @@ router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({ data: { name, email, passwordHash, role: 'ADMIN' } });
+  const user = await prisma.user.create({
+    data: { name, email, passwordHash, role: 'ADMIN', plan: 'trial', planStatus: 'trialing', trialEndsAt: trialEndFromNow() },
+  });
   await ensureUserWorkspace(user.id);
 
   const token = await createVerificationToken(user.id);

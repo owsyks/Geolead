@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Bot,
+  CreditCard,
   Globe2,
   Inbox,
   Kanban,
@@ -43,8 +44,38 @@ const navItems = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/sender-accounts", label: "Senders", icon: Send },
   { href: "/templates", label: "Templates", icon: Layers3 },
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+// Slim banner shown while trialing (with a countdown) or when access is blocked.
+function PlanBanner() {
+  const { user } = useAuth();
+  if (!user) return null;
+  const status = user.planStatus;
+  const blocked = status === "expired" || status === "canceled" || status === "past_due";
+  let daysLeft: number | null = null;
+  if (status === "trialing" && user.trialEndsAt) {
+    daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (24 * 3600 * 1000)));
+  }
+  if (!blocked && daysLeft == null) return null;
+
+  return (
+    <div className={cn(
+      "px-3 lg:px-8 py-2 text-xs flex items-center justify-center gap-2 border-b",
+      blocked ? "bg-danger/10 text-danger border-danger/20" : "bg-brand-soft text-brand border-brand/20"
+    )}>
+      <span className="font-semibold">
+        {blocked
+          ? "Your access is limited — upgrade to resume searches and sending."
+          : daysLeft && daysLeft > 0
+          ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in your free trial.`
+          : "Your free trial ends today."}
+      </span>
+      <Link href="/pricing" className="underline font-bold hover:opacity-80">Upgrade</Link>
+    </div>
+  );
+}
 
 // Key nav items for mobile bottom bar
 const bottomNavItems = [
@@ -210,6 +241,9 @@ export function OutboundShell({
             </button>
           </div>
         </header>
+
+        {/* Plan / trial banner */}
+        <PlanBanner />
 
         {/* Subtitle bar (mobile) */}
         {subtitle && <div className="lg:hidden px-3 py-1.5 text-[11px] text-text-muted border-b border-border bg-surface-2/30">{subtitle}</div>}

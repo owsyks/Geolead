@@ -42,7 +42,7 @@ import {
   updateLeadCrm,
   verifySenderAccount,
 } from '../services/outboundPlatform.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireVerifiedEmail, requirePlanCapacity } from '../middleware/auth.js';
 
 const router = Router();
 const trackingPixel = Buffer.from(
@@ -137,6 +137,8 @@ router.post(
   '/campaigns/:id/queue',
   rateLimit({ key: 'campaign-queue', limit: 20, windowMs: 10 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
+  requireVerifiedEmail,
+  requirePlanCapacity('sends'),
   wrap(async (req, res) => {
     const result = await queueCampaignSends(req.params.id, asString(req.body.senderAccountId) || undefined, req.userId!);
     await writeAudit(getActor(req), 'Campaign', req.params.id, 'QUEUE_SENDS', result);
@@ -149,6 +151,8 @@ router.post(
   '/campaigns/:id/force-send',
   rateLimit({ key: 'campaign-force-send', limit: 10, windowMs: 60 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
+  requireVerifiedEmail,
+  requirePlanCapacity('sends'),
   wrap(async (req, res) => {
     const result = await forceSendCampaign(req.params.id, req.userId!);
     res.json(result);
@@ -244,6 +248,8 @@ router.post(
   '/senders',
   rateLimit({ key: 'sender-create', limit: 16, windowMs: 10 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
+  requireVerifiedEmail,
+  requirePlanCapacity('senders'),
   wrap(async (req, res) => {
     const sender = await saveSenderAccount(
       {
@@ -283,6 +289,8 @@ router.post(
 router.post(
   '/send-now',
   rateLimit({ key: 'send-now', limit: 30, windowMs: 10 * 60 * 1000 }),
+  requireVerifiedEmail,
+  requirePlanCapacity('sends'),
   wrap(async (req, res) => {
     const senderAccountId = asString(req.body.senderAccountId);
     const to = asString(req.body.to);
@@ -422,6 +430,7 @@ router.post(
   '/generate',
   rateLimit({ key: 'email-generate', limit: 40, windowMs: 60 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER', 'MEMBER'),
+  requireVerifiedEmail,
   wrap(async (req, res) => {
     // If a domain is selected from the portfolio, prefill geoDomain/niche/city
     // from it so the email generator doesn't need the user to retype them.
@@ -453,6 +462,7 @@ router.post(
   '/rewrite',
   rateLimit({ key: 'email-rewrite', limit: 80, windowMs: 60 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER', 'MEMBER'),
+  requireVerifiedEmail,
   wrap(async (req, res) => {
     const body = asString(req.body.body) || '';
     const action = asRewriteAction(req.body.action);

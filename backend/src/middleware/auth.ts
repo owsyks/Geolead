@@ -4,6 +4,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import prisma from '../config/db.js';
 import { verifyAccessToken } from '../services/auth.js';
+import { assertQuota, PlanRequiredError, QuotaError, type QuotaMetric } from '../services/billing.js';
 
 // Augment Express Request with the authenticated principal.
 declare global {
@@ -35,6 +36,41 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   req.userId = user.id;
   req.userEmail = user.email;
   return next();
+}
+
+// Require a verified email before any cost-bearing / outbound action. Read-only
+// routes stay open so a half-onboarded user can still see an empty dashboard and
+// trigger a resend. Must run after requireAuth.
+export async function requireVerifiedEmail(req: Request, res: Response, next: NextFunction) {
+  if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
+  const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { emailVerified: true } });
+  if (!user?.emailVerified) {
+    return res.status(403).json({ error: 'Please verify your email to continue.', code: 'EMAIL_UNVERIFIED' });
+  }
+  return next();
+}
+
+// Fail-closed plan/quota gate. Blocks when the user can't spend (trial expired /
+// canceled / past_due) or when adding one more unit of `metric` would exceed the
+// tier limit. Returns 402 with a machine-readable code the frontend acts on.
+// Must run after requireAuth.
+export function requirePlanCapacity(metric: QuotaMetric) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
+    try {
+      await assertQuota(req.userId, metric, 1);
+      return next();
+    } catch (err) {
+      if (err instanceof PlanRequiredError) {
+        return res.status(402).json({ error: err.message, code: err.code, tier: err.tier, status: err.status });
+      }
+      if (err instanceof QuotaError) {
+        return res.status(402).json({ error: err.message, code: err.code, metric: err.metric, limit: err.limit, used: err.used, tier: err.tier });
+      }
+      console.error('[Plan] capacity check failed:', err);
+      return res.status(500).json({ error: 'Could not verify plan capacity.' });
+    }
+  };
 }
 
 export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {

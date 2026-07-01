@@ -17,7 +17,9 @@ import settingsRouter from './routes/settings.js';
 import inboxRouter from './routes/inbox.js';
 import authRouter from './routes/auth.js';
 import watchlistRouter from './routes/watchlist.js';
-import { requireAuth } from './middleware/auth.js';
+import { requireAuth, requireVerifiedEmail, requirePlanCapacity } from './middleware/auth.js';
+import { getEntitlements } from './services/billing.js';
+import billingRouter from './routes/billing.js';
 import { seedAdminAndClaim } from './services/auth.js';
 import { startInboxSyncWorker } from './services/inboxSync.js';
 import { attachOutboundWebSocket } from './services/outboundRealtime.js';
@@ -44,8 +46,12 @@ app.use(cors({
   credentials: true,
 }));
 app.set('trust proxy', 1);
-app.use(express.json());
+// Capture the raw request body so provider webhooks (Paddle, Coinbase) can be
+// signature-verified against the exact bytes received, while normal routes keep
+// using the parsed JSON body.
+app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
 app.use('/api/auth', authRouter);
+app.use('/api/billing', billingRouter);
 app.use('/api/outbound', outboundRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/domains', domainsRouter);
@@ -83,7 +89,7 @@ app.get('/api/health', (req, res) => {
  * POST /api/search
  * Initiates a lead search task.
  */
-app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
+app.post('/api/search', requireAuth, requireVerifiedEmail, requirePlanCapacity('searches'), rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
   const { keyword, domainIdea, country, cityState, searchDepth, searchSource, proxyscrapeEnabled } = req.body;
 
   if (!keyword || !domainIdea) {
@@ -91,8 +97,12 @@ app.post('/api/search', requireAuth, rateLimit('search', 10, 10 * 60 * 1000), as
   }
 
   try {
+    // Clamp the requested depth to the caller's plan ceiling (trial 25 / starter
+    // 50 / pro 200) on top of the global 1..200 bound.
+    const { limits } = await getEntitlements(req.userId!);
     const requestedDepth = searchDepth ? parseInt(searchDepth as string, 10) : 10;
-    const depth = Math.min(Math.max(Number.isNaN(requestedDepth) ? 10 : requestedDepth, 1), 200);
+    const bounded = Math.min(Math.max(Number.isNaN(requestedDepth) ? 10 : requestedDepth, 1), 200);
+    const depth = Math.min(bounded, limits.maxDepth);
 
     // Create database entry for the task, owned by the requesting user.
     const task = await prisma.searchTask.create({

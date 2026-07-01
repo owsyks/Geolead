@@ -22,8 +22,11 @@ import {
   getAccessToken,
   getRefreshToken,
   setUnauthorizedHandler,
+  setUpgradeHandler,
+  type UpgradeSignal,
 } from "@/lib/outbound";
 import { readCache, writeCache, clearAllCache } from "@/lib/cache";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 // Cache key for the signed-in user, so returning visitors render instantly.
 const USER_CACHE_KEY = "user";
@@ -39,6 +42,8 @@ export interface AuthUser {
   avatarUrl: string | null;
   emailVerified: boolean;
   plan: string;
+  planStatus?: string;
+  trialEndsAt?: string | null;
   role: string;
   timezone: string;
   locale: string;
@@ -69,6 +74,7 @@ function isPublic(path: string): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [upgrade, setUpgrade] = useState<UpgradeSignal | null>(null);
   const router = useRouter();
   const pathname = usePathname() || "/";
 
@@ -120,6 +126,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => setUnauthorizedHandler(null);
   }, [router]);
+
+  // Surface plan/quota gates (HTTP 402) as an upgrade modal.
+  useEffect(() => {
+    setUpgradeHandler((signal) => setUpgrade(signal));
+    return () => setUpgradeHandler(null);
+  }, []);
 
   // Route guard: once loading is done, gate non-public routes.
   useEffect(() => {
@@ -199,7 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {upgrade && <UpgradeModal signal={upgrade} onClose={() => setUpgrade(null)} />}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

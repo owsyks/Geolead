@@ -84,10 +84,29 @@ export async function authFetch(input: string, init?: RequestInit, _retried = fa
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  details?: Record<string, unknown>;
+  constructor(status: number, message: string, code?: string, details?: Record<string, unknown>) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.details = details;
   }
+}
+
+// Global handler fired when the API returns 402 (plan required / quota exceeded).
+// The AuthProvider registers one to pop an upgrade modal, mirroring onUnauthorized.
+export interface UpgradeSignal {
+  message: string;
+  code?: string;
+  metric?: string;
+  limit?: number;
+  used?: number;
+  tier?: string;
+}
+let onUpgradeRequired: ((signal: UpgradeSignal) => void) | null = null;
+export function setUpgradeHandler(fn: ((signal: UpgradeSignal) => void) | null) {
+  onUpgradeRequired = fn;
 }
 
 // Coalesce identical in-flight GETs so multiple components mounting / polling the
@@ -132,13 +151,26 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
 
   if (!response.ok) {
     let message = `Outbound API request failed: ${response.status}`;
+    let body: any = null;
     try {
-      const data = await response.json();
-      if (data?.error) message = data.error;
+      body = await response.json();
+      if (body?.error) message = body.error;
     } catch {
       /* non-JSON error body */
     }
-    throw new ApiError(response.status, message);
+    // 402 ⇒ plan/quota gate. Notify the global upgrade handler so the UI can
+    // prompt an upgrade instead of surfacing a raw error at the call site.
+    if (response.status === 402) {
+      onUpgradeRequired?.({
+        message,
+        code: body?.code,
+        metric: body?.metric,
+        limit: body?.limit,
+        used: body?.used,
+        tier: body?.tier,
+      });
+    }
+    throw new ApiError(response.status, message, body?.code, body || undefined);
   }
 
   return response.json() as Promise<T>;

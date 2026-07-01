@@ -100,7 +100,10 @@ model User {
   passwordHash  String?
   avatarUrl     String?
   emailVerified Boolean        @default(false)
-  plan          String         @default("free")
+  plan          String         @default("trial")
+  planStatus    String         @default("trialing") // trialing | active | past_due | canceled | expired
+  trialEndsAt   DateTime?
+  currentPeriodEnd DateTime?
   role          String         @default("ADMIN")
   isActive      Boolean        @default(true)
   timezone      String?        @default("UTC")
@@ -126,6 +129,30 @@ model User {
   userSettings  UserSettings?
   notificationPreference NotificationPreference?
   watchedDomains WatchedDomain[]
+  subscription  Subscription?
+}
+
+// One active billing record per user. provider = 'paddle' (card subscription) or
+// 'coinbase' (one-time crypto payment granting a fixed access window). Created/
+// updated from the checkout flow + provider webhooks. planTier drives
+// entitlements in billing.ts.
+model Subscription {
+  id                     String    @id @default(uuid())
+  userId                 String    @unique
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider               String    @default("paddle") // paddle | coinbase
+  providerSubscriptionId String?   @unique // Paddle subscription id / Coinbase charge id
+  providerCustomerId     String?
+  planTier               String    // starter | pro
+  status                 String    // pending | active | past_due | canceled | expired (or provider-native)
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean   @default(false)
+  rawState               Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([providerSubscriptionId])
 }
 
 model Session {

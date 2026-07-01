@@ -11,6 +11,7 @@ import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
 import { getSetting } from './settings.js';
+import { getEntitlements } from './billing.js';
 
 const OUTBOUND_BASE_URL = process.env.OUTBOUND_BASE_URL || 'http://localhost:5000';
 const DEFAULT_PHYSICAL_ADDRESS = process.env.OUTBOUND_PHYSICAL_ADDRESS || 'GeoLead AI, 123 Market St, Austin, TX 78701';
@@ -996,6 +997,33 @@ async function runOutboundQueueTick() {
   // Senders that have hit their cap during this tick — skip further logs for them.
   const cappedSenders = new Set<string>();
 
+  // Plan-level daily send cap, enforced per owner across all their senders (on
+  // top of the per-sender/per-campaign caps below). Counts + limits are resolved
+  // lazily once per owner and tracked in-tick so a single tick can't exceed the
+  // plan's sends/day. cappedUsers short-circuits once an owner is maxed.
+  const cappedUsers = new Set<string>();
+  const userDailyCap = new Map<string, number>();
+  const userSentToday = new Map<string, number>();
+  async function ownerHasSendBudget(ownerId: string): Promise<boolean> {
+    if (cappedUsers.has(ownerId)) return false;
+    if (!userDailyCap.has(ownerId)) {
+      const ent = await getEntitlements(ownerId);
+      userDailyCap.set(ownerId, ent.canSpend ? ent.limits.sendsPerDay : 0);
+      const sent = await prisma.emailLog.count({
+        where: {
+          sentAt: { gte: startOfDay },
+          status: { in: ['SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'REPLIED', 'SIMULATED'] },
+          senderAccount: { userId: ownerId },
+        },
+      });
+      userSentToday.set(ownerId, sent);
+    }
+    const cap = userDailyCap.get(ownerId)!;
+    const sent = userSentToday.get(ownerId)!;
+    if (sent >= cap) { cappedUsers.add(ownerId); return false; }
+    return true;
+  }
+
   // Per-campaign daily limit: preload today's send counts for active campaigns.
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
@@ -1076,6 +1104,8 @@ async function runOutboundQueueTick() {
       cappedSenders.add(sender.id);
       continue;
     }
+    // Plan daily send cap for the sender's owner (fail-closed: no owner ⇒ skip).
+    if (!sender.userId || !(await ownerHasSendBudget(sender.userId))) continue;
 
     try {
       // Assign variant if missing (pre-existing queued emails from before auto-generation)
@@ -1092,6 +1122,8 @@ async function runOutboundQueueTick() {
 
       const providerResponse = await sendWithRetry(log, sender);
       const wasDryRun = !!providerResponse.dryRun;
+      // Count this send against the owner's plan daily budget for the rest of the tick.
+      if (sender.userId) userSentToday.set(sender.userId, (userSentToday.get(sender.userId) ?? 0) + 1);
       await prisma.emailLog.update({
         where: { id: log.id },
         data: {

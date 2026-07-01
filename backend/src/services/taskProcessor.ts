@@ -13,6 +13,7 @@ import { type EmailCandidate, extractEmailCandidates, extractPhoneCandidates, no
 import { scoreContactIntelligence } from './contactIntelligence.js';
 import { scoreDomainFit } from './domainFit.js';
 import { lookupDomainOwner } from './reverseWhois.js';
+import { getEntitlements } from './billing.js';
 
 interface DiscoveredBiz {
   name: string;
@@ -569,6 +570,18 @@ export async function processSearchTask(taskId: string) {
     let failedBusinesses = 0;
     const failureReasons: string[] = [];
 
+    // Plan lead cap: how many more leads this owner may store. Computed once up
+    // front and reserved per-create (decremented before create) so a burst of
+    // concurrent enrichments can't blow far past the cap. Best-effort — may
+    // overshoot by up to ENRICH_CONCURRENCY-1, acceptable for a storage cap.
+    let leadBudget = Number.POSITIVE_INFINITY;
+    let leadCapHit = false;
+    if (task.userId) {
+      const ent = await getEntitlements(task.userId);
+      const existing = await prisma.lead.count({ where: { ownerId: task.userId } });
+      leadBudget = Math.max(0, ent.limits.leadCap - existing);
+    }
+
     const checkTaskStatus = async () => {
       const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
       return current?.status;
@@ -656,6 +669,15 @@ export async function processSearchTask(taskId: string) {
             console.log(`[Processor] Skipping lead "${biz.name}" — no website, emails, or phones.`);
             return;
           }
+
+          // Plan lead cap: reserve a slot before creating. When exhausted, stop
+          // persisting new leads (the search still completes; the user is over cap).
+          if (leadBudget <= 0) {
+            leadCapHit = true;
+            console.log(`[Processor] Lead cap reached for owner ${task.userId} — skipping "${biz.name}".`);
+            return;
+          }
+          leadBudget--;
 
           const businessName = refineBusinessName(biz.name, crawlData.pageTitle, biz.website, task.keyword);
           const scoreData = await calculateMatchScore(
@@ -827,9 +849,15 @@ export async function processSearchTask(taskId: string) {
           totalLeads: totalLeadsCount,
           validEmails: totalEmailsCount,
           failedBusinesses,
-          metadata: failedBusinesses > 0 ? { failureReasons } as any : undefined,
+          metadata:
+            failedBusinesses > 0 || leadCapHit
+              ? ({ ...(failedBusinesses > 0 ? { failureReasons } : {}), ...(leadCapHit ? { leadCapReached: true } : {}) } as any)
+              : undefined,
         },
       });
+      if (leadCapHit) {
+        console.warn(`[Processor] SearchTask ${taskId}: plan lead cap reached — some discovered leads were not stored.`);
+      }
       resetTaskUsage(taskId);
       if (failedBusinesses > 0) {
         console.warn(`[Processor] SearchTask ${taskId}: ${totalLeadsCount} leads saved, ${failedBusinesses} failed.`);
