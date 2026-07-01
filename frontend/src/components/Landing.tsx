@@ -5,8 +5,9 @@ import Link from "next/link";
 import {
   ArrowRight, Check, ChevronDown, MapPin, Search,
   Mail, ShieldCheck, Sparkles, Brain, Send,
-  Building2, Lock, Star, Globe, Menu, X,
+  Building2, Lock, Star, Globe, Menu, X, LayoutDashboard,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 /* ─── constants ─── */
 const BC = "'Barlow Condensed', 'Geist', sans-serif";
@@ -271,6 +272,7 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
 
 /* ─── main component ─── */
 export default function Landing() {
+  const { user } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [mobileMenu, setMobileMenu] = useState(false);
 
@@ -321,10 +323,18 @@ export default function Landing() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/login" className="text-[13px] text-text-muted hover:text-text transition-colors px-2">Sign In</Link>
-            <Link href="/register" className="flex items-center gap-1.5 px-4 py-2 bg-brand text-bg text-[13px] font-bold rounded-md hover:bg-brand-hover transition-colors" style={{ boxShadow: "0 0 16px rgba(20,184,166,0.25)" }}>
-              Get Started <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {user ? (
+              <Link href="/overview" className="flex items-center gap-1.5 px-4 py-2 bg-brand text-bg text-[13px] font-bold rounded-md hover:bg-brand-hover transition-colors" style={{ boxShadow: "0 0 16px rgba(20,184,166,0.25)" }}>
+                <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-[13px] text-text-muted hover:text-text transition-colors px-2">Sign In</Link>
+                <Link href="/register" className="flex items-center gap-1.5 px-4 py-2 bg-brand text-bg text-[13px] font-bold rounded-md hover:bg-brand-hover transition-colors" style={{ boxShadow: "0 0 16px rgba(20,184,166,0.25)" }}>
+                  Get Started <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </>
+            )}
           </div>
 
           <button className="md:hidden p-2 text-text-muted hover:text-text" onClick={() => setMobileMenu(!mobileMenu)}>
@@ -338,8 +348,14 @@ export default function Landing() {
             ))}
             <Link href="/contact" onClick={() => setMobileMenu(false)} className="block py-2 text-text-muted hover:text-text text-sm">Contact</Link>
             <div className="pt-3 border-t border-border flex flex-col gap-3">
-              <Link href="/login" className="text-center text-sm text-text-muted py-2">Sign In</Link>
-              <Link href="/register" className="text-center py-2.5 bg-brand text-bg font-bold text-sm rounded-md">Get Started</Link>
+              {user ? (
+                <Link href="/overview" onClick={() => setMobileMenu(false)} className="text-center py-2.5 bg-brand text-bg font-bold text-sm rounded-md">Dashboard</Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileMenu(false)} className="text-center text-sm text-text-muted py-2">Sign In</Link>
+                  <Link href="/register" onClick={() => setMobileMenu(false)} className="text-center py-2.5 bg-brand text-bg font-bold text-sm rounded-md">Get Started</Link>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -824,7 +840,11 @@ export default function Landing() {
             <a href="#pricing" className="hover:text-text transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-text transition-colors">FAQ</a>
             <Link href="/contact" className="hover:text-text transition-colors">Contact</Link>
-            <Link href="/login" className="hover:text-text transition-colors">Sign In</Link>
+            {user ? (
+              <Link href="/overview" className="hover:text-text transition-colors">Dashboard</Link>
+            ) : (
+              <Link href="/login" className="hover:text-text transition-colors">Sign In</Link>
+            )}
           </div>
           <div className="text-[11px] text-text-faint font-mono">© 2025 GeoLead AI</div>
         </div>
