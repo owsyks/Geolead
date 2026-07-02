@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import prisma from '../config/db.js';
 import { rateLimit } from '../middleware/rateLimit.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, isAdminEmail } from '../middleware/auth.js';
 import {
   validateEmail,
   validatePasswordStrength,
@@ -41,6 +41,7 @@ function publicUser(u: any) {
     locale: u.locale ?? 'en',
     dateFormat: u.dateFormat ?? 'MMM d, yyyy',
     createdAt: u.createdAt,
+    isAdmin: isAdminEmail(u.email),
   };
 }
 
@@ -115,6 +116,7 @@ router.post('/login', rateLimit('auth-login', 20, 15 * 60 * 1000), async (req, r
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, { remember, ...sessionMeta(req) });
+  prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
   return res.json({ user: publicUser(user), accessToken: access, refreshToken: refresh.token });
 });
 
@@ -125,6 +127,7 @@ router.post('/refresh', rateLimit('auth-refresh', 60, 15 * 60 * 1000), async (re
   const rotated = await rotateRefresh(rawToken, sessionMeta(req));
   if (!rotated) return res.status(401).json({ error: 'Session expired. Please log in again.' });
   const access = issueAccessToken(rotated.userId, rotated.email);
+  prisma.user.update({ where: { id: rotated.userId }, data: { lastSeenAt: new Date() } }).catch(() => {});
   return res.json({ accessToken: access, refreshToken: rotated.refresh.token });
 });
 

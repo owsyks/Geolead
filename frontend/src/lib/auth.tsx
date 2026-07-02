@@ -45,6 +45,7 @@ export interface AuthUser {
   planStatus?: string;
   trialEndsAt?: string | null;
   role: string;
+  isAdmin?: boolean;
   timezone: string;
   locale: string;
   dateFormat: string;

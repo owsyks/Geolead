@@ -164,8 +164,14 @@ export function OutboundShell({
 }) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const { user } = useAuth();
   const unreadCount = useUnreadCount();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Platform admins get an extra Admin entry; regular users never see it.
+  const navItemsForUser = user?.isAdmin
+    ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldCheck }]
+    : navItems;
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -190,7 +196,7 @@ export function OutboundShell({
           </div>
           {/* Nav items */}
           <nav className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-            {navItems.map((item: any) => {
+            {navItemsForUser.map((item: any) => {
               const isActive = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href}
@@ -232,7 +238,7 @@ export function OutboundShell({
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {navItems.map((item: any) => {
+          {navItemsForUser.map((item: any) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}

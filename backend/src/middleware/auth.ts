@@ -73,6 +73,28 @@ export function requirePlanCapacity(metric: QuotaMetric) {
   };
 }
 
+// Platform-admin allowlist. Source of truth is the ADMIN_EMAILS env var
+// (comma-separated), falling back to SEED_ADMIN_EMAIL. Deliberately NOT the
+// User.role column, which currently defaults to ADMIN for everyone.
+export function isAdminEmail(email?: string | null): boolean {
+  const list = (process.env.ADMIN_EMAILS || process.env.SEED_ADMIN_EMAIL || '')
+    .toLowerCase()
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return !!email && list.includes(email.toLowerCase());
+}
+
+// Restrict a route to platform admins. Must run after requireAuth.
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
+  const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true, isActive: true } });
+  if (!user?.isActive || !isAdminEmail(user.email)) {
+    return res.status(403).json({ error: 'Admin access required.', code: 'NOT_ADMIN' });
+  }
+  return next();
+}
+
 export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   const token = bearer(req);
   if (token) {
