@@ -77,6 +77,16 @@ export function createCryptoCharge(tier: Tier): Promise<CheckoutResponse> {
   });
 }
 
+// Switch an existing active card subscription to another tier (proration handled
+// by Paddle — no second charge). Throws ApiError with code NO_ACTIVE_SUBSCRIPTION
+// (409) when there's no live subscription; callers then fall back to subscribe().
+export function changePlan(tier: Tier): Promise<{ ok: boolean; tier: Tier }> {
+  return fetchOutbound("/api/billing/change-plan", {
+    method: "POST",
+    body: JSON.stringify({ tier }),
+  });
+}
+
 export function cancelSubscription(): Promise<{ ok: boolean; message: string }> {
   return fetchOutbound("/api/billing/cancel", { method: "POST" });
 }

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, HelpCircle, ArrowLeft, Loader2, CreditCard, Bitcoin } from "lucide-react";
+import { Check, HelpCircle, ArrowLeft, Loader2, CreditCard, Bitcoin, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { getPlans, subscribe, createCryptoCharge, type PlanCatalogItem, type Tier } from "@/lib/billing";
+import { getPlans, subscribe, createCryptoCharge, changePlan, getBillingSummary, type PlanCatalogItem, type BillingSummary, type Tier } from "@/lib/billing";
 import { ApiError } from "@/lib/outbound";
 
 type PayMethod = "card" | "crypto";
@@ -43,6 +43,8 @@ export default function PricingPage() {
   const [cryptoDays, setCryptoDays] = useState(30);
   const [busy, setBusy] = useState<{ tier: Tier; method: PayMethod } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [summary, setSummary] = useState<BillingSummary | null>(null);
 
   useEffect(() => {
     getPlans()
@@ -54,6 +56,33 @@ export default function PricingPage() {
       })
       .catch(() => {/* fall back to static copy below */});
   }, []);
+
+  // Logged-in users: load their current plan so we can show "Current plan" and
+  // offer an in-place switch instead of a duplicate checkout.
+  const reloadSummary = () => getBillingSummary().then(setSummary).catch(() => setSummary(null));
+  useEffect(() => { if (user) reloadSummary(); }, [user]);
+
+  // On an active PAID plan, tier changes go through Paddle's subscription update
+  // (proration, single subscription) — not a fresh checkout.
+  const onActivePaid = !!summary && (summary.tier === "starter" || summary.tier === "pro") && summary.status === "active";
+
+  async function handleSwitch(tier: Tier) {
+    setError(null); setNotice(null);
+    setBusy({ tier, method: "card" });
+    try {
+      await changePlan(tier);
+      setNotice(`Your plan was changed to ${tier}. Any difference is prorated automatically.`);
+      await reloadSummary();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "NO_ACTIVE_SUBSCRIPTION") {
+        await handleCheckout(tier, "card"); // no live sub — start a fresh checkout
+        return;
+      }
+      setError(err instanceof ApiError ? err.message : "Could not change your plan.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const priceFor = (tier: Tier, fallback: number) =>
     plans.find((p) => p.tier === tier)?.priceUSD ?? fallback;
@@ -119,6 +148,11 @@ export default function PricingPage() {
             {error}
           </div>
         )}
+        {notice && (
+          <div className="max-w-2xl mx-auto mb-8 text-center text-sm text-brand bg-brand-soft border border-brand/20 rounded-lg py-2 px-4">
+            {notice}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
           {/* Free trial card */}
@@ -140,7 +174,7 @@ export default function PricingPage() {
               href={user ? "/overview" : "/register"}
               className="mt-8 w-full py-3 rounded-xl bg-surface border border-border text-text-muted hover:text-text hover:bg-surface-2 text-center text-sm font-bold transition-colors block"
             >
-              {user ? "You're on it" : "Start free trial"}
+              {!user ? "Start free trial" : summary?.tier === "trial" ? "You're on it" : "Go to dashboard"}
             </Link>
           </div>
 
@@ -182,6 +216,27 @@ export default function PricingPage() {
                   }`}
                 >
                   Start free trial
+                </button>
+              ) : onActivePaid && summary?.tier === card.tier ? (
+                // The plan they're already on.
+                <div className="mt-8 w-full py-3 rounded-xl text-center text-sm font-bold bg-surface border border-brand/30 text-brand flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" /> Current plan
+                </div>
+              ) : onActivePaid ? (
+                // Active subscriber switching tier — in-place proration, no new checkout.
+                <button
+                  onClick={() => handleSwitch(card.tier)}
+                  disabled={busy !== null}
+                  className={`mt-8 w-full py-3 rounded-xl text-center text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${
+                    card.featured
+                      ? "bg-brand text-bg hover:bg-brand-hover shadow-[0_0_12px_rgba(20,184,166,0.3)]"
+                      : "bg-surface border border-border text-text-muted hover:text-text hover:bg-surface-2"
+                  }`}
+                >
+                  {busy?.tier === card.tier
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Sparkles className="w-4 h-4" />}
+                  Switch to {card.name}
                 </button>
               ) : (
                 <div className="mt-8 space-y-2">

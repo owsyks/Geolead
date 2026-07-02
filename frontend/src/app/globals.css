@@ -101,6 +101,17 @@
 
 /* ─── Aurora Background ──────────────────────────────────────────────────────── */
 
+/* Decorative blurred glow used behind the pricing hero. Positioned absolutely
+   and non-interactive so it never displaces page content (the parent sets
+   `relative overflow-hidden`). */
+.glow-bg {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .aurora-bg {
   position: fixed;
   inset: 0;

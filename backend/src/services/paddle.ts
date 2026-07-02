@@ -48,6 +48,20 @@ export async function createCheckoutTransaction(opts: {
   return { transactionId: data.id, checkoutUrl: data.checkout?.url ?? null };
 }
 
+// Switch an existing subscription to a different price (tier change), prorating
+// the difference and charging/crediting immediately. This is the correct way to
+// upgrade/downgrade — it does NOT create a second subscription.
+export async function updateSubscriptionPrice(subscriptionId: string, priceId: string): Promise<void> {
+  await axios.patch(
+    `${baseUrl()}/subscriptions/${subscriptionId}`,
+    {
+      items: [{ price_id: priceId, quantity: 1 }],
+      proration_billing_mode: 'prorated_immediately',
+    },
+    { headers: { Authorization: `Bearer ${apiKey()}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+  );
+}
+
 export async function cancelSubscription(subscriptionId: string): Promise<void> {
   // effective_from=next_billing_period → cancel at period end (keep access until then).
   await axios.post(

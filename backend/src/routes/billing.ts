@@ -12,6 +12,7 @@ import { PLANS, PURCHASABLE_TIERS, CRYPTO_ACCESS_DAYS, isTier, planFor, type Tie
 import {
   paddleConfigured,
   createCheckoutTransaction,
+  updateSubscriptionPrice,
   cancelSubscription as cancelPaddleSubscription,
   verifyWebhookSignature as verifyPaddleSignature,
 } from '../services/paddle.js';
@@ -97,6 +98,42 @@ router.post('/subscribe', requireAuth, rateLimit('billing-subscribe', 20, 15 * 6
   } catch (err: any) {
     console.error('[Billing] Paddle subscribe failed:', err?.response?.data || err?.message);
     return res.status(502).json({ error: 'Could not start card checkout. Please try again.' });
+  }
+});
+
+// ---- Change plan on an EXISTING Paddle subscription (upgrade/downgrade) ---
+// Prorates immediately and keeps a single subscription — never a second charge.
+// Crypto plans have no recurring subscription to modify, so callers fall back to
+// a fresh /crypto/charge instead.
+router.post('/change-plan', requireAuth, rateLimit('billing-change', 20, 15 * 60 * 1000), async (req, res) => {
+  const tier = String(req.body?.tier || '');
+  if (!isTier(tier) || !PURCHASABLE_TIERS.includes(tier)) {
+    return res.status(400).json({ error: 'Choose a valid plan (starter or pro).' });
+  }
+  const plan = planFor(tier);
+  if (!plan.paddlePriceId) {
+    return res.status(503).json({ error: `The ${plan.label} plan is not available yet.` });
+  }
+
+  const sub = await prisma.subscription.findUnique({ where: { userId: req.userId! } });
+  if (!sub || sub.provider !== 'paddle' || !sub.providerSubscriptionId || sub.status !== 'active') {
+    // No live card subscription to modify — the client should start a new checkout.
+    return res.status(409).json({ error: 'No active card subscription to change.', code: 'NO_ACTIVE_SUBSCRIPTION' });
+  }
+  if (sub.planTier === tier) {
+    return res.status(400).json({ error: `You are already on the ${plan.label} plan.` });
+  }
+
+  try {
+    await updateSubscriptionPrice(sub.providerSubscriptionId, plan.paddlePriceId);
+    // The subscription.updated webhook reconciles tier + period end; reflect the
+    // new tier locally right away so the UI updates without waiting on the hook.
+    await prisma.subscription.update({ where: { userId: req.userId! }, data: { planTier: tier } });
+    await prisma.user.update({ where: { id: req.userId! }, data: { plan: tier } });
+    return res.json({ ok: true, tier });
+  } catch (err: any) {
+    console.error('[Billing] Paddle change-plan failed:', err?.response?.data || err?.message);
+    return res.status(502).json({ error: 'Could not change your plan. Please try again.' });
   }
 });
 
