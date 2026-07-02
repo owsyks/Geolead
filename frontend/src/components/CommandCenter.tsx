@@ -458,7 +458,7 @@ export default function CommandCenter() {
                   const tone = eventTone(ev.type);
                   return (
                     <div key={ev.id} className="flex gap-3 text-sm row-enter">
-                      <div className={`mt-0.5 w-[72px] shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded border text-center ${tone.color} ${tone.bg} ${tone.border}`}>
+                      <div className={`mt-0.5 w-20 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded border text-center break-all leading-[1.15] ${tone.color} ${tone.bg} ${tone.border}`}>
                         {ev.type}
                       </div>
                       <div className="min-w-0 flex-1">
