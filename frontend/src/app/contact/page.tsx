@@ -49,7 +49,7 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <ArrowLeft className="w-4 h-4 text-text-muted group-hover:text-text transition-colors" />
-            <div className="w-7 h-7 rounded-md bg-brand/20 border border-brand/30 flex items-center justify-center font-black text-xs text-brand">GL</div>
+            <img src="/logo.png" alt="GeoLead AI" className="w-7 h-7 rounded-md object-contain" />
             <span className="font-black text-text">GeoLead AI</span>
           </Link>
           <div className="flex items-center gap-3">

@@ -311,7 +311,7 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b border-border" style={{ background: "rgba(12,10,9,0.85)", backdropFilter: "blur(20px) saturate(150%)" }}>
         <div className="max-w-7xl mx-auto px-5 lg:px-8 h-[60px] flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-            <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center font-black text-sm text-bg" style={{ boxShadow: "0 0 16px rgba(20,184,166,0.35), inset 0 1px 2px rgba(255,255,255,0.3)" }}>GL</div>
+            <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 rounded-md object-contain" style={{ boxShadow: "0 0 16px rgba(20,184,166,0.35), inset 0 1px 2px rgba(255,255,255,0.3)" }} />
             <span className="font-black tracking-tight text-[15px]" style={{ fontFamily: BC }}>GeoLead AI</span>
           </Link>
 
@@ -831,7 +831,7 @@ export default function Landing() {
       <footer className="relative z-10 border-t border-border py-10">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-md bg-brand/20 border border-brand/25 flex items-center justify-center font-black text-xs text-brand">GL</div>
+            <img src="/logo.png" alt="GeoLead AI" className="w-7 h-7 rounded-md object-contain" />
             <span className="font-black text-[14px]" style={{ fontFamily: BC }}>GeoLead AI</span>
             <span className="text-text-faint text-[12px] font-mono">· Find. Connect. Close.</span>
           </div>

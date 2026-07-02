@@ -88,7 +88,7 @@ export default function RegisterPage() {
       {/* left branding panel — desktop */}
       <div className="hidden lg:flex relative z-10 w-[460px] flex-shrink-0 border-r border-border flex-col justify-between p-10 overflow-hidden">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-black text-sm text-bg shadow-[0_0_12px_rgba(20,184,166,0.3)]">GL</div>
+          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 rounded-lg object-contain shadow-[0_0_12px_rgba(20,184,166,0.3)]" />
           <span className="font-black text-text">GeoLead AI</span>
         </Link>
 
@@ -149,7 +149,7 @@ export default function RegisterPage() {
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 py-12 overflow-y-auto">
         {/* mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-black text-sm text-bg">GL</div>
+          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 rounded-lg object-contain" />
           <span className="font-black text-text">GeoLead AI</span>
         </Link>
 

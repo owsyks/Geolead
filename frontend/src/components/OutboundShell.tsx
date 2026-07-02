@@ -184,7 +184,7 @@ export function OutboundShell({
           {/* Sidebar header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">GL</div>
+              <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 rounded-lg object-contain shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]" />
               <div>
                 <div className="font-black text-text">GeoLead AI</div>
                 <div className="text-[11px] text-text-muted uppercase tracking-wider">Find. Connect. Close.</div>
@@ -231,7 +231,7 @@ export function OutboundShell({
       {/* ── Desktop Sidebar (288px fixed) ── */}
       <aside className="hidden lg:flex w-[288px] shrink-0 h-screen glass border-r border-border flex-col fixed left-0 top-0 z-40">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">GL</div>
+          <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 rounded-lg object-contain shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]" />
           <div>
             <div className="font-black text-text leading-tight">GeoLead AI</div>
             <div className="text-[11px] text-text-muted leading-tight uppercase tracking-wider">Find. Connect. Close.</div>
