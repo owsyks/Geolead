@@ -269,7 +269,7 @@ function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload
             </button>
           ))}
         </div>
-        <button onClick={() => downloadUsersCsv(search, planFilter)}
+        <button onClick={() => { downloadUsersCsv(search, planFilter).catch((e) => alert(e?.message || "Export failed.")); }}
           className="flex items-center gap-2 px-3 py-2 bg-surface border border-border rounded-lg text-[12px] font-bold text-text-muted hover:text-text transition-colors">
           <Download className="w-3.5 h-3.5" /> Export CSV
         </button>
@@ -319,6 +319,7 @@ function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload
                   <td className="px-4 py-3">
                     <div className="relative">
                       <button onClick={() => setMenu(menu === u.id ? null : u.id)}
+                        aria-label={`Actions for ${u.name}`} title="Actions"
                         className="p-1.5 rounded-lg hover:bg-surface text-text-faint hover:text-text transition-colors opacity-0 group-hover:opacity-100">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
@@ -497,7 +498,7 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
 }
 
 /* ══ SYSTEM ══ */
-function SystemTab({ system, reload }: { system: SystemHealth | null; reload: () => void }) {
+function SystemTab({ system, reload }: { system: SystemHealth | null; reload: () => Promise<void> }) {
   const [refreshing, setRefreshing] = useState(false);
   if (!system) return <Spinner />;
 

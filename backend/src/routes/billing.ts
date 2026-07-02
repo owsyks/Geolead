@@ -27,10 +27,13 @@ function frontendUrl(): string {
   return (process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000').replace(/\/+$/, '');
 }
 
-function rawBodyOf(req: any): string {
+// Return the EXACT bytes received (needed for signature verification). Never
+// reconstruct from the parsed body — re-stringifying can differ from the wire
+// bytes and would let a forged payload pass HMAC. Missing raw body => reject.
+function rawBodyOf(req: any): string | null {
   if (req.rawBody instanceof Buffer) return req.rawBody.toString('utf8');
   if (typeof req.rawBody === 'string') return req.rawBody;
-  return JSON.stringify(req.body ?? {});
+  return null;
 }
 
 // Reverse-map a Paddle price id back to our tier.
@@ -144,7 +147,8 @@ router.post('/cancel', requireAuth, async (req, res) => {
 
 // ---- Paddle webhook (public, signature-verified) ------------------------
 router.post('/webhook/paddle', async (req, res) => {
-  if (!verifyPaddleSignature(rawBodyOf(req), req.headers['paddle-signature'] as string | undefined)) {
+  const raw = rawBodyOf(req);
+  if (!raw || !verifyPaddleSignature(raw, req.headers['paddle-signature'] as string | undefined)) {
     return res.status(400).json({ error: 'Invalid webhook signature.' });
   }
   const event = req.body as { event_type?: string; data?: any };
@@ -194,7 +198,8 @@ router.post('/webhook/paddle', async (req, res) => {
 
 // ---- Coinbase Commerce webhook (public, signature-verified) -------------
 router.post('/webhook/coinbase', async (req, res) => {
-  if (!verifyCoinbaseSignature(rawBodyOf(req), req.headers['x-cc-webhook-signature'] as string | undefined)) {
+  const raw = rawBodyOf(req);
+  if (!raw || !verifyCoinbaseSignature(raw, req.headers['x-cc-webhook-signature'] as string | undefined)) {
     return res.status(400).json({ error: 'Invalid webhook signature.' });
   }
   const event = req.body?.event as { type?: string; data?: any };
@@ -213,6 +218,11 @@ router.post('/webhook/coinbase', async (req, res) => {
     // Grant access on confirmed/resolved payments. Idempotent: extends from the
     // later of now / existing period end so a re-delivered webhook won't shrink it.
     if (type === 'charge:confirmed' || type === 'charge:resolved') {
+      const exists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+      if (!exists) {
+        console.warn(`[Billing] Coinbase webhook ${type} for unknown user ${userId}.`);
+        return res.json({ received: true });
+      }
       await applyCryptoGrant(userId, tier, data.id, data);
     }
     return res.json({ received: true });

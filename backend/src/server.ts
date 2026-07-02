@@ -526,6 +526,7 @@ app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), asy
         },
       },
       orderBy: { domainMatchScore: 'desc' },
+      take: 50000, // hard cap: keep a huge lead store from OOM-ing the export
     });
 
     const sanitizedLeads = sanitizeLeads(leads).filter((lead) => lead.emails.length > 0 || lead.phoneNumbers.length > 0);

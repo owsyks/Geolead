@@ -1,7 +1,7 @@
 // Admin data client. Thin typed wrappers over fetchOutbound (Bearer token + 401
 // refresh handled there). Every endpoint is server-gated by requireAdmin; the
 // UI also hides itself for non-admins as defense in depth.
-import { fetchOutbound, authFetch, OUTBOUND_API_BASE, getAccessToken } from "@/lib/outbound";
+import { fetchOutbound, authFetch, OUTBOUND_API_BASE } from "@/lib/outbound";
 
 export interface AdminUser {
   id: string;
@@ -72,9 +72,9 @@ export function deleteUser(id: string, confirmEmail: string): Promise<{ ok: bool
 // than navigating (a plain link wouldn't carry the token).
 export async function downloadUsersCsv(search = "", plan = "ALL"): Promise<void> {
   const q = new URLSearchParams({ search, plan }).toString();
-  const res = await authFetch(`${OUTBOUND_API_BASE}/api/admin/users/export.csv?${q}`, {
-    headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {},
-  });
+  // authFetch injects the Bearer token and transparently refreshes on 401.
+  const res = await authFetch(`${OUTBOUND_API_BASE}/api/admin/users/export.csv?${q}`);
+  if (!res.ok) throw new Error("Export failed. Please try again.");
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

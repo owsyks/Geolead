@@ -60,7 +60,13 @@ router.get('/users', async (req, res) => {
 router.get('/users/export.csv', async (req, res) => {
   const users = await queryUsers(String(req.query.search || '').trim(), String(req.query.plan || 'ALL'));
   const header = ['Name', 'Email', 'Plan', 'Status', 'Active', 'Searches', 'Campaigns', 'Revenue', 'Last Seen', 'Joined'];
-  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // Neutralise CSV formula injection: user-controlled fields (name/email) that
+  // begin with = + - @ | are prefixed with ' so Excel/Sheets treat them as text.
+  const esc = (v: unknown) => {
+    let s = String(v ?? '');
+    if (/^[=+\-@|]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const lines = users.map((u) =>
     [u.name, u.email, u.plan, u.planStatus, u.isActive ? 'yes' : 'no', u.searches, u.campaigns, `$${u.revenue}`,
      u.lastSeenAt ? new Date(u.lastSeenAt).toISOString() : '', new Date(u.createdAt).toISOString()].map(esc).join(',')
