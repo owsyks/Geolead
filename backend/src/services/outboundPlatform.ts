@@ -2607,7 +2607,7 @@ export async function getSendQuota(userId: string) {
 
   const senders = await prisma.senderAccount.findMany({
     where: { userId, status: { in: ['active', 'warming'] } },
-    select: { id: true, fromEmail: true, label: true, dailyLimit: true, hourlyLimit: true },
+    select: { id: true, fromEmail: true, label: true, dailyLimit: true, hourlyLimit: true, provider: true },
   });
 
   let dailyLimit = 0, hourlyLimit = 0, sentToday = 0, sentThisHour = 0;
@@ -2634,6 +2634,15 @@ export async function getSendQuota(userId: string) {
     });
   }
 
+  // The daily-quota badge is only meaningful for Resend's free tier (its 100/day
+  // cap is the whole reason to watch this number) — SMTP/SendGrid/SES/Mailgun
+  // senders configure their own limits and don't need this nag. "Free tier" is
+  // inferred as: every active sender is Resend AND still on the default cap
+  // (dailyLimit <= 100, the schema default) — a paid Resend plan or a raised
+  // per-sender limit means the operator already knows their real ceiling.
+  const isResendFreeTier =
+    senders.length > 0 && senders.every((s) => s.provider?.toUpperCase() === 'RESEND' && s.dailyLimit <= 100);
+
   return {
     senderCount: senders.length,
     dailyLimit,
@@ -2644,6 +2653,7 @@ export async function getSendQuota(userId: string) {
     hourlyRemaining: Math.max(0, hourlyLimit - sentThisHour),
     // Daily counters reset at the next UTC midnight (server runs in UTC).
     resetsAt: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    isResendFreeTier,
     senders: perSender,
   };
 }

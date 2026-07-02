@@ -45,6 +45,7 @@ type SendQuota = {
   dailyRemaining: number;
   hourlyRemaining: number;
   resetsAt: string;
+  isResendFreeTier: boolean;
 };
 
 interface AvailableLead {
@@ -502,7 +503,7 @@ export default function CampaignsPage() {
       fullBleed
       actions={
         <>
-          {quota && quota.senderCount > 0 ? (
+          {quota && quota.senderCount > 0 && quota.isResendFreeTier ? (
             <button
               onClick={() => void fetchOutbound<SendQuota>("/api/outbound/quota").then(setQuota).catch(() => {})}
               title={`${quota.sentToday}/${quota.dailyLimit} sent today across ${quota.senderCount} sender${quota.senderCount > 1 ? "s" : ""} · ${quota.hourlyRemaining} left this hour`}
