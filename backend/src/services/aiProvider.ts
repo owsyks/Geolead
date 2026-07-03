@@ -35,6 +35,12 @@ interface ProviderConfig {
   endpoint: string;
   defaultModel: string;
   extraHeaders?: Record<string, string>;
+  // Floor applied to the requested max_tokens for this provider. Needed for
+  // reasoning models (e.g. OpenCode's DeepSeek) that spend tokens on a
+  // reasoning_content field before writing the final `content` — a tight
+  // budget (many call sites request only ~200) can be entirely consumed by
+  // reasoning, leaving `content` empty and the call looking like a failure.
+  minMaxTokens?: number;
 }
 
 // Order matters: NVIDIA first (already configured), then free tiers ordered
@@ -67,6 +73,7 @@ const PROVIDERS: ProviderConfig[] = [
     modelSettingKey: 'opencodeModel',
     endpoint: 'https://opencode.ai/zen/v1/chat/completions',
     defaultModel: 'deepseek-v4-flash-free',
+    minMaxTokens: 600, // verified live: 20 tokens -> empty content (all spent reasoning); 200 -> real answer
   },
   {
     name: 'cerebras',
@@ -87,7 +94,7 @@ const PROVIDERS: ProviderConfig[] = [
     keySettingKey: 'openrouterApiKey',
     modelSettingKey: 'openrouterModel',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    defaultModel: 'deepseek/deepseek-chat:free',
+    defaultModel: 'google/gemma-4-31b-it:free', // verified live; OpenRouter had discontinued the free deepseek:free slugs
     extraHeaders: { 'HTTP-Referer': 'https://geoai-ashen.vercel.app', 'X-Title': 'GeoLead AI' },
   },
 ];
@@ -124,7 +131,7 @@ async function callProvider(cfg: ProviderConfig, messages: AiMessage[], options:
     {
       model,
       messages,
-      max_tokens: options.maxTokens ?? 2048,
+      max_tokens: Math.max(options.maxTokens ?? 2048, cfg.minMaxTokens ?? 0),
       temperature: options.temperature ?? 0.6,
       top_p: options.topP ?? 1.0,
       stream: false,

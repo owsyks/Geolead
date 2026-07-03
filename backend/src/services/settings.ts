@@ -37,7 +37,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'mistralApiKey', label: 'Mistral API key', category: 'ai', secret: true, envKey: 'MISTRAL_API_KEY', hint: 'Free "Experiment" tier, ~1B tokens/month, no card required.' },
   { key: 'mistralModel', label: 'Mistral model', category: 'ai', envKey: 'MISTRAL_MODEL', placeholder: 'mistral-small-latest' },
   { key: 'openrouterApiKey', label: 'OpenRouter API key', category: 'ai', secret: true, envKey: 'OPENROUTER_API_KEY', placeholder: 'sk-or-…', hint: 'Tried last — smallest free cap (50 req/day), routes to free models across many providers.' },
-  { key: 'openrouterModel', label: 'OpenRouter model', category: 'ai', envKey: 'OPENROUTER_MODEL', placeholder: 'deepseek/deepseek-chat:free' },
+  { key: 'openrouterModel', label: 'OpenRouter model', category: 'ai', envKey: 'OPENROUTER_MODEL', placeholder: 'google/gemma-4-31b-it:free' },
 
   // Email (Resend)
   { key: 'resendApiKey', label: 'Resend API key', category: 'email', secret: true, envKey: 'RESEND_API_KEY', placeholder: 're_…', hint: 'Used to send outbound email via Resend.' },
