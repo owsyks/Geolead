@@ -33,7 +33,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'opencodeApiKey', label: 'OpenCode Zen API key', category: 'ai', secret: true, envKey: 'OPENCODE_API_KEY', hint: 'Free DeepSeek V4 Flash model via OpenCode Zen. Note: prompts may be used to improve the model while it is in its free period.' },
   { key: 'opencodeModel', label: 'OpenCode Zen model', category: 'ai', envKey: 'OPENCODE_MODEL', placeholder: 'deepseek-v4-flash-free' },
   { key: 'cerebrasApiKey', label: 'Cerebras API key', category: 'ai', secret: true, envKey: 'CEREBRAS_API_KEY', hint: 'Free tier, highest daily token volume. Good backstop on high-traffic days.' },
-  { key: 'cerebrasModel', label: 'Cerebras model', category: 'ai', envKey: 'CEREBRAS_MODEL', placeholder: 'llama3.1-8b' },
+  { key: 'cerebrasModel', label: 'Cerebras model', category: 'ai', envKey: 'CEREBRAS_MODEL', placeholder: 'gemma-4-31b' },
   { key: 'mistralApiKey', label: 'Mistral API key', category: 'ai', secret: true, envKey: 'MISTRAL_API_KEY', hint: 'Free "Experiment" tier, ~1B tokens/month, no card required.' },
   { key: 'mistralModel', label: 'Mistral model', category: 'ai', envKey: 'MISTRAL_MODEL', placeholder: 'mistral-small-latest' },
   { key: 'openrouterApiKey', label: 'OpenRouter API key', category: 'ai', secret: true, envKey: 'OPENROUTER_API_KEY', placeholder: 'sk-or-…', hint: 'Tried last — smallest free cap (50 req/day), routes to free models across many providers.' },

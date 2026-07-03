@@ -80,7 +80,7 @@ const PROVIDERS: ProviderConfig[] = [
     keySettingKey: 'cerebrasApiKey',
     modelSettingKey: 'cerebrasModel',
     endpoint: 'https://api.cerebras.ai/v1/chat/completions',
-    defaultModel: 'llama3.1-8b',
+    defaultModel: 'gemma-4-31b', // verified live: llama3.1-8b was retired from Cerebras's catalog
   },
   {
     name: 'mistral',
