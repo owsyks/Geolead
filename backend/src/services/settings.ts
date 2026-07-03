@@ -61,9 +61,12 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'physicalAddress', label: 'Physical mailing address', category: 'branding', envKey: 'OUTBOUND_PHYSICAL_ADDRESS', placeholder: 'Company, Street, City, ZIP', hint: 'Required in every cold email footer for CAN-SPAM compliance.' },
   { key: 'adminEmail', label: 'Admin / fallback email', category: 'branding', envKey: 'OUTBOUND_ADMIN_EMAIL', placeholder: 'admin@yourdomain.com' },
 
-  // Discovery (self-hosted crawler) — hidden from the UI, but the env-var fallback
-  // (CRAWLER_BASE_URL / CRAWLER_API_KEY) MUST stay registered here or getSetting()
-  // can't resolve the crawler and every search returns nothing.
+  // Discovery (Serper.dev) — powers lead discovery (Google Search + Places).
+  { key: 'serperApiKey', label: 'Serper.dev API key', category: 'discovery', secret: true, envKey: 'SERPER_API_KEY', placeholder: '…', hint: 'Powers lead discovery (Google Search + Places). Get a free key at serper.dev.' },
+
+  // Discovery (self-hosted crawler, currently disconnected from the live search
+  // flow) — hidden from the UI, but the env-var fallback (CRAWLER_BASE_URL /
+  // CRAWLER_API_KEY) stays registered here in case it's reconnected later.
   { key: 'crawlerBaseUrl', label: 'Crawler URL', category: 'discovery', envKey: 'CRAWLER_BASE_URL', hidden: true },
   { key: 'crawlerApiKey', label: 'Crawler API key', category: 'discovery', secret: true, envKey: 'CRAWLER_API_KEY', hidden: true },
 ];

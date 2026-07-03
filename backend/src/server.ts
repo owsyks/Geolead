@@ -8,7 +8,6 @@ import helmet from 'helmet';
 import prisma from './config/db.js';
 import * as xlsx from 'xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
-import { stopCrawlerJob, stopCrawlerJobs } from './services/crawlerClient.js';
 import { isPlaceholderEmail, normalizeEmail, normalizePhoneList } from './services/contactUtils.js';
 import outboundRouter from './routes/outbound.js';
 import emailRouter from './routes/email.js';
@@ -205,14 +204,6 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Cannot ${status} a ${task.status} task.` });
     }
 
-    // If cancelling, also stop the crawler job on the VPS
-    if (status === 'CANCELLED') {
-      const metadata = (task.metadata as any) || {};
-      if (metadata.crawlerJobId) {
-        stopCrawlerJob(metadata.crawlerJobId, task.userId).catch(() => undefined);
-      }
-    }
-
     const updated = await prisma.searchTask.update({
       where: { id },
       data: { status, progress: status === 'CANCELLED' ? 100 : task.progress },
@@ -227,21 +218,10 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
 
 /**
  * POST /api/search/cleanup
- * Force-cancel all stuck PENDING/PROCESSING tasks + stop all crawler VPS jobs.
+ * Force-cancel all stuck PENDING/PROCESSING tasks for this user.
  */
 app.post('/api/search/cleanup', requireAuth, async (req, res) => {
   try {
-    // Stop only the crawler jobs THIS user actually started (scoped — never
-    // enumerate the shared crawler, which would kill other users' jobs).
-    const active = await prisma.searchTask.findMany({
-      where: { userId: req.userId!, status: { in: ['PENDING', 'PROCESSING'] } },
-      select: { metadata: true },
-    });
-    const jobIds = active
-      .map((t) => (t.metadata as any)?.crawlerJobId)
-      .filter((id): id is number => typeof id === 'number');
-    await stopCrawlerJobs(jobIds, req.userId);
-
     // Cancel all PENDING and PROCESSING tasks for this user
     const result = await prisma.searchTask.updateMany({
       where: {
