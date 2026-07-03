@@ -21,9 +21,23 @@ export interface SettingDefinition {
 // The single source of truth for what the Settings page can edit. Add a row
 // here and it appears in the API and UI automatically.
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
-  // AI (NVIDIA NIM — OpenAI-compatible endpoint)
-  { key: 'nvidiaApiKey', label: 'NVIDIA API key', category: 'ai', secret: true, envKey: 'NVIDIA_API_KEY', placeholder: 'nvapi-…', hint: 'Powers AI email generation and lead scoring via integrate.api.nvidia.com. Falls back to local templates if empty.' },
+  // AI — tried in this order (see services/aiProvider.ts), each OpenAI-chat-
+  // completions-compatible. Falls back to local templates/heuristics if every
+  // provider below is unconfigured or unavailable.
+  { key: 'nvidiaApiKey', label: 'NVIDIA API key', category: 'ai', secret: true, envKey: 'NVIDIA_API_KEY', placeholder: 'nvapi-…', hint: 'Tried first if set. Powers AI email generation and lead scoring via integrate.api.nvidia.com.' },
   { key: 'nvidiaModel', label: 'NVIDIA model', category: 'ai', envKey: 'NVIDIA_MODEL', placeholder: 'moonshotai/kimi-k2.6', hint: 'Model id on NVIDIA NIM. Defaults to moonshotai/kimi-k2.6.' },
+  { key: 'groqApiKey', label: 'Groq API key', category: 'ai', secret: true, envKey: 'GROQ_API_KEY', placeholder: 'gsk_…', hint: 'Free tier, fastest inference. Tried after NVIDIA.' },
+  { key: 'groqModel', label: 'Groq model', category: 'ai', envKey: 'GROQ_MODEL', placeholder: 'llama-3.1-8b-instant', hint: 'Defaults to llama-3.1-8b-instant (highest free daily request cap).' },
+  { key: 'geminiApiKey', label: 'Google Gemini API key', category: 'ai', secret: true, envKey: 'GEMINI_API_KEY', placeholder: 'AIza…', hint: 'Free tier via the Gemini OpenAI-compatible endpoint. Highest free daily request cap + largest context.' },
+  { key: 'geminiModel', label: 'Gemini model', category: 'ai', envKey: 'GEMINI_MODEL', placeholder: 'gemini-2.0-flash' },
+  { key: 'opencodeApiKey', label: 'OpenCode Zen API key', category: 'ai', secret: true, envKey: 'OPENCODE_API_KEY', hint: 'Free DeepSeek V4 Flash model via OpenCode Zen. Note: prompts may be used to improve the model while it is in its free period.' },
+  { key: 'opencodeModel', label: 'OpenCode Zen model', category: 'ai', envKey: 'OPENCODE_MODEL', placeholder: 'deepseek-v4-flash-free' },
+  { key: 'cerebrasApiKey', label: 'Cerebras API key', category: 'ai', secret: true, envKey: 'CEREBRAS_API_KEY', hint: 'Free tier, highest daily token volume. Good backstop on high-traffic days.' },
+  { key: 'cerebrasModel', label: 'Cerebras model', category: 'ai', envKey: 'CEREBRAS_MODEL', placeholder: 'llama3.1-8b' },
+  { key: 'mistralApiKey', label: 'Mistral API key', category: 'ai', secret: true, envKey: 'MISTRAL_API_KEY', hint: 'Free "Experiment" tier, ~1B tokens/month, no card required.' },
+  { key: 'mistralModel', label: 'Mistral model', category: 'ai', envKey: 'MISTRAL_MODEL', placeholder: 'mistral-small-latest' },
+  { key: 'openrouterApiKey', label: 'OpenRouter API key', category: 'ai', secret: true, envKey: 'OPENROUTER_API_KEY', placeholder: 'sk-or-…', hint: 'Tried last — smallest free cap (50 req/day), routes to free models across many providers.' },
+  { key: 'openrouterModel', label: 'OpenRouter model', category: 'ai', envKey: 'OPENROUTER_MODEL', placeholder: 'deepseek/deepseek-chat:free' },
 
   // Email (Resend)
   { key: 'resendApiKey', label: 'Resend API key', category: 'email', secret: true, envKey: 'RESEND_API_KEY', placeholder: 're_…', hint: 'Used to send outbound email via Resend.' },

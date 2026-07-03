@@ -4,7 +4,7 @@
 // an NVIDIA-powered executive report. Called from reanalyzeDomain().
 import { promises as dnsPromises } from 'dns';
 import { searchMaps } from './crawlerClient.js';
-import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat, extractJson } from './aiProvider.js';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 

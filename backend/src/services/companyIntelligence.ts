@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat, extractJson } from './aiProvider.js';
 
 const HTTP_TIMEOUT_MS = 6000;
 const USER_AGENT = 'Mozilla/5.0 (compatible; GeoLeadAI-Verifier/1.0)';
@@ -183,6 +183,42 @@ function collectPersonNames(node: any, names: Set<string>) {
 
 const AI_INTEL_CACHE = new Map<string, { description: string; industry: string; painPoints: string }>();
 
+// Keyword -> industry label, checked against the business name + page text
+// when no AI provider is reachable. Deliberately doesn't fabricate a
+// description or pain points — those need real inference; this only surfaces
+// what's factually derivable (a text excerpt, a keyword-matched industry).
+const INDUSTRY_KEYWORDS: Array<[RegExp, string]> = [
+  [/\broof(ing)?\b/i, 'Roofing'],
+  [/\bdent(ist|al)\b/i, 'Dental'],
+  [/\b(car|auto)\s*(dealer|dealership|sales)\b/i, 'Car Dealership'],
+  [/\breal\s*estate|realtor|realty\b/i, 'Real Estate'],
+  [/\bplumb(ing|er)\b/i, 'Plumbing'],
+  [/\bhvac|heating.{0,10}cooling|air\s*condition/i, 'HVAC'],
+  [/\belectric(ian|al)\b/i, 'Electrical'],
+  [/\blaw\s*firm|attorney|lawyer\b/i, 'Legal'],
+  [/\baccount(ant|ing)|bookkeep/i, 'Accounting'],
+  [/\bsalon|barber|hair\s*stylist\b/i, 'Salon & Barber'],
+  [/\brestaurant|caf[eé]|bistro\b/i, 'Restaurant'],
+  [/\blandscap(e|ing)\b/i, 'Landscaping'],
+  [/\bhandyman|home\s*repair|contractor\b/i, 'Home Services'],
+  [/\bmedical|clinic|physician|healthcare\b/i, 'Healthcare'],
+  [/\bfitness|gym|personal\s*train/i, 'Fitness'],
+  [/\bveterinar|vet\s*clinic\b/i, 'Veterinary'],
+  [/\binsurance\b/i, 'Insurance'],
+  [/\bmortgage|lending|loan\b/i, 'Financial Services'],
+];
+
+// No-AI-available fallback: a factual excerpt + keyword-matched industry.
+// painPoints is left blank rather than invented — that field genuinely needs
+// inference, and guessing it would be worse than admitting we don't know.
+function localCompanyIntel(businessName: string, bodyText: string): { description: string; industry: string; painPoints: string } {
+  const cleaned = bodyText.replace(/\s+/g, ' ').trim();
+  const snippet = cleaned.length > 220 ? `${cleaned.slice(0, 220).replace(/\s+\S*$/, '')}…` : cleaned;
+  const haystack = `${businessName} ${cleaned.slice(0, 2000)}`;
+  const industry = INDUSTRY_KEYWORDS.find(([re]) => re.test(haystack))?.[1] || '';
+  return { description: snippet, industry, painPoints: '' };
+}
+
 export async function enrichWithAi(
   businessName: string,
   bodyText: string,
@@ -193,7 +229,7 @@ export async function enrichWithAi(
   if (cached) return cached;
 
   const nvidiaKey = await getNvidiaKey(userId);
-  if (!nvidiaKey) return null;
+  if (!nvidiaKey) return localCompanyIntel(businessName, bodyText);
 
   const text = bodyText.slice(0, 6000);
 
@@ -218,9 +254,9 @@ Extract structured info. Return ONLY valid JSON:
       AI_INTEL_CACHE.set(key, parsed);
       return parsed;
     }
-  } catch { /* AI enrichment is optional */ }
+  } catch { /* every AI provider failed — use the local excerpt/keyword fallback */ }
 
-  return null;
+  return localCompanyIntel(businessName, bodyText);
 }
 
 export function scoreBusinessQuality(

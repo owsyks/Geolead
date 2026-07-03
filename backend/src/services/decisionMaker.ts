@@ -1,4 +1,4 @@
-import { getNvidiaKey, nvidiaChat } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat } from './aiProvider.js';
 
 export interface DecisionMakerResult {
   name: string | null;

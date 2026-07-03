@@ -1,4 +1,4 @@
-import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat, extractJson } from './aiProvider.js';
 
 const AD_KEYWORDS = /\b(sponsored|ad|advertisement|promoted|google\s*ads)\b/i;
 const WEAK_BRANDING = /\b(services?|solutions?|llc|inc|co\b|ltd|corporation|group|consulting|consultants?|pros?)\b/i;
@@ -24,7 +24,7 @@ export async function analyzeBuyerIntentWithAi(
   if (cached !== undefined) return cached;
 
   const key = await getNvidiaKey(userId);
-  if (!key) return null;
+  if (!key) return analyzeBuyerIntent(input);
 
   const text = input.websiteText.slice(0, 3000);
   const prompt = `Business: ${input.businessName}
@@ -58,8 +58,8 @@ Return ONLY a JSON object: {"score": <0-100>, "reason": "<1 sentence>"}`;
       AI_INTENT_CACHE.set(cacheKey, score);
       return score;
     }
-  } catch { /* AI intent analysis is optional */ }
-  return null;
+  } catch { /* every AI provider failed — use the heuristic instead */ }
+  return analyzeBuyerIntent(input);
 }
 
 export function analyzeBuyerIntent(input: BuyerIntentInput): number {

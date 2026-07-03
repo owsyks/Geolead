@@ -1,7 +1,7 @@
 // AI analysis of inbound replies. Uses NVIDIA (Kimi) when a key is configured,
 // with a deterministic local heuristic fallback so the inbox keeps working
 // offline. Produces the category taxonomy the CRM pipeline depends on.
-import { extractJson, getNvidiaKey, nvidiaChat } from './nvidiaAi.js';
+import { extractJson, getNvidiaKey, nvidiaChat } from './aiProvider.js';
 
 export const REPLY_CATEGORIES = [
   'Interested',

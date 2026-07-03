@@ -4,7 +4,7 @@
 // powers the per-domain investor chat feature.
 import { runDomainAnalysis, type DomainAnalysis, type DomainIntelInput } from './domainAnalyzer.js';
 import { deriveDomainIntelligence } from './domains.js';
-import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat, extractJson } from './aiProvider.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -323,7 +323,7 @@ export async function investorChat(
   try {
     const apiKey = await getNvidiaKey(userId);
     if (!apiKey) {
-      return "NVIDIA API key not configured. Go to Settings → AI to add your key.";
+      return "No AI provider is configured. Go to Settings → AI to add an API key (NVIDIA, Groq, Gemini, and others are supported).";
     }
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [

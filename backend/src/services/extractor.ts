@@ -7,7 +7,7 @@ import {
   isRoleOrBusinessPrefix,
   normalizeEmail,
 } from './contactUtils.js';
-import { nvidiaChat, getNvidiaKey } from './nvidiaAi.js';
+import { nvidiaChat, getNvidiaKey } from './aiProvider.js';
 
 export interface ValidatedEmail {
   email: string;

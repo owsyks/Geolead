@@ -1,5 +1,5 @@
 import { analyzeWebsiteForOutbound, type WebsiteIntel } from './websiteIntel.js';
-import { extractJson, getNvidiaKey, nvidiaChat } from './nvidiaAi.js';
+import { extractJson, getNvidiaKey, nvidiaChat } from './aiProvider.js';
 
 export interface EmailGenerationInput {
   businessName?: string;
@@ -159,12 +159,34 @@ export interface FollowUpInput {
   decisionMakerRole?: string | null;
 }
 
+// Plain-template follow-up/breakup, used when every AI provider is
+// unavailable. Mirrors the AI prompt's own constraints (short, no invented
+// facts, no unsubscribe/footer) rather than trying to sound AI-generated.
+function localFollowUpBody(
+  isBreakup: boolean,
+  geo: string,
+  niche: string,
+  city: string,
+  sender: string,
+  greeting: string
+): { subject: string; body: string } {
+  const nicheClause = niche !== 'your niche' ? ` for ${niche}` : '';
+  const cityClause = city !== 'your market' ? ` in ${city}` : '';
+  if (isBreakup) {
+    return {
+      subject: `Closing the loop on ${geo}`,
+      body: `${greeting}\n\nHaven't heard back, so I'll stop reaching out about ${geo} — no worries either way. If it's ever useful down the line, feel free to reach out.\n\n${sender}`,
+    };
+  }
+  return {
+    subject: `Following up: ${geo}`,
+    body: `${greeting}\n\nJust following up on my note about ${geo}${nicheClause}${cityClause}. If you're not the right person, happy to point this at whoever handles it — otherwise let me know if there's any interest.\n\n${sender}`,
+  };
+}
+
 export async function generateFollowUpBody(
   input: FollowUpInput
 ): Promise<{ subject: string; body: string } | null> {
-  const key = await getNvidiaKey(input.userId);
-  if (!key) return null;
-
   const isBreakup = input.stepType === 'BREAKUP' || input.stepOrder >= 3;
   const geo = input.geoDomain;
   const niche = input.niche || 'your niche';
@@ -176,6 +198,9 @@ export async function generateFollowUpBody(
     : input.businessName?.trim()
     ? `Hi {{businessName}} team,`
     : 'Hi there,';
+
+  const key = await getNvidiaKey(input.userId);
+  if (!key) return localFollowUpBody(isBreakup, geo, niche, city, sender, greeting);
 
   const prompt = isBreakup
     ? [
@@ -212,13 +237,13 @@ export async function generateFollowUpBody(
       { temperature: 0.6, maxTokens: 512, timeoutMs: 20000, userId: input.userId }
     );
     const parsed = extractJson<{ subject: string; body: string }>(content);
-    if (!parsed?.subject || !parsed?.body) return null;
+    if (!parsed?.subject || !parsed?.body) return localFollowUpBody(isBreakup, geo, niche, city, sender, greeting);
     return {
       subject: String(parsed.subject).slice(0, 70),
       body: String(parsed.body),
     };
   } catch {
-    return null;
+    return localFollowUpBody(isBreakup, geo, niche, city, sender, greeting);
   }
 }
 

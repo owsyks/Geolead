@@ -1,4 +1,4 @@
-import { extractJson, getNvidiaKey, nvidiaChat } from './nvidiaAi.js';
+import { extractJson, getNvidiaKey, nvidiaChat } from './aiProvider.js';
 
 export interface ScoreResult {
   score: number; // 0 to 100

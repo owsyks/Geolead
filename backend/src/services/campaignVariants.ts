@@ -10,7 +10,7 @@
 //   C — Branding:      emphasizes brand memorability / identity
 //   D — SEO:           emphasizes search visibility / exact-match value
 //   E — Opportunity:   frames the domain as a timely opening, low-pressure
-import { nvidiaChat, getNvidiaKey, extractJson } from './nvidiaAi.js';
+import { nvidiaChat, getNvidiaKey, extractJson } from './aiProvider.js';
 import { scoreSpamRisk, humanizeMergeTokens } from './outboundAi.js';
 
 export type VariantKey = 'A' | 'B' | 'C' | 'D' | 'E';

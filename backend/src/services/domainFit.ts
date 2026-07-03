@@ -1,4 +1,4 @@
-import { getNvidiaKey, nvidiaChat, extractJson } from './nvidiaAi.js';
+import { getNvidiaKey, nvidiaChat, extractJson } from './aiProvider.js';
 
 const AI_FIT_CACHE = new Map<string, number>();
 
@@ -92,7 +92,7 @@ export async function scoreDomainFitWithAi(
   if (cached !== undefined) return cached;
 
   const key = await getNvidiaKey(userId);
-  if (!key) return null;
+  if (!key) return scoreDomainFit(input);
 
   const prompt = `Business: ${input.businessName}
 Current domain: ${input.currentDomain || 'none'}
@@ -122,8 +122,8 @@ Return ONLY a JSON object: {"score": <0-100>, "reason": "<1 sentence>"}`;
       AI_FIT_CACHE.set(cacheKey, score);
       return score;
     }
-  } catch { /* AI fit scoring is optional */ }
-  return null;
+  } catch { /* every AI provider failed — use the heuristic instead */ }
+  return scoreDomainFit(input);
 }
 
 export function getDomainFitLabel(score: number): string {
