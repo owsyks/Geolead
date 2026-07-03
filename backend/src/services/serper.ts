@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getSetting } from './settings.js';
+import { redisConnection } from '../queues/queues.js';
 
 export interface SerperResult {
   title: string;
@@ -27,96 +28,140 @@ interface SerperSearchOptions {
   userId?: string | null; // resolve the calling user's Serper key
 }
 
-/**
- * Searches Google using Serper.dev API. Falls back to mock data if key is missing.
- */
-export async function searchGoogle(query: string, options: SerperSearchOptions = {}): Promise<SerperResult[]> {
-  const apiKey = await getSetting('serperApiKey', options.userId);
+// Multiple Serper keys can be configured as a shared rotation pool
+// (SERPER_API_KEY_1, _2, _3, ...) so one account's daily quota doesn't cap
+// every search. A per-user DB key (Settings page) is used exclusively
+// instead — it's that user's own quota, not part of the shared pool.
+const MAX_PER_KEY_PER_DAY = 2500;
 
-  if (!apiKey) {
-    console.log(`[Serper.dev] API key missing. Generating mock search results for: "${query}"`);
-    return getMockSearchResults(query);
+function getPlatformKeys(): string[] {
+  const keys: string[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const key = process.env[`SERPER_API_KEY_${i}`];
+    if (key) keys.push(key);
   }
+  const legacy = process.env.SERPER_API_KEY;
+  if (legacy && !keys.includes(legacy)) keys.push(legacy);
+  return keys;
+}
 
-  try {
-    const body = {
-      q: query,
-      ...(options.page ? { page: options.page } : {}),
-      ...(options.num ? { num: options.num } : {}),
-    };
+function keyPrefix(key: string): string {
+  return key.slice(0, 8);
+}
 
-    const response = await axios.post(
-      'https://google.serper.dev/search',
-      body,
-      {
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
+async function getKeyUsage(key: string): Promise<number> {
+  const prefix = keyPrefix(key);
+  const today = new Date().toISOString().split('T')[0];
+  const dateRedisKey = `serper:date:${prefix}`;
+  const usageRedisKey = `serper:usage:${prefix}`;
+
+  const storedDate = await redisConnection.get(dateRedisKey);
+  if (storedDate !== today) {
+    await redisConnection.set(dateRedisKey, today);
+    await redisConnection.set(usageRedisKey, '0');
+    return 0;
+  }
+  return parseInt((await redisConnection.get(usageRedisKey)) || '0', 10);
+}
+
+async function incrementKeyUsage(key: string): Promise<void> {
+  await redisConnection.incr(`serper:usage:${keyPrefix(key)}`).catch(() => undefined);
+}
+
+async function getKeyPool(userId?: string | null): Promise<string[]> {
+  const userKey = await getSetting('serperApiKey', userId);
+  const platformKeys = getPlatformKeys();
+  if (userKey) return [userKey]; // dedicated key — don't share its quota with the pool
+  return platformKeys;
+}
+
+// Orders keys by ascending usage today, favoring keys with quota remaining.
+// If every key looks exhausted by our own tracking, return the pool as-is —
+// Redis-side usage is an optimization, not a hard cap; the real API 429/403
+// response is the source of truth for "actually exhausted."
+async function orderByUsage(keys: string[]): Promise<string[]> {
+  const withUsage = await Promise.all(keys.map(async (key) => ({ key, usage: await getKeyUsage(key) })));
+  const underQuota = withUsage.filter((k) => k.usage < MAX_PER_KEY_PER_DAY);
+  const ordered = (underQuota.length > 0 ? underQuota : withUsage).sort((a, b) => a.usage - b.usage);
+  return ordered.map((k) => k.key);
+}
+
+// POSTs to a Serper endpoint, rotating through the key pool on rate-limit/
+// auth/quota errors. Returns null (triggering the mock-data fallback) only
+// once every key in the pool has failed.
+async function serperRequest(path: string, query: string, options: SerperSearchOptions): Promise<any[] | null> {
+  const pool = await getKeyPool(options.userId);
+  if (pool.length === 0) return null;
+
+  const candidates = await orderByUsage(pool);
+  const body = {
+    q: query,
+    ...(options.page ? { page: options.page } : {}),
+    ...(options.num ? { num: options.num } : {}),
+  };
+
+  for (const key of candidates) {
+    try {
+      const response = await axios.post(
+        `https://google.serper.dev${path}`,
+        body,
+        { headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' }, timeout: 10000 }
+      );
+      incrementKeyUsage(key);
+      return path === '/places' ? response.data.places || [] : response.data.organic || [];
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 429 || status === 403 || status === 401) {
+        console.warn(`[Serper.dev] Key ${keyPrefix(key)}... rejected (${status}) on ${path} — rotating to next key.`);
+        continue;
       }
-    );
-
-    const organic = response.data.organic || [];
-    return organic.map((item: any) => ({
-      title: item.title,
-      link: item.link,
-      snippet: item.snippet,
-      position: item.position,
-    }));
-  } catch (error: any) {
-    console.error(`[Serper.dev] Search error: ${error.message}. Falling back to mock data.`);
-    return getMockSearchResults(query);
+      console.error(`[Serper.dev] ${path} error: ${error.message}`);
+      continue;
+    }
   }
+  return null;
 }
 
 /**
- * Searches Google Maps via Serper.dev Places. Falls back to mock data if key is missing.
+ * Searches Google using Serper.dev API. Falls back to mock data if no
+ * configured key succeeds.
+ */
+export async function searchGoogle(query: string, options: SerperSearchOptions = {}): Promise<SerperResult[]> {
+  const organic = await serperRequest('/search', query, options);
+  if (organic === null) {
+    console.log(`[Serper.dev] No usable key. Generating mock search results for: "${query}"`);
+    return getMockSearchResults(query);
+  }
+  return organic.map((item: any) => ({
+    title: item.title,
+    link: item.link,
+    snippet: item.snippet,
+    position: item.position,
+  }));
+}
+
+/**
+ * Searches Google Maps via Serper.dev Places. Falls back to mock data if no
+ * configured key succeeds.
  */
 export async function searchGooglePlaces(query: string, options: SerperSearchOptions = {}): Promise<SerperPlace[]> {
-  const apiKey = await getSetting('serperApiKey', options.userId);
-
-  if (!apiKey) {
-    console.log(`[Serper.dev] API key missing. Generating mock places results for: "${query}"`);
+  const places = await serperRequest('/places', query, options);
+  if (places === null) {
+    console.log(`[Serper.dev] No usable key. Generating mock places results for: "${query}"`);
     return getMockPlacesResults(query);
   }
-
-  try {
-    const body = {
-      q: query,
-      ...(options.page ? { page: options.page } : {}),
-      ...(options.num ? { num: options.num } : {}),
-    };
-
-    const response = await axios.post(
-      'https://google.serper.dev/places',
-      body,
-      {
-        headers: {
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      }
-    );
-
-    const places = response.data.places || [];
-    return places.map((item: any) => ({
-      title: item.title,
-      address: item.address,
-      phoneNumber: item.phoneNumber,
-      latitude: item.latitude,
-      longitude: item.longitude,
-      rating: item.rating,
-      ratingCount: item.ratingCount,
-      category: item.category,
-      website: item.website,
-      cid: item.cid,
-    }));
-  } catch (error: any) {
-    console.error(`[Serper.dev] Places error: ${error.message}. Falling back to mock data.`);
-    return getMockPlacesResults(query);
-  }
+  return places.map((item: any) => ({
+    title: item.title,
+    address: item.address,
+    phoneNumber: item.phoneNumber,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    rating: item.rating,
+    ratingCount: item.ratingCount,
+    category: item.category,
+    website: item.website,
+    cid: item.cid,
+  }));
 }
 
 // ==========================================
