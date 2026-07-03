@@ -32,11 +32,44 @@ export interface ReplyAnalysisContext {
   senderName?: string;
 }
 
+// Mail clients (Gmail, Outlook, Apple Mail) append the full original message
+// below a reply by default. Since every outbound email carries our own
+// "Unsubscribe" footer for CAN-SPAM compliance, that footer text rides along
+// in the quoted portion of *every* reply — including "Sounds good!" replies
+// that never mention opting out. Classifying on the raw body made the
+// authoritative Unsubscribe/OOO pattern match fire on the quoted footer
+// instead of what the person actually wrote. Strip the quote first.
+function stripQuotedContent(body: string): string {
+  const text = body || '';
+  const markers: RegExp[] = [
+    /^[ \t]*-{2,}[ \t]*Original Message[ \t]*-{2,}/im, // Outlook
+    /^[ \t]*On .{0,150}wrote:[ \t]*$/im,                // Gmail / Apple Mail top-post
+    /^From:[ \t].+\r?\n[ \t]*(?:Sent|Date):[ \t].+\r?\n[ \t]*To:/im, // Outlook forward/reply header block
+    /^[ \t]*>{1,}/m,                                     // classic ">" quote prefix — first quoted line
+  ];
+
+  let cutAt = -1;
+  for (const marker of markers) {
+    const match = marker.exec(text);
+    if (match && (cutAt === -1 || match.index < cutAt)) cutAt = match.index;
+  }
+
+  const stripped = cutAt >= 0 ? text.slice(0, cutAt).trim() : text.trim();
+  // If stripping left nothing meaningful (e.g. a bare "-- \nSignature" before
+  // the quote, or the quote marker matched right at the start), fall back to
+  // the original body rather than classifying on an empty string.
+  return stripped.length >= 3 ? stripped : text.trim();
+}
+
 export async function analyzeReply(body: string, subject = '', context: ReplyAnalysisContext = {}): Promise<ReplyAnalysis> {
+  const newContent = stripQuotedContent(body);
+
   // The pattern detector is authoritative for the compliance-critical, highly
   // pattern-based categories (auto-replies and opt-outs), which LLMs sometimes
-  // misread. For everything else we prefer the AI's nuance.
-  const local = analyzeLocally(body, context);
+  // misread. For everything else we prefer the AI's nuance. Classify on the
+  // stripped reply text only — the quoted original (which contains our own
+  // unsubscribe footer) must never be able to trigger these categories.
+  const local = analyzeLocally(newContent, context);
   if (local.category === 'Out Of Office' || local.category === 'Unsubscribe') {
     return local;
   }
@@ -44,7 +77,7 @@ export async function analyzeReply(body: string, subject = '', context: ReplyAna
   const key = await getNvidiaKey();
   if (key) {
     try {
-      const ai = await analyzeWithNvidia(body, subject, context);
+      const ai = await analyzeWithNvidia(newContent, subject, context);
       // Safety net: if AI says OOO/Unsubscribe but local didn't, trust AI only
       // when local was ambiguous; otherwise keep AI.
       return ai;
