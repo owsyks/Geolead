@@ -25,7 +25,7 @@ export default function ContactPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", company: "", subject: "General", message: "" });
-  const [hp, setHp] = useState(""); // honeypot — real users never fill this in
+  const [hp, setHp] = useState(false); // honeypot checkbox — real users never check this
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -114,13 +114,15 @@ export default function ContactPage() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Honeypot — hidden from real users via off-screen positioning, not
-                    display:none, since some bots skip inputs with display:none. */}
+                    display:none, since some bots skip inputs with display:none. A
+                    checkbox (not a text input) specifically avoids browser/OS contact
+                    autofill (e.g. Safari's Contact Info autofill), which will populate
+                    any eligible hidden text field but never toggles a checkbox. */}
                 <input
-                  type="text"
-                  value={hp}
-                  onChange={e => setHp(e.target.value)}
+                  type="checkbox"
+                  checked={hp}
+                  onChange={e => setHp(e.target.checked)}
                   tabIndex={-1}
-                  autoComplete="off"
                   aria-hidden="true"
                   className="absolute -left-[9999px] w-px h-px opacity-0"
                 />

@@ -15,8 +15,13 @@ const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post('/', rateLimit('contact', 5, 60 * 60 * 1000), async (req, res) => {
-  // Honeypot: real users never fill this hidden field in.
-  if (String(req.body?.hp || '').trim()) {
+  // Honeypot: a hidden checkbox real users never toggle. A plain hidden text
+  // input here used to get false-positived by browser/OS contact-info
+  // autofill (e.g. Safari), which silently dropped real submissions. Still
+  // also catch a bot that blindly stuffs a string into any "hp"-named field
+  // it finds (the old convention), just not a bare boolean false/absent.
+  const hp = req.body?.hp;
+  if (hp === true || (typeof hp === 'string' && hp.trim())) {
     return res.status(200).json({ ok: true });
   }
 

@@ -570,6 +570,7 @@ function TicketThreadRow({ ticket, onChanged }: { ticket: AdminTicket; onChanged
 function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   if (!tickets) return <Spinner />;
 
   async function setStatus(id: string, status: string) {
@@ -577,18 +578,38 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
     try { await patchTicket(id, { status }); reload(); } finally { setBusyId(null); }
   }
 
+  async function doRefresh() {
+    setRefreshing(true);
+    try { await reload(); } finally { setRefreshing(false); }
+  }
+
+  // New tickets only ever show up after this reload runs — mount only
+  // fetches once, so make refreshing a single visible click instead of
+  // requiring a full page reload to check "did that submission arrive?"
+  const refreshButton = (
+    <button onClick={doRefresh} disabled={refreshing}
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-[12px] font-bold text-text-muted hover:text-text disabled:opacity-60">
+      <RefreshCw className={cn("w-3.5 h-3.5", refreshing && "animate-spin")} /> Refresh
+    </button>
+  );
+
   if (tickets.length === 0) {
     return (
-      <div className="bg-surface border border-border rounded-xl py-16 flex flex-col items-center text-center">
-        <Bug className="w-8 h-8 text-text-faint mb-3" />
-        <div className="font-bold text-[14px]">No tickets yet</div>
-        <div className="text-sm text-text-muted mt-1">Support requests submitted by users will appear here.</div>
+      <div className="space-y-3">
+        <div className="flex justify-end">{refreshButton}</div>
+        <div className="bg-surface border border-border rounded-xl py-16 flex flex-col items-center text-center">
+          <Bug className="w-8 h-8 text-text-faint mb-3" />
+          <div className="font-bold text-[14px]">No tickets yet</div>
+          <div className="text-sm text-text-muted mt-1">Support requests submitted by users will appear here.</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden">
+    <div className="space-y-3">
+      <div className="flex justify-end">{refreshButton}</div>
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left min-w-[800px]">
           <thead className="border-b border-border bg-surface-2/50">
@@ -643,6 +664,7 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
