@@ -521,6 +521,18 @@ function TicketThreadRow({ ticket, onChanged }: { ticket: AdminTicket; onChanged
           <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-text-faint" /></div>
         ) : detail ? (
           <div className="max-w-2xl space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-border">
+              <div className="text-[12px]">
+                <span className="font-bold text-text">{detail.userName || "Unnamed contact"}</span>
+                {" · "}
+                <a href={`mailto:${detail.user}`} className="font-mono text-brand hover:underline">{detail.user}</a>
+              </div>
+              {detail.isGuest && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-copper bg-copper/10 border border-copper/25 rounded px-1.5 py-0.5">
+                  <UserX className="w-2.5 h-2.5" /> Guest — no account
+                </span>
+              )}
+            </div>
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {detail.messages.map((m) => (
                 <div key={m.id} className={cn("max-w-[85%] px-3 py-2 rounded-xl text-[13px] leading-snug",
@@ -595,8 +607,11 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
                       {expanded === t.id ? <ChevronUp className="w-3.5 h-3.5 text-text-faint shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-text-faint shrink-0" />}
                       <div className="min-w-0">
                         <div className="font-medium text-[13px] leading-snug truncate">{t.subject}</div>
-                        <div className="text-[11px] text-text-faint mt-0.5 flex items-center gap-1.5">
-                          {t.userName || t.user}
+                        <div className="text-[11px] text-text-faint mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate">{t.userName || t.user}</span>
+                          {/* Name alone doesn't tell an admin how to reach a guest — always
+                              surface the email too, since that's the only contact channel. */}
+                          {t.userName && <span className="truncate">· {t.user}</span>}
                           {t.isGuest && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-copper bg-copper/10 border border-copper/25 rounded px-1 py-0.5">
                               <UserX className="w-2.5 h-2.5" /> Guest
