@@ -1,11 +1,18 @@
 "use client";
 
-// Persistent support chat bubble — mounted once in OutboundShell so it's
-// available on every authenticated page (dashboard included). Rule-based FAQ
-// bot (no AI call): quick replies + keyword matching. When the bot can't help
-// (or the user asks for a human), it escalates into a real SupportTicket and
-// switches to a live thread, polling for admin replies. A History tab lists
-// every past ticket so a reply on an older conversation is never missed.
+// Persistent support chat bubble — mounted once in the root layout so it's on
+// every page: public marketing pages (landing, pricing, contact) AND the
+// logged-in app. Rule-based FAQ bot (no AI call): quick replies + keyword
+// matching. When it can't help, it escalates to a real SupportTicket thread:
+//
+//  - Logged in: we already know who they are, so it escalates straight away
+//    and a History tab lists every past ticket (getMyTickets/getTicketMessages
+//    from lib/support.ts), so a reply on an older conversation is never lost.
+//  - Anonymous visitor: no account to key a ticket off, so the first time
+//    they need a human we ask for name + email inline, then create a guest
+//    ticket via the public lib/supportGuest.ts endpoints and continue polling
+//    the same way. No History tab (no account to list tickets by), but the
+//    one active thread persists in localStorage across reloads.
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, X, Send, ArrowLeft, Loader2, History as HistoryIcon, Plus } from "lucide-react";
@@ -16,6 +23,7 @@ import {
   escalate, getMyTickets, getTicketMessages, postTicketMessage,
   type MyTicket, type SupportMessage, type TranscriptEntry,
 } from "@/lib/support";
+import { startGuestChat, getGuestTicketMessages, postGuestTicketMessage } from "@/lib/supportGuest";
 import { cn } from "./ui";
 
 interface BubbleMessage {
@@ -23,22 +31,22 @@ interface BubbleMessage {
   from: "user" | "bot" | "admin";
   text: string;
 }
+interface GuestIdentity {
+  name: string;
+  email: string;
+}
 
-const STORAGE_KEY = "geolead.supportBubble";
+const AUTH_KEY = "geolead.supportBubble";
+const GUEST_KEY = "geolead.supportBubble.guest";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function loadStored(): { ticketId: string | null; messages: BubbleMessage[]; seen: Record<string, string> } {
-  if (typeof window === "undefined") return { ticketId: null, messages: [], seen: {} };
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ticketId: null, messages: [], seen: {} };
-    const parsed = JSON.parse(raw);
-    return {
-      ticketId: parsed.ticketId ?? null,
-      messages: Array.isArray(parsed.messages) ? parsed.messages : [],
-      seen: parsed.seen && typeof parsed.seen === "object" ? parsed.seen : {},
-    };
+    const raw = window.localStorage.getItem(key);
+    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
   } catch {
-    return { ticketId: null, messages: [], seen: {} };
+    return fallback;
   }
 }
 
@@ -59,68 +67,98 @@ function fmtWhen(d: string) {
 }
 
 export default function SupportBubble() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"chat" | "history">("chat");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [messages, setMessages] = useState<BubbleMessage[]>([]);
   const [ticketList, setTicketList] = useState<MyTicket[]>([]);
   const [seen, setSeen] = useState<Record<string, string>>({});
+  const [guestIdentity, setGuestIdentity] = useState<GuestIdentity | null>(null);
+  const [pendingEscalate, setPendingEscalate] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formBusy, setFormBusy] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
   const [threadLoading, setThreadLoading] = useState(false);
+  const [localUnread, setLocalUnread] = useState(false);
+  const hydrated = useRef(false);
+  const seenCount = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Hydrate from the right localStorage bucket once we know whether this is
+  // an authenticated session or an anonymous visitor.
   useEffect(() => {
-    const stored = loadStored();
-    setTicketId(stored.ticketId);
-    setMessages(stored.messages);
-    setSeen(stored.seen);
-  }, []);
+    if (loading || hydrated.current) return;
+    hydrated.current = true;
+    if (user) {
+      const stored = readJson(AUTH_KEY, { ticketId: null as string | null, messages: [] as BubbleMessage[], seen: {} as Record<string, string> });
+      setTicketId(stored.ticketId);
+      setMessages(stored.messages);
+      setSeen(stored.seen);
+      seenCount.current = stored.messages.length;
+    } else {
+      const stored = readJson(GUEST_KEY, { ticketId: null as string | null, messages: [] as BubbleMessage[], identity: null as GuestIdentity | null });
+      setTicketId(stored.ticketId);
+      setMessages(stored.messages);
+      setGuestIdentity(stored.identity);
+      seenCount.current = stored.messages.length;
+    }
+  }, [loading, user]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ticketId, messages, seen }));
-  }, [ticketId, messages, seen]);
+    if (typeof window === "undefined" || loading || !hydrated.current) return;
+    if (user) {
+      window.localStorage.setItem(AUTH_KEY, JSON.stringify({ ticketId, messages, seen }));
+    } else {
+      window.localStorage.setItem(GUEST_KEY, JSON.stringify({ ticketId, messages, identity: guestIdentity }));
+    }
+  }, [user, loading, ticketId, messages, seen, guestIdentity]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open, view]);
+  }, [messages, open, view, typing, pendingEscalate]);
 
-  // Live thread for whichever ticket is currently open in the chat view.
+  // Live thread for whichever ticket is currently active (works for both an
+  // authenticated user's ticket and an anonymous guest ticket).
   useVisiblePolling({
     enabled: !!ticketId,
     intervalMs: 15000,
     maxIntervalMs: 60000,
     poll: async () => {
       if (!ticketId) return false;
-      const { messages: thread } = await getTicketMessages(ticketId);
-      setMessages(mapThread(thread));
+      const { messages: thread } = user ? await getTicketMessages(ticketId) : await getGuestTicketMessages(ticketId);
+      const mapped = mapThread(thread);
+      setMessages(mapped);
+      if (mapped.length > seenCount.current && !open) setLocalUnread(true);
+      if (open) seenCount.current = mapped.length;
     },
   });
 
-  // Lightweight poll across every ticket this user has ever opened, so a
-  // reply on an older (non-active) ticket still surfaces as "unread" and is
-  // reachable from History, instead of only tracking the one active thread.
+  // Logged-in only: lightweight poll across every ticket this account has
+  // ever opened, powering the History tab + its unread dots.
   useVisiblePolling({
     enabled: !!user,
     intervalMs: 20000,
     maxIntervalMs: 90000,
     poll: async () => {
+      if (!user) return;
       const { tickets } = await getMyTickets();
       setTicketList(tickets);
     },
   });
 
-  // Mark whatever ticket is actively being viewed as seen once its data is in.
   useEffect(() => {
-    if (!open || view !== "chat" || !ticketId) return;
+    if (!open || view !== "chat" || !ticketId || !user) return;
     const t = ticketList.find((x) => x.id === ticketId);
     if (t) markSeen(t.id, t.updatedAt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, view, ticketId, ticketList]);
+  }, [open, view, ticketId, ticketList, user]);
 
-  if (!user) return null;
+  if (loading) return null;
 
   function markSeen(id: string, updatedAt: string) {
     setSeen((prev) => (prev[id] === updatedAt ? prev : { ...prev, [id]: updatedAt }));
@@ -129,9 +167,19 @@ export default function SupportBubble() {
   const unreadIds = new Set(
     ticketList.filter((t) => t.lastSender === "ADMIN" && seen[t.id] !== t.updatedAt).map((t) => t.id)
   );
+  const hasUnread = localUnread || unreadIds.size > 0;
 
   function pushLocal(msg: Omit<BubbleMessage, "id">) {
     setMessages((prev) => [...prev, { ...msg, id: `local-${prev.length}-${msg.from}` }]);
+  }
+
+  // Small artificial delay + typing indicator so canned replies feel like a
+  // real conversation instead of an instant form-fill.
+  async function botSay(text: string) {
+    setTyping(true);
+    await new Promise((r) => setTimeout(r, 450 + Math.random() * 350));
+    setTyping(false);
+    pushLocal({ from: "bot", text });
   }
 
   function toTranscript(msgs: BubbleMessage[]): TranscriptEntry[] {
@@ -142,33 +190,76 @@ export default function SupportBubble() {
 
   async function handleFaqClick(question: string, answer: string) {
     pushLocal({ from: "user", text: question });
-    pushLocal({ from: "bot", text: answer });
+    await botSay(answer);
   }
 
-  async function runEscalate(topic: string) {
-    setBusy(true);
+  async function runEscalate(triggerText: string) {
+    if (user) {
+      setBusy(true);
+      try {
+        const { ticketId: id } = await escalate(triggerText, toTranscript(messages));
+        setTicketId(id);
+        seenCount.current = messages.length;
+        await botSay("You're connected with our support team — they'll reply right here, and by email too.");
+      } catch {
+        await botSay("Sorry, something went wrong opening a ticket. Please try again in a moment.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    if (guestIdentity) {
+      setBusy(true);
+      try {
+        const { id } = await startGuestChat(guestIdentity.name, guestIdentity.email, triggerText);
+        setTicketId(id);
+        seenCount.current = messages.length;
+        await botSay("Thanks! You're connected with our team — they'll reply right here, and by email too.");
+      } catch {
+        await botSay("Sorry, something went wrong opening a ticket. Please try again in a moment.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    await botSay("Sure — before I connect you, could I get your name and email so our team can reach you?");
+    setPendingEscalate(triggerText);
+  }
+
+  async function submitIdentity() {
+    const name = formName.trim();
+    const email = formEmail.trim();
+    if (!name) return setFormError("Please enter your name.");
+    if (!email || !EMAIL_RE.test(email)) return setFormError("Please enter a valid email.");
+    setFormError(null);
+    setFormBusy(true);
     try {
-      const transcript = toTranscript(messages);
-      const { ticketId: id } = await escalate(topic, transcript);
+      const { id } = await startGuestChat(name, email, pendingEscalate || "Chat bubble — talk to a human");
+      setGuestIdentity({ name, email });
       setTicketId(id);
-      pushLocal({ from: "bot", text: "You're connected with our support team — they'll reply right here, and by email too." });
-    } catch {
-      pushLocal({ from: "bot", text: "Sorry, something went wrong opening a ticket. Please try again in a moment." });
+      setPendingEscalate(null);
+      seenCount.current = messages.length;
+      await botSay("Thanks! You're connected with our team — they'll reply right here, and by email too.");
+    } catch (err: any) {
+      setFormError(err?.message || "Something went wrong. Please try again.");
     } finally {
-      setBusy(false);
+      setFormBusy(false);
     }
   }
 
   async function handleSend() {
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text || busy || pendingEscalate !== null) return;
     setInput("");
 
     if (ticketId) {
       pushLocal({ from: "user", text });
       setBusy(true);
       try {
-        await postTicketMessage(ticketId, text);
+        if (user) await postTicketMessage(ticketId, text);
+        else await postGuestTicketMessage(ticketId, text);
       } catch {
         pushLocal({ from: "bot", text: "That message didn't send — please try again." });
       } finally {
@@ -180,10 +271,10 @@ export default function SupportBubble() {
     const match = matchFaq(text);
     if (match) {
       pushLocal({ from: "user", text });
-      pushLocal({ from: "bot", text: match.answer });
+      await botSay(match.answer);
     } else {
       pushLocal({ from: "user", text });
-      pushLocal({ from: "bot", text: "I don't have a canned answer for that — let me connect you with someone who can help." });
+      await botSay("I don't have a canned answer for that — let me connect you with someone who can help.");
       await runEscalate(text.slice(0, 200));
     }
   }
@@ -191,7 +282,9 @@ export default function SupportBubble() {
   function startFresh() {
     setTicketId(null);
     setMessages([]);
+    setPendingEscalate(null);
     setView("chat");
+    seenCount.current = 0;
   }
 
   async function openTicket(t: MyTicket) {
@@ -201,18 +294,29 @@ export default function SupportBubble() {
     setThreadLoading(true);
     try {
       const { messages: thread } = await getTicketMessages(t.id);
-      setMessages(mapThread(thread));
+      const mapped = mapThread(thread);
+      setMessages(mapped);
+      seenCount.current = mapped.length;
     } finally {
       setThreadLoading(false);
     }
   }
 
-  const hasUnread = unreadIds.size > 0;
+  function toggleOpen() {
+    setOpen((v) => {
+      const next = !v;
+      if (next) {
+        seenCount.current = messages.length;
+        setLocalUnread(false);
+      }
+      return next;
+    });
+  }
 
   return createPortal(
     <>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         aria-label="Support chat"
         className="fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full bg-brand text-bg shadow-[0_4px_20px_rgba(20,184,166,0.45)] flex items-center justify-center hover:bg-brand-hover transition-colors"
       >
@@ -223,30 +327,37 @@ export default function SupportBubble() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-[60] w-[340px] max-w-[calc(100vw-2.5rem)] h-[460px] max-h-[calc(100vh-8rem)] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden">
+        <div className="fixed bottom-24 right-5 z-[60] w-[340px] max-w-[calc(100vw-2.5rem)] h-[480px] max-h-[calc(100vh-8rem)] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden animate-[supportPanelIn_0.18s_ease-out]">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface-2">
-            <div>
-              <div className="font-bold text-sm text-text">Support</div>
-              <div className="text-[11px] text-text-muted">
-                {view === "history" ? "Your past conversations" : ticketId ? "Connected to our team" : "Ask a quick question"}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 shrink-0 rounded-full bg-brand-soft border border-brand/20 text-brand flex items-center justify-center">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-sm text-text">Support</div>
+                <div className="text-[11px] text-text-muted truncate">
+                  {view === "history" ? "Your past conversations" : ticketId ? "Connected to our team" : "Ask us anything"}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {view === "history" ? (
                 <button onClick={() => setView("chat")} className="text-[11px] font-bold text-text-muted hover:text-text flex items-center gap-1">
                   <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
               ) : (
                 <>
-                  <button
-                    onClick={() => setView("history")}
-                    title="Ticket history"
-                    aria-label="Ticket history"
-                    className="relative p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
-                  >
-                    <HistoryIcon className="w-4 h-4" />
-                    {hasUnread && <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-danger" />}
-                  </button>
+                  {user && (
+                    <button
+                      onClick={() => setView("history")}
+                      title="Ticket history"
+                      aria-label="Ticket history"
+                      className="relative p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
+                    >
+                      <HistoryIcon className="w-4 h-4" />
+                      {unreadIds.size > 0 && <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-danger" />}
+                    </button>
+                  )}
                   {ticketId && (
                     <button onClick={startFresh} title="Start a new conversation" aria-label="New chat"
                       className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors">
@@ -293,7 +404,10 @@ export default function SupportBubble() {
                   <>
                     {messages.length === 0 && (
                       <div className="space-y-2">
-                        <div className="text-[12px] text-text-muted px-1">Common questions:</div>
+                        <div className="max-w-[85%] px-3 py-2 rounded-2xl rounded-bl-sm text-[13px] leading-snug bg-surface-2 border border-border text-text">
+                          👋 Hi! How can we help you today? Pick a question below or just type it out.
+                        </div>
+                        <div className="text-[11px] text-text-faint px-1 pt-1">Common questions:</div>
                         {SUPPORT_FAQS.map((f) => (
                           <button
                             key={f.id}
@@ -320,37 +434,78 @@ export default function SupportBubble() {
                         </div>
                       </div>
                     ))}
+                    {typing && (
+                      <div className="flex justify-start">
+                        <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-surface-2 border border-border flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-text-faint animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-text-faint animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-text-faint animate-bounce" />
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
 
               <div className="p-3 border-t border-border bg-bg-elevated">
-                {!ticketId && messages.length > 0 && (
-                  <button
-                    onClick={() => runEscalate("Chat bubble — talk to a human")}
-                    disabled={busy}
-                    className="w-full mb-2 text-[12px] font-bold text-brand border border-brand/30 rounded-lg py-1.5 hover:bg-brand/10 transition-colors disabled:opacity-60"
-                  >
-                    Talk to a human
-                  </button>
+                {pendingEscalate !== null ? (
+                  <div className="space-y-2">
+                    <div className="text-[11px] text-text-muted px-0.5">Share your details so our team can reach you:</div>
+                    <input
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                    />
+                    <input
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submitIdentity()}
+                      placeholder="you@company.com"
+                      className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                    />
+                    {formError && <div className="text-[11px] text-danger">{formError}</div>}
+                    <div className="flex gap-2">
+                      <button onClick={() => setPendingEscalate(null)} disabled={formBusy}
+                        className="flex-1 text-[12px] font-bold text-text-muted border border-border rounded-lg py-1.5 hover:bg-surface transition-colors disabled:opacity-60">
+                        Cancel
+                      </button>
+                      <button onClick={submitIdentity} disabled={formBusy}
+                        className="flex-1 text-[12px] font-bold text-bg bg-brand rounded-lg py-1.5 hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+                        {formBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Start chat"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {!ticketId && messages.length > 0 && (
+                      <button
+                        onClick={() => runEscalate("Chat bubble — talk to a human")}
+                        disabled={busy}
+                        className="w-full mb-2 text-[12px] font-bold text-brand border border-brand/30 rounded-lg py-1.5 hover:bg-brand/10 transition-colors disabled:opacity-60"
+                      >
+                        Talk to a human
+                      </button>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                      />
+                      <button
+                        onClick={handleSend}
+                        disabled={busy || !input.trim()}
+                        aria-label="Send"
+                        className="w-9 h-9 shrink-0 rounded-xl bg-brand text-bg flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-50"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div className="flex items-center gap-2">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={busy || !input.trim()}
-                    aria-label="Send"
-                    className="w-9 h-9 shrink-0 rounded-xl bg-brand text-bg flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-50"
-                  >
-                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </button>
-                </div>
               </div>
             </>
           )}

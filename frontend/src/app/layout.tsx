@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { DomainContextProvider } from "@/lib/domainContext";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import SupportBubble from "@/components/SupportBubble";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -96,6 +97,7 @@ export default function RootLayout({
           <ThemeProvider>
             <DomainContextProvider>{children}</DomainContextProvider>
           </ThemeProvider>
+          <SupportBubble />
         </AuthProvider>
       </body>
     </html>
