@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Users, Bug, Activity, DollarSign, Search, ShieldAlert, CheckCircle2,
   MoreHorizontal, RefreshCw, Ban, Trash2, CreditCard, BarChart2, UserCheck,
@@ -263,10 +264,25 @@ function OverviewTab({ users, revenue, tickets, system, onGoToTickets }: {
 function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload: () => void; selfId?: string }) {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("ALL");
-  const [menu, setMenu] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; top: number; left: number } | null>(null);
   const [planModal, setPlanModal] = useState<AdminUser | null>(null);
   const [deleteModal, setDeleteModal] = useState<AdminUser | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // The action menu is rendered in a portal (fixed-positioned) so it isn't
+  // clipped by the table's overflow-hidden/overflow-x-auto wrappers — close it
+  // if the page scrolls or resizes underneath it so it doesn't detach from the
+  // trigger button.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [menu]);
 
   if (!users) return <Spinner />;
 
@@ -345,15 +361,21 @@ function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload
                   <td className="px-4 py-3 text-[12px] text-text-faint">{fmtDate(u.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="relative">
-                      <button onClick={() => setMenu(menu === u.id ? null : u.id)}
+                      <button onClick={(e) => {
+                          if (menu?.id === u.id) { setMenu(null); return; }
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const MENU_W = 192, MENU_H = 140;
+                          const openUpward = r.bottom + MENU_H > window.innerHeight;
+                          setMenu({ id: u.id, top: openUpward ? r.top - MENU_H - 4 : r.bottom + 4, left: Math.max(8, r.right - MENU_W) });
+                        }}
                         aria-label={`Actions for ${u.name}`} title="Actions"
                         className="p-1.5 rounded-lg hover:bg-surface text-text-faint hover:text-text transition-colors opacity-0 group-hover:opacity-100">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
-                      {menu === u.id && (
+                      {menu?.id === u.id && createPortal(
                         <>
-                          <div className="fixed inset-0 z-10" onClick={() => setMenu(null)} />
-                          <div className="absolute right-0 top-8 z-20 w-48 bg-bg border border-border rounded-xl shadow-2xl overflow-hidden py-1">
+                          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
+                          <div className="fixed z-50 w-48 bg-bg border border-border rounded-xl shadow-2xl overflow-hidden py-1" style={{ top: menu.top, left: menu.left }}>
                             <button onClick={() => { setPlanModal(u); setMenu(null); }} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] font-medium hover:bg-surface-2 text-text">
                               <CreditCard className="w-3.5 h-3.5" /> Change Plan
                             </button>
@@ -368,7 +390,8 @@ function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload
                               <Trash2 className="w-3.5 h-3.5" /> Delete Account
                             </button>
                           </div>
-                        </>
+                        </>,
+                        document.body
                       )}
                     </div>
                   </td>
