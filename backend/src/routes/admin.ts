@@ -2,7 +2,7 @@
 // ADMIN_EMAILS allowlist (requireAdmin). Powers the /admin panel: user management
 // (list/suspend/plan/delete/export), revenue rollups, honest system health, and
 // support-ticket triage. All data is real — nothing here is mocked.
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction, type RequestHandler } from 'express';
 import axios from 'axios';
 import prisma from '../config/db.js';
 import { requireAuth, requireAdmin, isAdminEmail } from '../middleware/auth.js';
@@ -12,6 +12,10 @@ import { redisConnection } from '../queues/queues.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
+
+function wrap(handler: RequestHandler): RequestHandler {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
 
 const PLAN_STATUSES = ['trialing', 'active', 'past_due', 'canceled', 'expired'];
 
@@ -51,13 +55,13 @@ async function queryUsers(search: string, plan: string) {
   }));
 }
 
-router.get('/users', async (req, res) => {
+router.get('/users', wrap(async (req, res) => {
   const search = String(req.query.search || '').trim();
   const plan = String(req.query.plan || 'ALL');
   res.json({ users: await queryUsers(search, plan) });
-});
+}));
 
-router.get('/users/export.csv', async (req, res) => {
+router.get('/users/export.csv', wrap(async (req, res) => {
   const users = await queryUsers(String(req.query.search || '').trim(), String(req.query.plan || 'ALL'));
   const header = ['Name', 'Email', 'Plan', 'Status', 'Active', 'Searches', 'Campaigns', 'Revenue', 'Last Seen', 'Joined'];
   // Neutralise CSV formula injection: user-controlled fields (name/email) that
@@ -74,9 +78,9 @@ router.get('/users/export.csv', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="users.csv"');
   res.send([header.map(esc).join(','), ...lines].join('\n'));
-});
+}));
 
-router.patch('/users/:id/suspend', async (req, res) => {
+router.patch('/users/:id/suspend', wrap(async (req, res) => {
   const active = !!req.body?.active;
   const target = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, email: true } });
   if (!target) return res.status(404).json({ error: 'User not found.' });
@@ -84,9 +88,9 @@ router.patch('/users/:id/suspend', async (req, res) => {
   await prisma.user.update({ where: { id: target.id }, data: { isActive: active } });
   if (!active) await revokeAllSessions(target.id); // kick existing sessions immediately
   res.json({ ok: true, isActive: active });
-});
+}));
 
-router.patch('/users/:id/plan', async (req, res) => {
+router.patch('/users/:id/plan', wrap(async (req, res) => {
   const plan = String(req.body?.plan || '').toLowerCase();
   const planStatus = String(req.body?.planStatus || '').toLowerCase();
   if (!isTier(plan)) return res.status(400).json({ error: 'Invalid plan.' });
@@ -95,9 +99,9 @@ router.patch('/users/:id/plan', async (req, res) => {
   if (!target) return res.status(404).json({ error: 'User not found.' });
   const updated = await prisma.user.update({ where: { id: target.id }, data: { plan, planStatus } });
   res.json({ ok: true, plan: updated.plan, planStatus: updated.planStatus });
-});
+}));
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/:id', wrap(async (req, res) => {
   const confirmEmail = String(req.body?.confirmEmail || '').trim().toLowerCase();
   const target = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, email: true } });
   if (!target) return res.status(404).json({ error: 'User not found.' });
@@ -108,10 +112,10 @@ router.delete('/users/:id', async (req, res) => {
   }
   await prisma.user.delete({ where: { id: target.id } }); // cascades remove owned rows
   res.json({ ok: true });
-});
+}));
 
 // ---- Revenue ------------------------------------------------------------
-router.get('/revenue', async (_req, res) => {
+router.get('/revenue', wrap(async (_req, res) => {
   const [activeSubs, recentSubs, trialCount, churnCount] = await Promise.all([
     prisma.subscription.findMany({ where: { status: 'active' }, include: { user: { select: { name: true, email: true } } } }),
     prisma.subscription.findMany({ orderBy: { updatedAt: 'desc' }, take: 10, include: { user: { select: { name: true, email: true } } } }),
@@ -147,14 +151,14 @@ router.get('/revenue', async (_req, res) => {
       status: s.status,
     })),
   });
-});
+}));
 
 // ---- System health (real signals only) ----------------------------------
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 }
 
-router.get('/system', async (_req, res) => {
+router.get('/system', wrap(async (_req, res) => {
   const services: { name: string; status: 'UP' | 'DEGRADED' | 'DOWN'; detail: string }[] = [];
 
   // Database
@@ -221,10 +225,10 @@ router.get('/system', async (_req, res) => {
       to: e.toEmail,
     })),
   });
-});
+}));
 
 // ---- Support tickets (admin triage) -------------------------------------
-router.get('/tickets', async (req, res) => {
+router.get('/tickets', wrap(async (req, res) => {
   const status = String(req.query.status || '').toUpperCase();
   const where = status && status !== 'ALL' ? { status } : {};
   const tickets = await prisma.supportTicket.findMany({
@@ -247,9 +251,9 @@ router.get('/tickets', async (req, res) => {
       createdAt: t.createdAt,
     })),
   });
-});
+}));
 
-router.patch('/tickets/:id', async (req, res) => {
+router.patch('/tickets/:id', wrap(async (req, res) => {
   const data: any = {};
   const status = req.body?.status ? String(req.body.status).toUpperCase() : null;
   const priority = req.body?.priority ? String(req.body.priority).toUpperCase() : null;
@@ -260,6 +264,11 @@ router.patch('/tickets/:id', async (req, res) => {
   const updated = await prisma.supportTicket.update({ where: { id: req.params.id }, data }).catch(() => null);
   if (!updated) return res.status(404).json({ error: 'Ticket not found.' });
   res.json({ ok: true, status: updated.status, priority: updated.priority, assignedTo: updated.assignedTo });
+}));
+
+router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[Admin API] Error:', err);
+  res.status(500).json({ error: 'Admin request failed.' });
 });
 
 export default router;

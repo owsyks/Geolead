@@ -81,19 +81,38 @@ export default function AdminPage() {
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
   const [system, setSystem] = useState<SystemHealth | null>(null);
   const [tickets, setTickets] = useState<AdminTicket[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const isAdmin = !!user?.isAdmin;
 
-  const loadUsers = useCallback(() => { getAdminUsers().then((r) => setUsers(r.users)).catch(() => setUsers([])); }, []);
-  const loadTickets = useCallback(() => { getTickets().then((r) => setTickets(r.tickets)).catch(() => setTickets([])); }, []);
+  // On failure, keep whatever was already loaded instead of wiping it to an
+  // empty list — a transient reload failure shouldn't make existing rows vanish.
+  const loadUsers = useCallback(async () => {
+    try { const r = await getAdminUsers(); setUsers(r.users); return true; }
+    catch { setUsers((prev) => prev ?? []); setLoadError("Couldn't load users — check your connection and retry."); return false; }
+  }, []);
+  const loadTickets = useCallback(async () => {
+    try { const r = await getTickets(); setTickets(r.tickets); return true; }
+    catch { setTickets((prev) => prev ?? []); setLoadError("Couldn't load tickets — check your connection and retry."); return false; }
+  }, []);
+  const loadRevenue = useCallback(async () => {
+    try { setRevenue(await getRevenue()); return true; }
+    catch { setLoadError("Couldn't load revenue data — check your connection and retry."); return false; }
+  }, []);
+  const loadSystem = useCallback(async () => {
+    try { setSystem(await getSystem()); return true; }
+    catch { setLoadError("Couldn't load system health — check your connection and retry."); return false; }
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    setLoadError(null);
+    await Promise.all([loadUsers(), loadTickets(), loadRevenue(), loadSystem()]);
+  }, [loadUsers, loadTickets, loadRevenue, loadSystem]);
 
   useEffect(() => {
     if (!isAdmin) return;
-    loadUsers();
-    loadTickets();
-    getRevenue().then(setRevenue).catch(() => setRevenue(null));
-    getSystem().then(setSystem).catch(() => setSystem(null));
-  }, [isAdmin, loadUsers, loadTickets]);
+    void loadAll();
+  }, [isAdmin, loadAll]);
 
   if (user && !isAdmin) {
     return (
@@ -112,7 +131,7 @@ export default function AdminPage() {
 
   return (
     <OutboundShell title="Admin Panel" subtitle="Full system control" eyebrow="Internal" fullBleed>
-      <div className="flex flex-col">
+      <div className="flex flex-col h-full">
         {urgentTickets > 0 && (
           <div className="bg-danger/10 border-b border-danger/20 px-5 py-2.5 flex items-center gap-3">
             <ShieldAlert className="w-4 h-4 text-danger flex-shrink-0" />
@@ -123,7 +142,15 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="p-4 lg:p-6 flex flex-col gap-5">
+        {loadError && (
+          <div className="bg-danger/10 border-b border-danger/20 px-5 py-2.5 flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0" />
+            <span className="text-[12px] font-bold text-danger">{loadError}</span>
+            <button className="text-[12px] text-danger underline font-bold" onClick={() => void loadAll()}>Retry</button>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col gap-5">
           {/* tab bar */}
           <div className="flex items-center gap-1 bg-surface border border-border rounded-xl p-1 self-start overflow-x-auto max-w-full">
             {TABS.map((t) => (
@@ -142,7 +169,7 @@ export default function AdminPage() {
           {tab === "overview" && <OverviewTab users={users} revenue={revenue} tickets={tickets} system={system} onGoToTickets={() => setTab("tickets")} />}
           {tab === "users" && <UsersTab users={users} reload={loadUsers} selfId={user?.id} />}
           {tab === "tickets" && <TicketsTab tickets={tickets} reload={loadTickets} />}
-          {tab === "system" && <SystemTab system={system} reload={() => getSystem().then(setSystem).catch(() => {})} />}
+          {tab === "system" && <SystemTab system={system} reload={loadSystem} />}
           {tab === "revenue" && <RevenueTab revenue={revenue} />}
         </div>
       </div>
@@ -498,7 +525,7 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
 }
 
 /* ══ SYSTEM ══ */
-function SystemTab({ system, reload }: { system: SystemHealth | null; reload: () => Promise<void> }) {
+function SystemTab({ system, reload }: { system: SystemHealth | null; reload: () => Promise<unknown> }) {
   const [refreshing, setRefreshing] = useState(false);
   if (!system) return <Spinner />;
 
