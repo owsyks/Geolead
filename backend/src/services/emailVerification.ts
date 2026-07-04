@@ -4,6 +4,7 @@ import {
   DISPOSABLE_DOMAINS,
   DISPOSABLE_PATTERNS,
   FREE_EMAIL_PROVIDERS,
+  isNonContactAddress,
   MX_PROVIDERS,
   MX_PROVIDER_PATTERNS,
   ROLE_ACCOUNT_PREFIXES,
@@ -149,6 +150,19 @@ export async function verifyEmail(rawEmail: string): Promise<EmailVerificationRe
   }
   result.verificationMetadata.syntaxValid = true;
   const [localPart, domain] = email.split('@');
+
+  // Step 1.5: Non-contact infrastructure check — a real, deliverable domain
+  // that is nonetheless never a genuine business contact (e.g. a Sentry DSN
+  // key mis-scraped as an email). Skipped before DNS/SMTP work since static
+  // data already settles it.
+  if (isNonContactAddress(localPart, domain)) {
+    result.disposable = true;
+    result.confidenceScore = 5;
+    result.riskLevel = 'high';
+    result.recommendation = 'Non-contact infrastructure address (tracking/monitoring key, not a business email) — exclude from outreach';
+    result.verificationMetadata.durationMs = Date.now() - start;
+    return result;
+  }
 
   // Step 2: Domain
   const domainCheck = await validateDomain(domain);

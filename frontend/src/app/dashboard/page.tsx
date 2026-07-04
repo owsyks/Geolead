@@ -257,6 +257,7 @@ export default function DashboardPage() {
   };
 
   const toggleLeadSelection = (leadId: string) => {
+    setSelectAllTruncated(false);
     setSelectedLeadIds(prev => {
       const next = new Set(prev);
       if (next.has(leadId)) next.delete(leadId); else next.add(leadId);
@@ -265,10 +266,40 @@ export default function DashboardPage() {
   };
 
   const selectAllLeads = () => {
+    setSelectAllTruncated(false);
     if (selectedLeadIds.size >= leads.length) {
       setSelectedLeadIds(new Set());
     } else {
       setSelectedLeadIds(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+  const [selectAllTruncated, setSelectAllTruncated] = useState(false);
+  const selectAllMatchingLeads = async () => {
+    if (!selectedTask) return;
+    setSelectingAllMatching(true);
+    try {
+      const queryParams = new URLSearchParams({
+        taskId: selectedTask.id,
+        search: searchFilter,
+        minScore: minScore.toString(),
+        hasEmails: hasEmailsOnly ? "true" : "false",
+      });
+      if (roleFilter !== 'all') queryParams.set('role', roleFilter);
+      if (minBuyerIntent > 0) queryParams.set('minBuyerIntent', minBuyerIntent.toString());
+      if (minPriority > 0) queryParams.set('minPriority', minPriority.toString());
+      if (notContactedOnly) queryParams.set('notContacted', 'true');
+
+      const response = await authFetch(`${BACKEND_URL}/api/leads/ids?${queryParams}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      setSelectedLeadIds(new Set(data.ids));
+      setSelectAllTruncated(!!data.truncated);
+    } catch (err) {
+      console.error("Failed to select all matching leads:", err);
+    } finally {
+      setSelectingAllMatching(false);
     }
   };
 
@@ -570,7 +601,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchFilter, minScore, hasEmailsOnly, sortField, sortOrder, limit]);
+  }, [page, searchFilter, minScore, hasEmailsOnly, roleFilter, minBuyerIntent, minPriority, notContactedOnly, sortField, sortOrder, limit]);
 
   // Polling status updates for live scraping progress.
   // Self-scheduling with backoff (3s → 30s) and PAUSES while the tab is hidden,
@@ -836,6 +867,10 @@ export default function DashboardPage() {
           page: page.toString(),
           limit: limit.toString(),
         });
+        if (roleFilter !== 'all') queryParams.set('role', roleFilter);
+        if (minBuyerIntent > 0) queryParams.set('minBuyerIntent', minBuyerIntent.toString());
+        if (minPriority > 0) queryParams.set('minPriority', minPriority.toString());
+        if (notContactedOnly) queryParams.set('notContacted', 'true');
 
         const response = await authFetch(`${BACKEND_URL}/api/leads?${queryParams}`);
         if (!response.ok) throw new Error();
@@ -860,7 +895,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [selectedTaskId, isDemoMode, page, searchFilter, minScore, hasEmailsOnly, sortField, sortOrder, limit]);
+  }, [selectedTaskId, isDemoMode, page, searchFilter, minScore, hasEmailsOnly, roleFilter, minBuyerIntent, minPriority, notContactedOnly, sortField, sortOrder, limit]);
 
   // Reactively (re)load leads as the selected task progresses.
   const lastLeadFetchKey = useRef<string>("");
@@ -1484,7 +1519,7 @@ export default function DashboardPage() {
                   </form>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <button onClick={() => setNotContactedOnly(!notContactedOnly)} className={`h-9 rounded-full px-3 text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${notContactedOnly ? 'bg-brand-soft border-brand/40 text-brand' : 'bg-surface border-border text-text-muted hover:text-text'}`}>Not Contacted</button>
+                    <button onClick={() => { setNotContactedOnly(!notContactedOnly); setPage(1); }} className={`h-9 rounded-full px-3 text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${notContactedOnly ? 'bg-brand-soft border-brand/40 text-brand' : 'bg-surface border-border text-text-muted hover:text-text'}`}>Not Contacted</button>
 
                     {selectedLeadIds.size > 1 && (
                       <div className="flex items-center gap-1.5">
@@ -1507,7 +1542,7 @@ export default function DashboardPage() {
 
                     <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <TrendingUp className="w-3.5 h-3.5 text-text-muted" />
-                      <select value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                      <select value={minScore} onChange={(e) => { setMinScore(Number(e.target.value)); setPage(1); }} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value={0}>All Scores</option>
                         <option value={50}>&gt; 50% Match</option>
                         <option value={75}>&gt; 75% Match</option>
@@ -1515,7 +1550,7 @@ export default function DashboardPage() {
                       </select>
                     </div>
 
-                    <button onClick={() => setHasEmailsOnly(!hasEmailsOnly)} className={`h-9 px-3 rounded-full text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${hasEmailsOnly ? "bg-brand-soft border-brand/40 text-brand" : "bg-surface border-border text-text-muted hover:text-text"}`}><Mail className="w-3.5 h-3.5" /> Has Email</button>
+                    <button onClick={() => { setHasEmailsOnly(!hasEmailsOnly); setPage(1); }} className={`h-9 px-3 rounded-full text-[11px] font-semibold border flex items-center gap-1.5 transition-colors ${hasEmailsOnly ? "bg-brand-soft border-brand/40 text-brand" : "bg-surface border-border text-text-muted hover:text-text"}`}><Mail className="w-3.5 h-3.5" /> Has Email</button>
 
                     <div className="flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <MessageSquare className="w-3.5 h-3.5 text-text-muted" />
@@ -1530,7 +1565,7 @@ export default function DashboardPage() {
 
                     <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Role</span>
-                      <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                      <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value="all">All</option>
                         <option value="ceo">CEOs & Founders</option>
                         <option value="founder">Founders Only</option>
@@ -1540,7 +1575,7 @@ export default function DashboardPage() {
 
                     <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Intent</span>
-                      <select value={minBuyerIntent} onChange={e => setMinBuyerIntent(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                      <select value={minBuyerIntent} onChange={e => { setMinBuyerIntent(Number(e.target.value)); setPage(1); }} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value={0}>Any</option>
                         <option value={65}>High (≥65)</option>
                         <option value={45}>Moderate (≥45)</option>
@@ -1549,7 +1584,7 @@ export default function DashboardPage() {
 
                     <div className="hidden sm:flex items-center gap-1.5 bg-surface border border-border h-9 rounded-full px-3 text-xs">
                       <span className="text-text-muted font-semibold text-[10px] uppercase">Priority</span>
-                      <select value={minPriority} onChange={e => setMinPriority(Number(e.target.value))} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
+                      <select value={minPriority} onChange={e => { setMinPriority(Number(e.target.value)); setPage(1); }} className="bg-transparent border-none text-text-muted focus:outline-none text-[11px]">
                         <option value={0}>All</option>
                         <option value={75}>High (≥75)</option>
                         <option value={50}>Medium (≥50)</option>
@@ -1584,6 +1619,26 @@ export default function DashboardPage() {
                           <th className="py-4 px-6 font-bold uppercase tracking-wider text-[11px]">CRM Notes</th>
                         </tr>
                       </thead>
+                      {leads.length > 0 && totalLeadsCount > leads.length && (
+                        <tbody>
+                          <tr className="bg-brand-soft/40 border-b border-border">
+                            <td colSpan={5} className="py-2.5 px-6 text-[11px] text-text-muted text-center">
+                              {selectedLeadIds.size >= totalLeadsCount || selectAllTruncated ? (
+                                <>
+                                  {selectAllTruncated ? (
+                                    <>Selected the first <strong className="text-text">{selectedLeadIds.size}</strong> matching leads (capped — refine filters to select the rest). </>
+                                  ) : (
+                                    <>All <strong className="text-text">{totalLeadsCount}</strong> matching leads are selected. </>
+                                  )}
+                                  <button onClick={() => { setSelectedLeadIds(new Set()); setSelectAllTruncated(false); }} className="text-brand font-semibold hover:underline">Clear selection</button>
+                                </>
+                              ) : (
+                                <>Only the {leads.length} leads on this page are selected ({selectedLeadIds.size} checked). <button onClick={selectAllMatchingLeads} disabled={selectingAllMatching} className="text-brand font-semibold hover:underline disabled:opacity-50">{selectingAllMatching ? 'Selecting…' : `Select all ${totalLeadsCount} leads matching filters`}</button></>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      )}
                       <tbody className="divide-y divide-border">
                         {visibleLeads.map((lead) => (
                           <tr key={lead.id} className="hover:bg-surface-2/30 transition-colors align-top">

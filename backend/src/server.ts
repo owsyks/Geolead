@@ -257,21 +257,86 @@ app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), a
   }
 });
 
+// Shared by GET /api/leads and GET /api/leads/ids so "select all matching
+// leads" (across pages) filters identically to the paginated table.
+function buildLeadsWhereClause(userId: string, query: any): any {
+  const { taskId, search, minScore, hasEmails, domain, role, minBuyerIntent, minPriority, minDecisionMaker, notContacted } = query;
+
+  const whereClause: any = { ownerId: userId };
+
+  if (taskId) {
+    whereClause.taskId = taskId as string;
+  }
+
+  if (domain) {
+    const raw = (domain as string).trim();
+    const sld = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
+    whereClause.task = {
+      is: {
+        OR: [
+          { domainIdea: { contains: raw, mode: 'insensitive' } },
+          ...(sld && sld !== raw ? [{ domainIdea: { contains: sld, mode: 'insensitive' } }] : []),
+        ],
+      },
+    };
+  }
+
+  if (search) {
+    whereClause.OR = [
+      { businessName: { contains: search as string, mode: 'insensitive' } },
+      { location: { contains: search as string, mode: 'insensitive' } },
+      { category: { contains: search as string, mode: 'insensitive' } },
+      { website: { contains: search as string, mode: 'insensitive' } },
+    ];
+  }
+
+  if (minScore) {
+    whereClause.domainMatchScore = { gte: parseInt(minScore as string, 10) };
+  }
+
+  if (hasEmails === 'true') {
+    whereClause.emails = { some: { status: { in: ['VALID', 'RISKY'] } } };
+  }
+
+  if (notContacted === 'true') {
+    whereClause.lastContactedAt = null;
+  }
+
+  // Decision maker role filter
+  if (role) {
+    const roleStr = (role as string).toLowerCase();
+    if (roleStr === 'ceo') {
+      whereClause.decisionMakerRole = { in: ['CEO', 'Founder', 'Owner', 'President', 'Co-Founder'] };
+    } else if (roleStr === 'founder') {
+      whereClause.decisionMakerRole = { in: ['Founder', 'Co-Founder'] };
+    } else if (roleStr === 'director') {
+      whereClause.decisionMakerRole = { in: ['CMO', 'Marketing Director', 'Head of Sales', 'Managing Director', 'Director'] };
+    } else if (roleStr === 'manager') {
+      whereClause.decisionMakerRole = { not: null };
+    }
+  }
+
+  if (minBuyerIntent) {
+    whereClause.buyerIntentScore = { gte: parseInt(minBuyerIntent as string, 10) };
+  }
+
+  if (minPriority) {
+    whereClause.priorityScore = { gte: parseInt(minPriority as string, 10) };
+  }
+
+  if (minDecisionMaker) {
+    whereClause.decisionMakerScore = { gte: parseInt(minDecisionMaker as string, 10) };
+  }
+
+  return whereClause;
+}
+
 /**
  * GET /api/leads
  * Get leads with advanced filters, search queries, sorting, and pagination.
  */
 app.get('/api/leads', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), async (req, res) => {
   const {
-    taskId,
-    search,
-    minScore,
-    hasEmails,
-    domain,
-    role,
-    minBuyerIntent,
-    minPriority,
-    minDecisionMaker,
     sortField = 'priorityScore',
     sortOrder = 'desc',
     page = '1',
@@ -283,72 +348,7 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), asyn
     const limitNum = parseInt(limit as string, 10);
     const offset = (pageNum - 1) * limitNum;
 
-    // Build Prisma query filters — always scoped to the requesting user.
-    const whereClause: any = { ownerId: req.userId! };
-
-    if (taskId) {
-      whereClause.taskId = taskId as string;
-    }
-
-    if (domain) {
-      const raw = (domain as string).trim();
-      const sld = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
-      whereClause.task = {
-        is: {
-          OR: [
-            { domainIdea: { contains: raw, mode: 'insensitive' } },
-            ...(sld && sld !== raw ? [{ domainIdea: { contains: sld, mode: 'insensitive' } }] : []),
-          ],
-        },
-      };
-    }
-
-    if (search) {
-      whereClause.OR = [
-        { businessName: { contains: search as string, mode: 'insensitive' } },
-        { location: { contains: search as string, mode: 'insensitive' } },
-        { category: { contains: search as string, mode: 'insensitive' } },
-        { website: { contains: search as string, mode: 'insensitive' } },
-      ];
-    }
-
-    if (minScore) {
-      whereClause.domainMatchScore = { gte: parseInt(minScore as string, 10) };
-    }
-
-    if (hasEmails === 'true') {
-      whereClause.emails = { some: { status: { in: ['VALID', 'RISKY'] } } };
-    }
-
-    if (req.query.notContacted === 'true') {
-      whereClause.lastContactedAt = null;
-    }
-
-    // Decision maker role filter
-    if (role) {
-      const roleStr = (role as string).toLowerCase();
-      if (roleStr === 'ceo') {
-        whereClause.decisionMakerRole = { in: ['CEO', 'Founder', 'Owner', 'President', 'Co-Founder'] };
-      } else if (roleStr === 'founder') {
-        whereClause.decisionMakerRole = { in: ['Founder', 'Co-Founder'] };
-      } else if (roleStr === 'director') {
-        whereClause.decisionMakerRole = { in: ['CMO', 'Marketing Director', 'Head of Sales', 'Managing Director', 'Director'] };
-      } else if (roleStr === 'manager') {
-        whereClause.decisionMakerRole = { not: null };
-      }
-    }
-
-    if (minBuyerIntent) {
-      whereClause.buyerIntentScore = { gte: parseInt(minBuyerIntent as string, 10) };
-    }
-
-    if (minPriority) {
-      whereClause.priorityScore = { gte: parseInt(minPriority as string, 10) };
-    }
-
-    if (minDecisionMaker) {
-      whereClause.decisionMakerScore = { gte: parseInt(minDecisionMaker as string, 10) };
-    }
+    const whereClause = buildLeadsWhereClause(req.userId!, req.query);
 
     // Validate sortField to prevent injection
     const allowedSortFields = [
@@ -391,6 +391,28 @@ app.get('/api/leads', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), asyn
   } catch (error) {
     console.error('[Server] Fetch leads error:', error);
     return res.status(500).json({ error: 'Failed to retrieve leads.' });
+  }
+});
+
+/**
+ * GET /api/leads/ids
+ * Returns every lead id matching the current filters (no pagination), so the
+ * UI can offer "select all N leads" instead of just the current page.
+ * Capped to bound response size/DB load for very large result sets.
+ */
+const SELECT_ALL_MAX_LEADS = 5000;
+app.get('/api/leads/ids', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), async (req, res) => {
+  try {
+    const whereClause = buildLeadsWhereClause(req.userId!, req.query);
+    const leads = await prisma.lead.findMany({
+      where: whereClause,
+      select: { id: true },
+      take: SELECT_ALL_MAX_LEADS,
+    });
+    return res.json({ ids: leads.map((l) => l.id), truncated: leads.length >= SELECT_ALL_MAX_LEADS });
+  } catch (error) {
+    console.error('[Server] Fetch lead ids error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve lead ids.' });
   }
 });
 

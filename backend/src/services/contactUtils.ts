@@ -125,6 +125,24 @@ const ROLE_OR_BUSINESS_PREFIXES = new Set([
   'postmaster',
 ]);
 
+// Website-builder platform infrastructure domains — e.g. Wix embeds its own
+// client-side error-tracking DSN key (`<hash>@sentry.wixpress.com`) in every
+// site's page source; the email regex matches it because a Sentry DSN is
+// shaped exactly like an email address. Real, deliverable domain but never a
+// business contact — and it recurs across every unrelated site on the platform.
+const TRACKING_INFRASTRUCTURE_DOMAINS = new Set(['wixpress.com']);
+
+// Bare 20+ char hex strings (no separators) are machine-generated tokens/
+// keys, not human or role-account local parts.
+const HEX_TOKEN_LOCAL_PART = /^[a-f0-9]{20,}$/i;
+
+function isTrackingInfrastructureDomain(domain: string): boolean {
+  for (const blocked of TRACKING_INFRASTRUCTURE_DOMAINS) {
+    if (domain === blocked || domain.endsWith(`.${blocked}`)) return true;
+  }
+  return false;
+}
+
 export interface EmailCandidate {
   email: string;
   sourcePage?: string;
@@ -246,6 +264,14 @@ export function isPlaceholderEmail(email: string): boolean {
   }
 
   if (DISPOSABLE_DOMAINS.has(domain)) {
+    return true;
+  }
+
+  if (isTrackingInfrastructureDomain(domain)) {
+    return true;
+  }
+
+  if (HEX_TOKEN_LOCAL_PART.test(prefix)) {
     return true;
   }
 

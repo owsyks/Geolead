@@ -258,7 +258,33 @@ const DISPOSABLE_BATCH_4 = [
 ];
 DISPOSABLE_BATCH_4.forEach((d) => DISPOSABLE_DOMAINS.add(d));
 
+// Domains/local-parts that are real, live, deliverable mail infrastructure —
+// NOT disposable — but are never a genuine business contact. The common case
+// is a website builder embedding its own client-side error-tracking DSN key
+// in every site's page source (e.g. Wix's `sentry.wixpress.com` relay); the
+// scraper's email regex matches `<hash>@sentry.wixpress.com` because a
+// Sentry DSN string is shaped exactly like an email address. The hash is
+// unique per site but the domain is identical across every site built on
+// the same platform, so this recurs across many unrelated scraped leads.
+export const TRACKING_INFRASTRUCTURE_DOMAINS = new Set<string>([
+  'wixpress.com',
+]);
 
+// Bare 20+ char hex strings (no separators) are machine-generated tokens/
+// keys, not human or role-account local parts.
+const HEX_TOKEN_LOCAL_PART = /^[a-f0-9]{20,}$/i;
+
+export function isTrackingInfrastructureDomain(domain: string): boolean {
+  const d = domain.toLowerCase().trim();
+  for (const blocked of TRACKING_INFRASTRUCTURE_DOMAINS) {
+    if (d === blocked || d.endsWith(`.${blocked}`)) return true;
+  }
+  return false;
+}
+
+export function isNonContactAddress(localPart: string, domain: string): boolean {
+  return isTrackingInfrastructureDomain(domain) || HEX_TOKEN_LOCAL_PART.test(localPart);
+}
 
 // Exact MX hostname lookup map (substring match against primary MX).
 export const MX_PROVIDERS: Record<string, MxProviderInfo> = {

@@ -2610,6 +2610,13 @@ export async function getSendQuota(userId: string) {
     select: { id: true, fromEmail: true, label: true, dailyLimit: true, hourlyLimit: true, provider: true },
   });
 
+  // Dry-run senders are a local testing fixture — sendViaProvider() never lets them
+  // touch a real ESP, so they don't consume (or have) any real daily send quota.
+  // Folding their configured dailyLimit into the totals below inflates the badge
+  // with a ceiling that doesn't actually exist (e.g. a 30/day dry-run sender next
+  // to a 100/day Resend sender would wrongly show a 130/day cap).
+  const quotaSenders = senders.filter((s) => s.provider?.toUpperCase() !== 'DRY_RUN');
+
   let dailyLimit = 0, hourlyLimit = 0, sentToday = 0, sentThisHour = 0;
   const perSender = [] as Array<Record<string, unknown>>;
   for (const s of senders) {
@@ -2617,10 +2624,13 @@ export async function getSendQuota(userId: string) {
       prisma.emailLog.count({ where: { senderAccountId: s.id, sentAt: { gte: startOfDay } } }),
       prisma.emailLog.count({ where: { senderAccountId: s.id, sentAt: { gte: hourAgo } } }),
     ]);
-    dailyLimit += s.dailyLimit;
-    hourlyLimit += s.hourlyLimit;
-    sentToday += daily;
-    sentThisHour += hourly;
+    const isDryRun = s.provider?.toUpperCase() === 'DRY_RUN';
+    if (!isDryRun) {
+      dailyLimit += s.dailyLimit;
+      hourlyLimit += s.hourlyLimit;
+      sentToday += daily;
+      sentThisHour += hourly;
+    }
     perSender.push({
       id: s.id,
       fromEmail: s.fromEmail,
@@ -2637,14 +2647,23 @@ export async function getSendQuota(userId: string) {
   // The daily-quota badge is only meaningful for Resend's free tier (its 100/day
   // cap is the whole reason to watch this number) — SMTP/SendGrid/SES/Mailgun
   // senders configure their own limits and don't need this nag. "Free tier" is
-  // inferred as: every active sender is Resend AND still on the default cap
-  // (dailyLimit <= 100, the schema default) — a paid Resend plan or a raised
-  // per-sender limit means the operator already knows their real ceiling.
+  // inferred as: every real (non-dry-run) active sender is Resend AND still on
+  // the default cap (dailyLimit <= 100, the schema default) — a paid Resend plan
+  // or a raised per-sender limit means the operator already knows their real
+  // ceiling.
   const isResendFreeTier =
-    senders.length > 0 && senders.every((s) => s.provider?.toUpperCase() === 'RESEND' && s.dailyLimit <= 100);
+    quotaSenders.length > 0 && quotaSenders.every((s) => s.provider?.toUpperCase() === 'RESEND' && s.dailyLimit <= 100);
+
+  // Resend's free tier enforces a single 100/day cap per API key/account, not per
+  // sender row configured in this app — so summing multiple free-tier Resend
+  // senders' individual dailyLimits (e.g. 100 + 100) would still overstate the
+  // real ceiling. Cap the total at 100 in that case instead of summing.
+  if (isResendFreeTier) {
+    dailyLimit = Math.min(dailyLimit, 100);
+  }
 
   return {
-    senderCount: senders.length,
+    senderCount: quotaSenders.length,
     dailyLimit,
     hourlyLimit,
     sentToday,
