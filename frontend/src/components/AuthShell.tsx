@@ -21,9 +21,7 @@ export function AuthShell({
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2.5 text-lg font-black text-text">
-            <span className="w-9 h-9 rounded-lg bg-brand text-bg flex items-center justify-center font-black text-lg shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]">
-              GL
-            </span>
+            <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 object-contain" />
             GeoLead AI
           </Link>
         </div>

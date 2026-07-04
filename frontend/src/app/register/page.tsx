@@ -88,7 +88,7 @@ export default function RegisterPage() {
       {/* left branding panel — desktop */}
       <div className="hidden lg:flex relative z-10 w-[460px] flex-shrink-0 border-r border-border flex-col justify-between p-10 overflow-hidden">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 rounded-lg object-contain shadow-[0_0_12px_rgba(20,184,166,0.3)]" />
+          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />
           <span className="font-black text-text">GeoLead AI</span>
         </Link>
 
