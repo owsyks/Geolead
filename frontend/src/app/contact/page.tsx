@@ -1,15 +1,16 @@
 "use client";
 
 // Public marketing "Contact us" page. Linked from the Landing nav, pricing,
-// FAQ, and footer (and whitelisted as a PUBLIC_ROUTE in lib/auth). The form is
-// self-contained — there is no contact endpoint yet, so submission shows an
-// inline confirmation rather than calling the API.
+// FAQ, and footer (and whitelisted as a PUBLIC_ROUTE in lib/auth). Submissions
+// POST to /api/contact, which files a SupportTicket the admin team triages
+// from the same Tickets tab as in-app support requests.
 import { useState } from "react";
 import Link from "next/link";
 import {
   MapPin, Mail, MessageSquare, Send, CheckCircle2,
   ArrowLeft, Building2, Clock, Zap,
 } from "lucide-react";
+import { fetchOutbound } from "@/lib/outbound";
 
 // Match Landing's heading font stack (falls back to Geist — neither marketing
 // display font is loaded, so the fallback is what actually renders).
@@ -21,11 +22,23 @@ function GlowOrb({ className }: { className?: string }) {
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", company: "", subject: "General", message: "" });
+  const [hp, setHp] = useState(""); // honeypot — real users never fill this in
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSent(true);
+    setError(null);
+    setSending(true);
+    try {
+      await fetchOutbound("/api/contact", { method: "POST", body: JSON.stringify({ ...form, hp }) });
+      setSent(true);
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -100,6 +113,22 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Honeypot — hidden from real users via off-screen positioning, not
+                    display:none, since some bots skip inputs with display:none. */}
+                <input
+                  type="text"
+                  value={hp}
+                  onChange={e => setHp(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="absolute -left-[9999px] w-px h-px opacity-0"
+                />
+
+                {error && (
+                  <div className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-xl px-4 py-2.5">{error}</div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5 block">Full Name *</label>
@@ -170,9 +199,10 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-brand text-bg font-bold rounded-xl hover:bg-brand-hover transition-all shadow-[0_0_20px_rgba(20,184,166,0.25)] text-sm"
+                  disabled={sending}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-brand text-bg font-bold rounded-xl hover:bg-brand-hover transition-all shadow-[0_0_20px_rgba(20,184,166,0.25)] text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Send Message <Send className="w-4 h-4" />
+                  {sending ? "Sending..." : "Send Message"} <Send className="w-4 h-4" />
                 </button>
               </form>
             )}

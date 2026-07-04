@@ -48,7 +48,20 @@ export interface AdminTicket {
   assignedTo: string | null;
   user: string;
   userName: string | null;
+  isGuest: boolean;
+  messageCount: number;
   createdAt: string;
+}
+
+export interface AdminTicketMessage {
+  id: string;
+  sender: "USER" | "ADMIN" | "BOT";
+  body: string;
+  createdAt: string;
+}
+
+export interface AdminTicketDetail extends Omit<AdminTicket, "messageCount"> {
+  messages: AdminTicketMessage[];
 }
 
 export function getAdminUsers(search = "", plan = "ALL"): Promise<{ users: AdminUser[] }> {
@@ -101,4 +114,12 @@ export function patchTicket(
   data: { status?: string; priority?: string; assignedTo?: string }
 ): Promise<{ ok: boolean }> {
   return fetchOutbound(`/api/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function getTicketThread(id: string): Promise<AdminTicketDetail> {
+  return fetchOutbound(`/api/admin/tickets/${id}`);
+}
+
+export function replyToTicket(id: string, body: string): Promise<{ ok: boolean; message: AdminTicketMessage }> {
+  return fetchOutbound(`/api/admin/tickets/${id}/reply`, { method: "POST", body: JSON.stringify({ body }) });
 }

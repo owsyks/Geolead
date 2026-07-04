@@ -64,3 +64,52 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     link
   );
 }
+
+function wrapPlain(title: string, bodyHtml: string): string {
+  return `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="margin:0 0 12px">${title}</h2>
+    <div style="margin:0;line-height:1.6;color:#334155;white-space:pre-wrap">${bodyHtml}</div>
+  </div>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+export async function sendContactNotification(payload: {
+  name: string;
+  email: string;
+  company?: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const admin = process.env.OUTBOUND_ADMIN_EMAIL;
+  if (!admin) {
+    console.log(`[Mailer] (no OUTBOUND_ADMIN_EMAIL) contact form from ${payload.email}: ${payload.message}`);
+    return;
+  }
+  const link = `${frontendUrl()}/admin?tab=tickets`;
+  const details = [
+    `From: ${escapeHtml(payload.name)} <${escapeHtml(payload.email)}>`,
+    payload.company ? `Company: ${escapeHtml(payload.company)}` : null,
+    `Subject: ${escapeHtml(payload.subject)}`,
+    '',
+    escapeHtml(payload.message),
+  ].filter(Boolean).join('\n');
+  await sendEmail(
+    admin,
+    `New contact form message: ${payload.subject}`,
+    wrapPlain('New contact form submission', details),
+    link
+  );
+}
+
+export async function sendTicketReplyEmail(to: string, subject: string, replyBody: string): Promise<void> {
+  await sendEmail(
+    to,
+    `Re: ${subject}`,
+    wrapPlain(`Re: ${subject}`, escapeHtml(replyBody)),
+    `${frontendUrl()}/dashboard`
+  );
+}

@@ -1,19 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Users, Bug, Activity, DollarSign, Search, ShieldAlert, CheckCircle2,
   MoreHorizontal, RefreshCw, Ban, Trash2, CreditCard, BarChart2, UserCheck,
-  Download, Loader2, Server, AlertTriangle, RotateCcw,
+  Download, Loader2, Server, AlertTriangle, RotateCcw, ChevronDown, ChevronUp,
+  Send, UserX,
 } from "lucide-react";
 import { OutboundShell } from "@/components/OutboundShell";
 import { cn, Modal } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import {
   getAdminUsers, suspendUser, changeUserPlan, deleteUser, downloadUsersCsv,
-  getRevenue, getSystem, getTickets, patchTicket,
-  type AdminUser, type RevenueSummary, type SystemHealth, type AdminTicket,
+  getRevenue, getSystem, getTickets, patchTicket, getTicketThread, replyToTicket,
+  type AdminUser, type RevenueSummary, type SystemHealth, type AdminTicket, type AdminTicketDetail,
 } from "@/lib/admin";
 
 /* ── style maps ── */
@@ -487,8 +488,76 @@ function DeleteModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: (
 }
 
 /* ══ TICKETS ══ */
+function TicketThreadRow({ ticket, onChanged }: { ticket: AdminTicket; onChanged: () => void }) {
+  const [detail, setDetail] = useState<AdminTicketDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTicketThread(ticket.id).then((d) => { if (!cancelled) { setDetail(d); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [ticket.id]);
+
+  async function send() {
+    const body = reply.trim();
+    if (!body || sending) return;
+    setSending(true);
+    try {
+      const { message } = await replyToTicket(ticket.id, body);
+      setDetail((d) => d ? { ...d, messages: [...d.messages, message], status: d.status === "OPEN" ? "IN_PROGRESS" : d.status } : d);
+      setReply("");
+      onChanged();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <tr className="border-b border-border bg-surface-2/20">
+      <td colSpan={6} className="px-4 py-4">
+        {loading ? (
+          <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-text-faint" /></div>
+        ) : detail ? (
+          <div className="max-w-2xl space-y-3">
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {detail.messages.map((m) => (
+                <div key={m.id} className={cn("max-w-[85%] px-3 py-2 rounded-xl text-[13px] leading-snug",
+                  m.sender === "ADMIN" ? "ml-auto bg-brand/10 border border-brand/20 text-text" : "bg-surface border border-border text-text")}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-text-faint mb-0.5">
+                    {m.sender === "ADMIN" ? "You (Admin)" : m.sender === "BOT" ? "Bot" : detail.userName || detail.user}
+                  </div>
+                  {m.body}
+                  <div className="text-[10px] text-text-faint mt-1">{fmtDate(m.createdAt)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Reply to this ticket..."
+                className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+              />
+              <button onClick={send} disabled={sending || !reply.trim()}
+                className="px-3 py-2 rounded-lg bg-brand text-bg text-[12px] font-bold flex items-center gap-1.5 hover:bg-brand-hover disabled:opacity-50">
+                {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Reply
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-[13px] text-text-muted">Couldn't load this thread.</div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   if (!tickets) return <Spinner />;
 
   async function setStatus(id: string, status: string) {
@@ -518,27 +587,44 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
           </thead>
           <tbody>
             {tickets.map((t) => (
-              <tr key={t.id} className="border-b border-border hover:bg-surface-2/30 group">
-                <td className="px-4 py-3 max-w-[320px]">
-                  <div className="font-medium text-[13px] leading-snug">{t.subject}</div>
-                  <div className="text-[11px] text-text-faint mt-0.5">{t.user}</div>
-                </td>
-                <td className="px-4 py-3"><Chip className="text-text-muted bg-surface-2 border-border">{t.type}</Chip></td>
-                <td className="px-4 py-3"><Chip className={t.priority === "URGENT" ? "text-danger bg-danger/10 border-danger/25" : t.priority === "HIGH" ? "text-copper bg-copper/10 border-copper/25" : "text-text-muted bg-surface-2 border-border"}>{t.priority}</Chip></td>
-                <td className="px-4 py-3"><span className={cn("text-[12px] font-bold", t.status === "DONE" ? "text-success" : t.status === "IN_PROGRESS" ? "text-brand" : "text-copper")}>{t.status}</span></td>
-                <td className="px-4 py-3 text-[12px] text-text-faint">{fmtDate(t.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {t.status !== "DONE" ? (
-                      <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "DONE")} title="Mark done"
-                        className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-success"><CheckCircle2 className="w-3.5 h-3.5" /></button>
-                    ) : (
-                      <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "OPEN")} title="Reopen"
-                        className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-copper"><RotateCcw className="w-3.5 h-3.5" /></button>
-                    )}
-                  </div>
-                </td>
-              </tr>
+              <Fragment key={t.id}>
+                <tr className="border-b border-border hover:bg-surface-2/30 group cursor-pointer"
+                  onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
+                  <td className="px-4 py-3 max-w-[320px]">
+                    <div className="flex items-center gap-1.5">
+                      {expanded === t.id ? <ChevronUp className="w-3.5 h-3.5 text-text-faint shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-text-faint shrink-0" />}
+                      <div className="min-w-0">
+                        <div className="font-medium text-[13px] leading-snug truncate">{t.subject}</div>
+                        <div className="text-[11px] text-text-faint mt-0.5 flex items-center gap-1.5">
+                          {t.userName || t.user}
+                          {t.isGuest && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-copper bg-copper/10 border border-copper/25 rounded px-1 py-0.5">
+                              <UserX className="w-2.5 h-2.5" /> Guest
+                            </span>
+                          )}
+                          {t.messageCount > 1 && <span className="text-text-faint">· {t.messageCount} msgs</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3"><Chip className="text-text-muted bg-surface-2 border-border">{t.type}</Chip></td>
+                  <td className="px-4 py-3"><Chip className={t.priority === "URGENT" ? "text-danger bg-danger/10 border-danger/25" : t.priority === "HIGH" ? "text-copper bg-copper/10 border-copper/25" : "text-text-muted bg-surface-2 border-border"}>{t.priority}</Chip></td>
+                  <td className="px-4 py-3"><span className={cn("text-[12px] font-bold", t.status === "DONE" ? "text-success" : t.status === "IN_PROGRESS" ? "text-brand" : "text-copper")}>{t.status}</span></td>
+                  <td className="px-4 py-3 text-[12px] text-text-faint">{fmtDate(t.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      {t.status !== "DONE" ? (
+                        <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "DONE")} title="Mark done"
+                          className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-success"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                      ) : (
+                        <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "OPEN")} title="Reopen"
+                          className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-copper"><RotateCcw className="w-3.5 h-3.5" /></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {expanded === t.id && <TicketThreadRow ticket={t} onChanged={reload} />}
+              </Fragment>
             ))}
           </tbody>
         </table>

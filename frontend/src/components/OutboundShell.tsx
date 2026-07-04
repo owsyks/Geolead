@@ -29,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "./ThemeProvider";
+import SupportBubble from "./SupportBubble";
 import { cn } from "./ui";
 
 const navItems = [
@@ -325,6 +326,8 @@ export function OutboundShell({
           })}
         </nav>
       </main>
+
+      <SupportBubble />
     </div>
   );
 }

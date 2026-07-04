@@ -7,6 +7,7 @@ import axios from 'axios';
 import prisma from '../config/db.js';
 import { requireAuth, requireAdmin, isAdminEmail } from '../middleware/auth.js';
 import { revokeAllSessions } from '../services/auth.js';
+import { sendTicketReplyEmail } from '../services/mailer.js';
 import { PLANS, planFor, isTier, type Tier } from '../config/plans.js';
 import { redisConnection } from '../queues/queues.js';
 
@@ -235,7 +236,7 @@ router.get('/tickets', wrap(async (req, res) => {
     where,
     orderBy: { createdAt: 'desc' },
     take: 200,
-    include: { user: { select: { name: true, email: true } } },
+    include: { user: { select: { name: true, email: true } }, _count: { select: { messages: true } } },
   });
   res.json({
     tickets: tickets.map((t) => ({
@@ -246,10 +247,33 @@ router.get('/tickets', wrap(async (req, res) => {
       priority: t.priority,
       status: t.status,
       assignedTo: t.assignedTo,
-      user: t.user?.email || '—',
-      userName: t.user?.name || null,
+      user: t.user?.email || t.guestEmail || '—',
+      userName: t.user?.name || t.guestName || null,
+      isGuest: !t.userId,
+      messageCount: t._count.messages,
       createdAt: t.createdAt,
     })),
+  });
+}));
+
+router.get('/tickets/:id', wrap(async (req, res) => {
+  const ticket = await prisma.supportTicket.findUnique({
+    where: { id: req.params.id },
+    include: { user: { select: { name: true, email: true } }, messages: { orderBy: { createdAt: 'asc' } } },
+  });
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+  res.json({
+    id: ticket.id,
+    subject: ticket.subject,
+    type: ticket.type,
+    priority: ticket.priority,
+    status: ticket.status,
+    assignedTo: ticket.assignedTo,
+    user: ticket.user?.email || ticket.guestEmail || '—',
+    userName: ticket.user?.name || ticket.guestName || null,
+    isGuest: !ticket.userId,
+    createdAt: ticket.createdAt,
+    messages: ticket.messages,
   });
 }));
 
@@ -264,6 +288,29 @@ router.patch('/tickets/:id', wrap(async (req, res) => {
   const updated = await prisma.supportTicket.update({ where: { id: req.params.id }, data }).catch(() => null);
   if (!updated) return res.status(404).json({ error: 'Ticket not found.' });
   res.json({ ok: true, status: updated.status, priority: updated.priority, assignedTo: updated.assignedTo });
+}));
+
+router.post('/tickets/:id/reply', wrap(async (req, res) => {
+  const body = String(req.body?.body || '').trim();
+  if (!body) return res.status(400).json({ error: 'A reply message is required.' });
+  const ticket = await prisma.supportTicket.findUnique({
+    where: { id: req.params.id },
+    include: { user: { select: { email: true } } },
+  });
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+
+  const message = await prisma.supportMessage.create({
+    data: { ticketId: ticket.id, sender: 'ADMIN', body: body.slice(0, 5000) },
+  });
+  if (ticket.status === 'OPEN') {
+    await prisma.supportTicket.update({ where: { id: ticket.id }, data: { status: 'IN_PROGRESS' } });
+  }
+
+  const recipient = ticket.user?.email || ticket.guestEmail;
+  if (recipient) {
+    sendTicketReplyEmail(recipient, ticket.subject, body).catch(() => {});
+  }
+  res.status(201).json({ ok: true, message });
 }));
 
 router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
