@@ -88,6 +88,10 @@ export default function SupportBubble() {
   const hydrated = useRef(false);
   const seenCount = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
+  // Cache each ticket's thread once fetched so re-opening it from History (or
+  // reopening the bubble on the same active ticket) shows instantly instead
+  // of a blank spinner every time — refreshed silently in the background.
+  const threadCache = useRef<Record<string, BubbleMessage[]>>({});
 
   // Hydrate from the right localStorage bucket once we know whether this is
   // an authenticated session or an anonymous visitor.
@@ -123,15 +127,19 @@ export default function SupportBubble() {
   }, [messages, open, view, typing, pendingEscalate]);
 
   // Live thread for whichever ticket is currently active (works for both an
-  // authenticated user's ticket and an anonymous guest ticket).
+  // authenticated user's ticket and an anonymous guest ticket). `immediate`
+  // means a reply that landed while the bubble was closed/collapsed shows up
+  // the moment it's reopened, instead of waiting out a full interval first.
   useVisiblePolling({
     enabled: !!ticketId,
     intervalMs: 15000,
     maxIntervalMs: 60000,
+    immediate: true,
     poll: async () => {
       if (!ticketId) return false;
       const { messages: thread } = user ? await getTicketMessages(ticketId) : await getGuestTicketMessages(ticketId);
       const mapped = mapThread(thread);
+      threadCache.current[ticketId] = mapped;
       setMessages(mapped);
       if (mapped.length > seenCount.current && !open) setLocalUnread(true);
       if (open) seenCount.current = mapped.length;
@@ -144,6 +152,7 @@ export default function SupportBubble() {
     enabled: !!user,
     intervalMs: 20000,
     maxIntervalMs: 90000,
+    immediate: true,
     poll: async () => {
       if (!user) return;
       const { tickets } = await getMyTickets();
@@ -291,10 +300,22 @@ export default function SupportBubble() {
     setTicketId(t.id);
     setView("chat");
     markSeen(t.id, t.updatedAt);
+
+    // Show the cached thread instantly if we have one (e.g. re-opening a
+    // ticket already fetched this session) instead of a blank spinner — the
+    // polling effect above will silently refresh it a moment later anyway.
+    const cached = threadCache.current[t.id];
+    if (cached) {
+      setMessages(cached);
+      seenCount.current = cached.length;
+      return;
+    }
+
     setThreadLoading(true);
     try {
       const { messages: thread } = await getTicketMessages(t.id);
       const mapped = mapThread(thread);
+      threadCache.current[t.id] = mapped;
       setMessages(mapped);
       seenCount.current = mapped.length;
     } finally {
@@ -318,7 +339,12 @@ export default function SupportBubble() {
       <button
         onClick={toggleOpen}
         aria-label="Support chat"
-        className="fixed bottom-5 right-5 z-[60] w-14 h-14 rounded-full bg-brand text-bg shadow-[0_4px_20px_rgba(20,184,166,0.45)] flex items-center justify-center hover:bg-brand-hover transition-colors"
+        className={cn(
+          "fixed right-4 lg:right-5 z-[60] w-14 h-14 rounded-full bg-brand text-bg shadow-[0_4px_20px_rgba(20,184,166,0.45)] flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all",
+          // Logged-in pages have a fixed mobile bottom nav (h-14 + safe-area);
+          // clear it on small screens instead of sitting on top of its icons.
+          user ? "bottom-20 lg:bottom-5" : "bottom-5"
+        )}
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
         {!open && hasUnread && (
@@ -327,7 +353,10 @@ export default function SupportBubble() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-[60] w-[340px] max-w-[calc(100vw-2.5rem)] h-[480px] max-h-[calc(100vh-8rem)] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden animate-[supportPanelIn_0.18s_ease-out]">
+        <div className={cn(
+          "fixed right-4 lg:right-5 z-[60] w-[340px] max-w-[calc(100vw-2rem)] h-[480px] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden animate-[supportPanelIn_0.18s_ease-out]",
+          user ? "bottom-40 max-h-[calc(100vh-11rem)] lg:bottom-24 lg:max-h-[calc(100vh-8rem)]" : "bottom-24 max-h-[calc(100vh-8rem)]"
+        )}>
           <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 shrink-0 rounded-full bg-brand-soft border border-brand/20 text-brand flex items-center justify-center">
@@ -342,7 +371,7 @@ export default function SupportBubble() {
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {view === "history" ? (
-                <button onClick={() => setView("chat")} className="text-[11px] font-bold text-text-muted hover:text-text flex items-center gap-1">
+                <button onClick={() => setView("chat")} className="text-[11px] font-bold text-text-muted hover:text-text flex items-center gap-1 p-2.5 -m-2.5">
                   <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
               ) : (
@@ -352,15 +381,15 @@ export default function SupportBubble() {
                       onClick={() => setView("history")}
                       title="Ticket history"
                       aria-label="Ticket history"
-                      className="relative p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
+                      className="relative p-2.5 -m-1 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
                     >
                       <HistoryIcon className="w-4 h-4" />
-                      {unreadIds.size > 0 && <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-danger" />}
+                      {unreadIds.size > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger" />}
                     </button>
                   )}
                   {ticketId && (
                     <button onClick={startFresh} title="Start a new conversation" aria-label="New chat"
-                      className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors">
+                      className="p-2.5 -m-1 rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                   )}
@@ -412,7 +441,7 @@ export default function SupportBubble() {
                           <button
                             key={f.id}
                             onClick={() => handleFaqClick(f.question, f.answer)}
-                            className="w-full text-left text-[13px] px-3 py-2 rounded-xl border border-border bg-surface hover:border-brand/40 hover:text-brand transition-colors"
+                            className="w-full text-left text-[13px] px-3 py-2.5 rounded-xl border border-border bg-surface hover:border-brand/40 hover:text-brand transition-colors"
                           >
                             {f.question}
                           </button>
@@ -455,23 +484,24 @@ export default function SupportBubble() {
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       placeholder="Your name"
-                      className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                      className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 lg:py-2 text-[16px] lg:text-[13px] focus:border-brand focus:outline-none"
                     />
                     <input
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && submitIdentity()}
                       placeholder="you@company.com"
-                      className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                      inputMode="email"
+                      className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 lg:py-2 text-[16px] lg:text-[13px] focus:border-brand focus:outline-none"
                     />
                     {formError && <div className="text-[11px] text-danger">{formError}</div>}
                     <div className="flex gap-2">
                       <button onClick={() => setPendingEscalate(null)} disabled={formBusy}
-                        className="flex-1 text-[12px] font-bold text-text-muted border border-border rounded-lg py-1.5 hover:bg-surface transition-colors disabled:opacity-60">
+                        className="flex-1 text-[12px] font-bold text-text-muted border border-border rounded-lg py-2.5 lg:py-1.5 hover:bg-surface transition-colors disabled:opacity-60">
                         Cancel
                       </button>
                       <button onClick={submitIdentity} disabled={formBusy}
-                        className="flex-1 text-[12px] font-bold text-bg bg-brand rounded-lg py-1.5 hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+                        className="flex-1 text-[12px] font-bold text-bg bg-brand rounded-lg py-2.5 lg:py-1.5 hover:bg-brand-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
                         {formBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Start chat"}
                       </button>
                     </div>
@@ -482,7 +512,7 @@ export default function SupportBubble() {
                       <button
                         onClick={() => runEscalate("Chat bubble — talk to a human")}
                         disabled={busy}
-                        className="w-full mb-2 text-[12px] font-bold text-brand border border-brand/30 rounded-lg py-1.5 hover:bg-brand/10 transition-colors disabled:opacity-60"
+                        className="w-full mb-2 text-[12px] font-bold text-brand border border-brand/30 rounded-lg py-2.5 lg:py-1.5 hover:bg-brand/10 transition-colors disabled:opacity-60"
                       >
                         Talk to a human
                       </button>
@@ -493,13 +523,13 @@ export default function SupportBubble() {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSend()}
                         placeholder="Type a message..."
-                        className="flex-1 bg-surface border border-border rounded-xl px-3 py-2 text-[13px] focus:border-brand focus:outline-none"
+                        className="flex-1 bg-surface border border-border rounded-xl px-3 py-2.5 lg:py-2 text-[16px] lg:text-[13px] focus:border-brand focus:outline-none"
                       />
                       <button
                         onClick={handleSend}
                         disabled={busy || !input.trim()}
                         aria-label="Send"
-                        className="w-9 h-9 shrink-0 rounded-xl bg-brand text-bg flex items-center justify-center hover:bg-brand-hover transition-colors disabled:opacity-50"
+                        className="w-11 h-11 lg:w-9 lg:h-9 shrink-0 rounded-xl bg-brand text-bg flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all disabled:opacity-50"
                       >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       </button>

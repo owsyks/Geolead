@@ -370,7 +370,7 @@ function UsersTab({ users, reload, selfId }: { users: AdminUser[] | null; reload
                           setMenu({ id: u.id, top: openUpward ? r.top - MENU_H - 4 : r.bottom + 4, left: Math.max(8, r.right - MENU_W) });
                         }}
                         aria-label={`Actions for ${u.name}`} title="Actions"
-                        className="p-1.5 rounded-lg hover:bg-surface text-text-faint hover:text-text transition-colors opacity-0 group-hover:opacity-100">
+                        className="p-2 rounded-lg hover:bg-surface text-text-faint hover:text-text transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                       {menu?.id === u.id && createPortal(
@@ -612,13 +612,13 @@ function TicketsTab({ tickets, reload }: { tickets: AdminTicket[] | null; reload
                   <td className="px-4 py-3"><span className={cn("text-[12px] font-bold", t.status === "DONE" ? "text-success" : t.status === "IN_PROGRESS" ? "text-brand" : "text-copper")}>{t.status}</span></td>
                   <td className="px-4 py-3 text-[12px] text-text-faint">{fmtDate(t.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                       {t.status !== "DONE" ? (
                         <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "DONE")} title="Mark done"
-                          className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-success"><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                          className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-success"><CheckCircle2 className="w-3.5 h-3.5" /></button>
                       ) : (
                         <button disabled={busyId === t.id} onClick={() => setStatus(t.id, "OPEN")} title="Reopen"
-                          className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-copper"><RotateCcw className="w-3.5 h-3.5" /></button>
+                          className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-faint hover:text-copper"><RotateCcw className="w-3.5 h-3.5" /></button>
                       )}
                     </div>
                   </td>

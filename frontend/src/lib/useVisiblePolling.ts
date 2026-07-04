@@ -13,6 +13,13 @@ interface VisiblePollingOptions {
   maxIntervalMs?: number;
   /** Backoff multiplier applied each tick (1 = constant interval). */
   backoff?: number;
+  /**
+   * Fire the first poll right away instead of waiting a full `intervalMs`
+   * before the first fetch. Without this, whatever the loop is displaying
+   * (e.g. cached/stale data) sits unrefreshed for the entire first interval,
+   * which reads as "old data takes forever to reload."
+   */
+  immediate?: boolean;
 }
 
 /**
@@ -29,6 +36,7 @@ export function useVisiblePolling({
   intervalMs = 3000,
   maxIntervalMs = 30000,
   backoff = 1.5,
+  immediate = false,
 }: VisiblePollingOptions) {
   const pollRef = useRef(poll);
   pollRef.current = poll;
@@ -81,7 +89,7 @@ export function useVisiblePolling({
     };
 
     document.addEventListener("visibilitychange", onVisibility);
-    timer = setTimeout(tick, delay);
+    timer = setTimeout(tick, immediate ? 0 : delay);
 
     return () => {
       stopped = true;
@@ -89,5 +97,5 @@ export function useVisiblePolling({
       document.removeEventListener("visibilitychange", onVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, intervalMs, maxIntervalMs, backoff]);
+  }, [enabled, intervalMs, maxIntervalMs, backoff, immediate]);
 }

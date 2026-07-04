@@ -676,26 +676,26 @@ export default function CampaignsPage() {
                           <div className={`text-[12px] font-mono font-bold ${ns.urgent && c.status !== "DRAFT" ? "text-copper" : "text-text-muted"}`}>{ns.text}</div>
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                             {isActive && (
-                              <button onClick={() => void updateStatus(c.id, "PAUSED")} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="Pause">
+                              <button onClick={() => void updateStatus(c.id, "PAUSED")} className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="Pause">
                                 <Pause className="w-3.5 h-3.5" />
                               </button>
                             )}
                             {isPaused && (
-                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-success transition-all" title="Resume">
+                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-success transition-all" title="Resume">
                                 <Play className="w-3.5 h-3.5" />
                               </button>
                             )}
                             {isDraft && (
-                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="px-2.5 py-1 bg-brand/10 text-brand text-[11px] font-bold rounded border border-brand/20 hover:bg-brand hover:text-bg transition-all">
+                              <button onClick={() => void updateStatus(c.id, "ACTIVE")} className="px-2.5 py-1.5 bg-brand/10 text-brand text-[11px] font-bold rounded border border-brand/20 hover:bg-brand hover:text-bg transition-all">
                                 Launch
                               </button>
                             )}
-                            <button onClick={() => setVariantsFor({ id: c.id, name: c.name })} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="AI variants">
+                            <button onClick={() => setVariantsFor({ id: c.id, name: c.name })} className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-copper transition-all" title="AI variants">
                               <Sparkles className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={() => setEventsFor({ id: c.id, name: c.name })} className="p-1.5 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-text transition-all" title="Analytics & events">
+                            <button onClick={() => setEventsFor({ id: c.id, name: c.name })} className="p-2 rounded-md hover:bg-surface border border-transparent hover:border-border text-text-muted hover:text-text transition-all" title="Analytics & events">
                               <BarChart2 className="w-3.5 h-3.5" />
                             </button>
                           </div>

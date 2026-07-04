@@ -408,7 +408,7 @@ export default function PortfolioPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top text-right">
-                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="inline-flex flex-wrap items-center justify-end gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         <button
                           title="Use for workflows"
                           onClick={() => {

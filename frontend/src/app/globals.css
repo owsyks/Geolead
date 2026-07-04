@@ -6,6 +6,12 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Was referenced on the mobile bottom nav but never defined — the nav sat
+   flush against the iOS home-indicator/gesture bar with no clearance. */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* ─── Semantic Design Tokens ────────────────────────────────────────────────── */
 
 :root {
