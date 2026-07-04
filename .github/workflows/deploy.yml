@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,14 +28,17 @@ jobs:
         working-directory: backend
         run: npm run build
 
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.13.15
-        with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: geolead-ai-api
-          heroku_email: elmountaknat@gmail.com
-          appdir: backend
-          buildpack: heroku/nodejs
-          delay: 5
+      # akhileshns/heroku-deploy relies on a Heroku CLI install step that no
+      # longer works on current runner images (`heroku: not found`). Heroku's
+      # git remote accepts the API key as the HTTP basic-auth password
+      # directly, so push the backend subtree straight over HTTPS instead —
+      # the same mechanism as `git subtree push --prefix backend heroku main`
+      # run locally, just without needing the CLI at all.
+      - name: Deploy backend subtree to Heroku
         env:
-          HD_BACKEND: backend
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git push "https://heroku:${HEROKU_API_KEY}@git.heroku.com/geolead-ai-api.git" \
+            "$(git subtree split --prefix backend HEAD)":refs/heads/main --force
