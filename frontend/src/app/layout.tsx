@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DomainContextProvider } from "@/lib/domainContext";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -99,6 +100,7 @@ export default function RootLayout({
           </ThemeProvider>
           <SupportBubble />
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
