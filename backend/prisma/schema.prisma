@@ -98,6 +98,10 @@ model User {
   email         String         @unique
   name          String
   passwordHash  String?
+  // Clerk migration: links this row to its Clerk user (user_xxx). Nullable
+  // because existing rows predate Clerk; set on first Clerk sign-in via
+  // clerkUserId lookup, or by email match for a pre-existing local account.
+  clerkUserId   String?        @unique
   avatarUrl     String?
   emailVerified Boolean        @default(false)
   plan          String         @default("trial")
