@@ -14,7 +14,14 @@ import { NextResponse } from "next/server";
 // than configure Clerk's satellite-domain feature for true cross-domain
 // session sharing, redirect every non-canonical domain to the one canonical
 // domain, so there's only ever one place a session can exist.
-const CANONICAL_HOST = "geolead.tech";
+//
+// Canonical is "www", not the bare apex: Vercel's own pre-existing domain
+// config already redirects geolead.tech -> www.geolead.tech at the edge,
+// before this code ever runs. Picking the apex as canonical here fought
+// that in an infinite redirect loop (geolead.tech -> www -> our redirect
+// back to geolead.tech -> www -> ...) and took the whole site down — so
+// this MUST match whichever direction Vercel's own redirect already goes.
+const CANONICAL_HOST = "www.geolead.tech";
 
 export default clerkMiddleware((_auth, request) => {
   // Only enforce in the real production deployment — never in local dev
