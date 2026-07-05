@@ -18,7 +18,11 @@ function GlowOrb({ className }: { className?: string }) {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-bg text-text flex">
+    // `dark` is pinned (same as Contact/Landing) so this page always matches
+    // the Clerk card's hardcoded dark theme, regardless of the visitor's
+    // current app theme — otherwise a light-mode visitor gets a jarring
+    // half-light-half-dark split between this panel and Clerk's card.
+    <div className="dark min-h-screen bg-bg text-text flex">
       {/* aurora */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <GlowOrb className="top-[-10%] right-[-10%] w-[55%] h-[55%] bg-brand/8 opacity-60" />
