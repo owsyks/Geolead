@@ -1,30 +1,34 @@
 // Shared Clerk theming, applied globally via <ClerkProvider appearance={...}>.
-// References the app's own CSS custom properties (globals.css) instead of
-// hardcoded hex values, so Clerk's embedded components track the same brand
-// tokens (and light/dark theme) as the rest of the app rather than drifting.
-// Untyped (structural) — ClerkProvider's own prop type checks the shape;
-// Clerk's exact theme-type export path has moved across versions.
+// Literal hex values, not CSS var() references: Clerk's `variables` engine
+// does real color math internally (deriving hover/focus/muted shades via
+// color-mix()), which needs an actual parseable color — a var() reference
+// either fails to parse (falling back to Clerk's own light-mode defaults,
+// which is what caused the low-contrast/white-input look on the first pass)
+// or requires a browser new enough to support color-mix()/relative color
+// syntax. Mirrors the dark-theme hex values in globals.css's `.dark` block
+// (the app's default theme; the auth pages don't yet react to the light/dark
+// toggle, so this isn't theme-reactive — a reasonable follow-up, not needed
+// for the current bug).
+//
+// Also note some keys are new names for previously-deprecated ones:
+// colorInputBackground -> colorInput, colorInputText -> colorInputForeground,
+// colorTextSecondary -> colorMutedForeground, colorTextOnPrimaryBackground ->
+// colorPrimaryForeground.
 export const clerkAppearance = {
   variables: {
-    colorPrimary: "var(--brand)",
-    colorBackground: "var(--bg-elevated)",
-    colorText: "var(--text)",
-    colorTextSecondary: "var(--text-muted)",
-    colorInputBackground: "var(--surface)",
-    colorInputText: "var(--text)",
-    colorDanger: "var(--danger)",
-    colorSuccess: "var(--success)",
+    colorPrimary: "#14b8a6",
+    colorPrimaryForeground: "#0c0a09",
+    colorBackground: "#0f0d0c",
+    colorText: "#fafaf9",
+    colorMutedForeground: "#a8a29e",
+    colorInput: "#211e1b",
+    colorInputForeground: "#fafaf9",
+    colorNeutral: "#fafaf9",
+    colorDanger: "#f43f5e",
+    colorSuccess: "#10b981",
     borderRadius: "0.75rem",
   },
   elements: {
-    card: "shadow-none border border-[var(--border)] bg-[var(--bg-elevated)]",
-    headerTitle: "text-[var(--text)]",
-    headerSubtitle: "text-[var(--text-muted)]",
-    socialButtonsBlockButton: "border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]",
-    formButtonPrimary: "bg-[var(--brand)] hover:opacity-90 text-[var(--bg)] normal-case shadow-none",
-    footerActionLink: "text-[var(--brand)] hover:opacity-80",
-    formFieldInput: "bg-[var(--surface)] border-[var(--border)] text-[var(--text)]",
-    identityPreviewEditButton: "text-[var(--brand)]",
-    otpCodeFieldInput: "bg-[var(--surface)] border-[var(--border)] text-[var(--text)]",
+    card: "shadow-none border border-[#292524]",
   },
 };
