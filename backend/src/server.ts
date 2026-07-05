@@ -5,7 +5,6 @@ import http from 'node:http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { clerkMiddleware } from '@clerk/express';
 import prisma from './config/db.js';
 import * as xlsx from 'xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
@@ -53,10 +52,6 @@ app.set('trust proxy', 1);
 // signature-verified against the exact bytes received, while normal routes keep
 // using the parsed JSON body.
 app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
-// Attaches req.auth from the Clerk session token in the Authorization header,
-// when present — never blocks. requireAuth/optionalAuth (middleware/auth.ts)
-// read it via getAuth(req) and fall back to the legacy app-issued JWT.
-app.use(clerkMiddleware());
 app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/admin', adminRouter);

@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.5.12",
     "@tanstack/react-virtual": "^3.14.3",
     "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^1.16.0",

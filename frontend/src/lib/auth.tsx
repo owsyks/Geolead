@@ -1,25 +1,26 @@
 "use client";
 
-// Client-side auth: identity/session now come from Clerk; this module still
-// exposes the same `useAuth()`/`AuthUser` shape the rest of the app already
-// depends on, merging in the local-DB profile fields (plan, planStatus,
-// trialEndsAt, isAdmin, etc.) that only exist in this app's own Postgres
-// `User` row, not in Clerk. Route guarding (redirect unauthenticated visits
-// to /login) is preserved here as a client-side backstop alongside the edge
-// `clerkMiddleware()` in middleware.ts.
+// Client-side auth: holds the current user + access/refresh tokens (via the
+// helpers in lib/outbound), exposes login/register/logout, and guards routes —
+// unauthenticated visits to app pages are redirected to /login.
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth as useClerkAuth, useClerk } from "@clerk/nextjs";
 import {
+  OUTBOUND_API_BASE,
   fetchOutbound,
+  setTokens,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
   setUnauthorizedHandler,
   setUpgradeHandler,
   type UpgradeSignal,
@@ -29,6 +30,10 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 
 // Cache key for the signed-in user, so returning visitors render instantly.
 const USER_CACHE_KEY = "user";
+
+// useLayoutEffect warns during SSR; fall back to useEffect on the server so the
+// pre-paint hydration only runs client-side without noise.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export interface AuthUser {
   id: string;
@@ -50,6 +55,8 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -66,16 +73,14 @@ function isPublic(path: string): boolean {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-  const { signOut } = useClerk();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [upgrade, setUpgrade] = useState<UpgradeSignal | null>(null);
   const router = useRouter();
   const pathname = usePathname() || "/";
 
   const loadMe = useCallback(async () => {
-    if (!isSignedIn) {
+    if (!getAccessToken() && !getRefreshToken()) {
       setUser(null);
       clearAllCache();
       return;
@@ -87,29 +92,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
     }
-  }, [isSignedIn]);
+  }, []);
 
-  // Once Clerk has resolved its own session state, seed from cache for
-  // instant paint, then revalidate the local profile (plan/isAdmin/etc.).
-  useEffect(() => {
-    if (!clerkLoaded) return;
-    if (isSignedIn) {
-      const cached = readCache<AuthUser>(USER_CACHE_KEY);
-      if (cached) setUser(cached);
+  // Instant hydration: before the first paint, seed the user from the last
+  // session's cache so returning visitors skip the blocking "Loading…" gate and
+  // the app renders immediately. The effect below still revalidates via /me.
+  // (Initial state stays null/true so SSR and first client render match.)
+  useIsoLayoutEffect(() => {
+    const cached = readCache<AuthUser>(USER_CACHE_KEY);
+    if (cached && (getAccessToken() || getRefreshToken())) {
+      setUser(cached);
+      setLoading(false);
     }
+  }, []);
+
+  // Initial load: resolve the current user from a stored token (if any).
+  useEffect(() => {
     let active = true;
     (async () => {
       await loadMe();
-      if (active) setProfileLoading(false);
+      if (active) setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [clerkLoaded, isSignedIn, loadMe]);
+  }, [loadMe]);
 
-  // When a request to the local API hits an unrecoverable 401 (e.g. the
-  // account was deactivated even though Clerk still reports a session),
-  // drop the user and bounce to login.
+  // When a request hits an unrecoverable 401, drop the user and bounce to login.
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setUser(null);
@@ -125,10 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUpgradeHandler(null);
   }, []);
 
-  const loading = !clerkLoaded || profileLoading;
-
-  // Route guard: once loading is done, gate non-public routes. (Backstop —
-  // clerkMiddleware() in middleware.ts already protects at the edge.)
+  // Route guard: once loading is done, gate non-public routes.
   useEffect(() => {
     if (loading) return;
     if (!user && !isPublic(pathname)) {
@@ -139,16 +145,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loading, user, pathname, router]);
 
+  const login = useCallback(async (email: string, password: string, remember = true) => {
+    const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, remember }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Login failed.");
+    setTokens(data.accessToken, data.refreshToken);
+    clearAllCache(); // drop any previous account's cached page data
+    setUser(data.user);
+    writeCache(USER_CACHE_KEY, data.user);
+  }, []);
+
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Registration failed.");
+    setTokens(data.accessToken, data.refreshToken);
+    clearAllCache();
+    setUser(data.user);
+    writeCache(USER_CACHE_KEY, data.user);
+  }, []);
+
   const logout = useCallback(async () => {
-    await signOut();
+    const refreshToken = getRefreshToken();
+    try {
+      await fetch(`${OUTBOUND_API_BASE}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+    } catch {
+      /* best-effort */
+    }
+    clearTokens();
     clearAllCache();
     setUser(null);
     router.replace("/login");
-  }, [signOut, router]);
+  }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, logout, refreshUser: loadMe }),
-    [user, loading, logout, loadMe]
+    () => ({ user, loading, login, register, logout, refreshUser: loadMe }),
+    [user, loading, login, register, logout, loadMe]
   );
 
   // Block app rendering until the session is resolved, and don't flash app

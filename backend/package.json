@@ -18,7 +18,6 @@
     "node": ">=20 <23"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.35",
     "@prisma/client": "^5.10.0",
     "axios": "^1.6.7",
     "bcryptjs": "^3.0.3",
