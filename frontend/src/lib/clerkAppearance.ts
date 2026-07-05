@@ -29,6 +29,10 @@ export const clerkAppearance = {
     borderRadius: "0.75rem",
   },
   elements: {
-    card: "shadow-none border border-[#292524]",
+    // Explicit literal background on the card itself — Clerk's own
+    // color-mix()-derived card shade (from colorBackground) rendered a
+    // touch lighter than intended, so pin it directly rather than relying
+    // on that derivation.
+    card: "shadow-none border border-[#292524] bg-[#0c0a09]",
   },
 };
