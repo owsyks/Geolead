@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { fetchOutbound } from "@/lib/outbound";
 import { useTheme } from "./ThemeProvider";
 import { cn } from "./ui";
 
@@ -92,8 +93,7 @@ function useUnreadCount() {
   useEffect(() => {
     if (!user) return;
     const fetch_ = () => {
-      fetch("/api/watchlist/notifications/unread-count", { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") ?? ""}` } })
-        .then(r => r.ok ? r.json() : null)
+      fetchOutbound<{ count: number }>("/api/watchlist/notifications/unread-count")
         .then(d => { if (d?.count != null) setCount(d.count); })
         .catch(() => {});
     };

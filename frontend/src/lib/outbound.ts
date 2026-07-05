@@ -1,60 +1,24 @@
+import { getToken as getClerkToken } from "@clerk/nextjs";
+
 export const OUTBOUND_API_BASE =
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 
-// ---- Auth token management ---------------------------------------------
-// Tokens live in localStorage so they survive reloads. The access token is a
-// short-lived JWT sent as a Bearer header; the refresh token mints new access
-// tokens. Both this module and the AuthProvider read/write through here.
-const ACCESS_KEY = "geolead.accessToken";
-const REFRESH_KEY = "geolead.refreshToken";
-
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ACCESS_KEY);
-}
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(REFRESH_KEY);
-}
-export function setTokens(accessToken: string, refreshToken?: string) {
-  if (typeof window === "undefined") return;
-  if (accessToken) window.localStorage.setItem(ACCESS_KEY, accessToken);
-  if (refreshToken) window.localStorage.setItem(REFRESH_KEY, refreshToken);
-}
-export function clearTokens() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+// ---- Auth token (Clerk) -------------------------------------------------
+// The Bearer token sent to the (separate-origin) Express API is a short-lived
+// Clerk session JWT, fetched via Clerk's own non-hook `getToken()` helper —
+// safe to call from plain modules like this one, not just components. Clerk
+// caches and auto-refreshes it internally, so there's no manual refresh-token
+// dance to maintain here anymore.
+async function bearerToken(opts?: { skipCache?: boolean }): Promise<string | null> {
+  try {
+    return await getClerkToken(opts);
+  } catch {
+    return null;
+  }
 }
 
-// Exchange the refresh token for a fresh access token. Returns true on success.
-let refreshInFlight: Promise<boolean> | null = null;
-export function refreshAccessToken(): Promise<boolean> {
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
-    try {
-      const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (!res.ok) return false;
-      const data = (await res.json()) as { accessToken: string; refreshToken: string };
-      setTokens(data.accessToken, data.refreshToken);
-      return true;
-    } catch {
-      return false;
-    } finally {
-      refreshInFlight = null;
-    }
-  })();
-  return refreshInFlight;
-}
-
-// Called when auth is irrecoverable (refresh failed). The AuthProvider registers
-// a handler that clears state and routes to /login.
+// Called when auth is irrecoverable (no valid Clerk session). The AuthProvider
+// registers a handler that clears state and routes to /login.
 let onUnauthorized: (() => void) | null = null;
 export function setUnauthorizedHandler(fn: (() => void) | null) {
   onUnauthorized = fn;
@@ -62,10 +26,10 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 
 // Thin wrapper around fetch that injects the Bearer token and returns the raw
 // Response — for call sites that need custom handling (blobs, status checks).
-// On 401 it transparently refreshes the access token once and replays, so an
-// expired session doesn't hard-fail the dashboard (search/history/leads/tasks).
+// On 401 it forces one fresh token fetch and replays, so a just-expired
+// session token doesn't hard-fail the dashboard (search/history/leads/tasks).
 export async function authFetch(input: string, init?: RequestInit, _retried = false): Promise<Response> {
-  const token = getAccessToken();
+  const token = await bearerToken();
   const res = await fetch(input, {
     ...init,
     headers: {
@@ -74,9 +38,8 @@ export async function authFetch(input: string, init?: RequestInit, _retried = fa
     },
   });
   if (res.status === 401 && !_retried) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) return authFetch(input, init, true);
-    clearTokens();
+    const fresh = await bearerToken({ skipCache: true });
+    if (fresh) return authFetch(input, init, true);
     onUnauthorized?.();
   }
   return res;
@@ -129,7 +92,7 @@ export function fetchOutbound<T>(path: string, init?: RequestInit, _retried = fa
 }
 
 async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
-  const token = getAccessToken();
+  const token = await bearerToken();
   const response = await fetch(`${OUTBOUND_API_BASE}${path}`, {
     cache: "no-store",
     ...init,
@@ -141,10 +104,9 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
   });
 
   if (response.status === 401 && !_retried) {
-    // Try a single silent refresh, then replay the request.
-    const refreshed = await refreshAccessToken();
-    if (refreshed) return fetchOutbound<T>(path, init, true);
-    clearTokens();
+    // Force one fresh token fetch, then replay the request.
+    const fresh = await bearerToken({ skipCache: true });
+    if (fresh) return fetchOutbound<T>(path, init, true);
     onUnauthorized?.();
     throw new ApiError(401, "Session expired. Please log in again.");
   }

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 import { OutboundShell } from "@/components/OutboundShell";
 import { GlassCard } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { fetchOutbound, OUTBOUND_API_BASE, getAccessToken } from "@/lib/outbound";
+import { fetchOutbound } from "@/lib/outbound";
+import { clerkAppearance } from "@/lib/clerkAppearance";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -35,17 +37,12 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 
 function ProfileBody() {
   const { user, refreshUser } = useAuth();
+  const { openUserProfile } = useClerk();
   const [name, setName] = useState(user?.name || "");
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
   const [locale, setLocale] = useState(user?.locale || "en");
   const [dateFormat, setDateFormat] = useState(user?.dateFormat || "MMM d, yyyy");
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [pwMsg, setPwMsg] = useState<string | null>(null);
-
-  const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -59,35 +56,6 @@ function ProfileBody() {
       setProfileMsg("Profile saved.");
     } catch (err: any) {
       setProfileMsg(err?.message || "Save failed.");
-    }
-  }
-
-  async function changePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setPwMsg(null);
-    try {
-      const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken()}` },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Change failed.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setPwMsg("Password updated. You may need to sign in again on other devices.");
-    } catch (err: any) {
-      setPwMsg(err?.message || "Change failed.");
-    }
-  }
-
-  async function resendVerification() {
-    setVerifyMsg(null);
-    try {
-      await fetchOutbound("/api/auth/resend-verification", { method: "POST" });
-      setVerifyMsg("Verification email sent.");
-    } catch (err: any) {
-      setVerifyMsg(err?.message || "Could not send verification email.");
     }
   }
 
@@ -106,14 +74,8 @@ function ProfileBody() {
               {user?.emailVerified ? (
                 <span className="text-success">Verified</span>
               ) : (
-                <span className="text-copper">
-                  Not verified.{" "}
-                  <button type="button" onClick={resendVerification} className="underline hover:text-text">
-                    Resend verification email
-                  </button>
-                </span>
+                <span className="text-copper">Not verified — manage this in Account security below.</span>
               )}
-              {verifyMsg ? <span className="ml-2 text-text-muted">{verifyMsg}</span> : null}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -139,23 +101,17 @@ function ProfileBody() {
         </form>
       </Card>
 
-      <Card title="Change password">
-        <form onSubmit={changePassword} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm text-text-faint">Current password</label>
-            <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm text-text-faint">New password</label>
-            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
-          </div>
-          <div className="flex items-center gap-3">
-            <button type="submit" className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-text-muted hover:text-text hover:bg-surface-2 transition-colors">
-              Update password
-            </button>
-            {pwMsg ? <span className="text-sm text-text-muted">{pwMsg}</span> : null}
-          </div>
-        </form>
+      <Card title="Account security">
+        <p className="text-sm text-text-muted mb-4">
+          Password, two-factor authentication, connected accounts, and email verification are managed through your account settings.
+        </p>
+        <button
+          type="button"
+          onClick={() => openUserProfile({ appearance: clerkAppearance })}
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-bold text-text-muted hover:text-text hover:bg-surface-2 transition-colors"
+        >
+          Manage account security
+        </button>
       </Card>
 
       <Card title="Plan">

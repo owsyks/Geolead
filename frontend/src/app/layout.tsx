@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DomainContextProvider } from "@/lib/domainContext";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import SupportBubble from "@/components/SupportBubble";
+import { clerkAppearance } from "@/lib/clerkAppearance";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -94,12 +96,14 @@ export default function RootLayout({
           <div className="aurora-blob aurora-blob-1" />
           <div className="aurora-blob aurora-blob-2" />
         </div>
-        <AuthProvider>
-          <ThemeProvider>
-            <DomainContextProvider>{children}</DomainContextProvider>
-          </ThemeProvider>
-          <SupportBubble />
-        </AuthProvider>
+        <ClerkProvider appearance={clerkAppearance}>
+          <AuthProvider>
+            <ThemeProvider>
+              <DomainContextProvider>{children}</DomainContextProvider>
+            </ThemeProvider>
+            <SupportBubble />
+          </AuthProvider>
+        </ClerkProvider>
         <SpeedInsights />
       </body>
     </html>
