@@ -1,0 +1,64 @@
+# Production stack for the self-managed VPS.
+# Self-contained (do NOT layer with docker-compose.yml — that file hardcodes
+# dev env values that would blank out real secrets). Run with:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# All secrets/config come from ./.env (compose auto-loads it for ${VAR}
+# interpolation and env_file). DATABASE_URL / REDIS_URL / PORT are set
+# explicitly here so the internal compose-network hostnames always win over
+# anything left in .env (e.g. a leftover Heroku DATABASE_URL).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: geolead_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # No published ports — reachable only on the internal compose network.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    # No published ports — internal only.
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy && node dist/server.js"
+    env_file:
+      - .env
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/geolead_ai?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      # Bind to loopback only; Nginx on the host proxies 443 -> 127.0.0.1:5000.
+      - "127.0.0.1:5000:5000"
+
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: node dist/workers/worker.js
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/geolead_ai?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres-data:
+  redis-data:

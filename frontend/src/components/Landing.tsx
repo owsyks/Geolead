@@ -263,8 +263,10 @@ function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean
         <span className="font-bold text-[15px] text-text group-hover:text-brand transition-colors">{q}</span>
         <ChevronDown className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform duration-300 ${open ? "rotate-180 text-brand" : ""}`} />
       </button>
-      <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-48 pb-5" : "max-h-0"}`}>
-        <p className="text-sm text-text-muted leading-relaxed">{a}</p>
+      <div className={`grid transition-all duration-300 ${open ? "grid-rows-[1fr] pb-5" : "grid-rows-[0fr]"}`}>
+        <div className="overflow-hidden">
+          <p className="text-sm text-text-muted leading-relaxed">{a}</p>
+        </div>
       </div>
     </div>
   );

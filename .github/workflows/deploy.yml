@@ -1,4 +1,4 @@
-name: Deploy to Heroku
+name: Deploy to VPS
 
 on:
   push:
@@ -7,38 +7,30 @@ on:
       - main
   workflow_dispatch:
 
+# Deploys by SSHing into the VPS, pulling the latest code, and rebuilding the
+# Docker Compose stack. The backend container runs `prisma migrate deploy` on
+# boot, so migrations apply automatically. Requires repo secrets:
+#   SSH_HOST  - server IP or hostname
+#   SSH_USER  - deploy user (must be able to run docker)
+#   SSH_KEY   - private key authorized for SSH_USER
+#   SSH_PORT  - (optional) SSH port, defaults to 22
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install backend deps
-        working-directory: backend
-        run: npm ci
-
-      - name: Build backend
-        working-directory: backend
-        run: npm run build
-
-      # akhileshns/heroku-deploy relies on a Heroku CLI install step that no
-      # longer works on current runner images (`heroku: not found`). Heroku's
-      # git remote accepts the API key as the HTTP basic-auth password
-      # directly, so push the backend subtree straight over HTTPS instead —
-      # the same mechanism as `git subtree push --prefix backend heroku main`
-      # run locally, just without needing the CLI at all.
-      - name: Deploy backend subtree to Heroku
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
-          git push "https://heroku:${HEROKU_API_KEY}@git.heroku.com/geolead-ai-api.git" \
-            "$(git subtree split --prefix backend HEAD)":refs/heads/main --force
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          command_timeout: 30m
+          envs: GITHUB_REF_NAME
+          script: |
+            set -e
+            cd /opt/geolead
+            git fetch --all
+            git reset --hard "origin/${GITHUB_REF_NAME:-feat/auth-multi-tenancy}"
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker image prune -f
