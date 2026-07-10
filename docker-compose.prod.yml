@@ -9,7 +9,7 @@
 # anything left in .env (e.g. a leftover Heroku DATABASE_URL).
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: geolead_ai
