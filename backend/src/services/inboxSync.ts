@@ -165,7 +165,7 @@ export async function syncMailbox(mailboxId: string, force = false): Promise<Syn
 
         try {
           const parsed = await simpleParser(msg.source as Buffer);
-          const outcome = await ingestParsedMessage(parsed, mailbox.id);
+          const outcome = await ingestParsedMessage(parsed, mailbox.id, mailbox.userId);
           if (outcome === 'imported') result.imported += 1;
           else if (outcome === 'matched-duplicate') result.matched += 1;
           else result.skipped += 1;
@@ -203,7 +203,7 @@ export async function syncMailbox(mailboxId: string, force = false): Promise<Syn
   }
 
   if (result.imported > 0) {
-    broadcastOutboundEvent({ type: 'INBOX_SYNCED', payload: { imported: result.imported } });
+    broadcastOutboundEvent(mailbox.userId, { type: 'INBOX_SYNCED', payload: { imported: result.imported } });
   }
   return result;
 }
@@ -211,7 +211,7 @@ export async function syncMailbox(mailboxId: string, force = false): Promise<Syn
 type IngestOutcome = 'imported' | 'matched-duplicate' | 'skipped';
 
 // Parse → match → analyze → persist a single inbound message.
-async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string): Promise<IngestOutcome> {
+async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string, ownerId: string | null): Promise<IngestOutcome> {
   const messageId = parsed.messageId || undefined;
   const fromAddr = firstAddress(parsed.from?.value);
   const subject = parsed.subject || '(no subject)';
@@ -269,7 +269,7 @@ async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string): Promi
 
   await applyReplyEffects(match, analysis);
 
-  broadcastOutboundEvent({
+  broadcastOutboundEvent(ownerId ?? match.campaign?.userId ?? null, {
     type: 'NEW_REPLY',
     payload: {
       replyId: reply.id,
