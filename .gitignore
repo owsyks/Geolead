@@ -27,3 +27,7 @@ dev.log
 # misc
 .DS_Store
 *.local
+
+# Off-box DB backups (never commit dumps)
+backups-offbox/
+*.dump
