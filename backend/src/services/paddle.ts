@@ -85,10 +85,12 @@ export function verifyWebhookSignature(rawBody: string, signatureHeader: string 
       })
     ) as { ts?: string; h1?: string };
     if (!parts.ts || !parts.h1) return false;
+    const timestamp = Number(parts.ts);
+    if (!Number.isFinite(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > 300) return false;
 
     const expected = createHmac('sha256', secret).update(`${parts.ts}:${rawBody}`).digest('hex');
-    const a = Buffer.from(expected);
-    const b = Buffer.from(parts.h1);
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(parts.h1, 'hex');
     return a.length === b.length && timingSafeEqual(a, b);
   } catch (err: any) {
     console.error('[Paddle] Webhook verification failed:', err?.message);

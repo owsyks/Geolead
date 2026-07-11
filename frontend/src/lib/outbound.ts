@@ -2,29 +2,18 @@ export const OUTBOUND_API_BASE =
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 
 // ---- Auth token management ---------------------------------------------
-// Tokens live in localStorage so they survive reloads. The access token is a
-// short-lived JWT sent as a Bearer header; the refresh token mints new access
-// tokens. Both this module and the AuthProvider read/write through here.
-const ACCESS_KEY = "geolead.accessToken";
-const REFRESH_KEY = "geolead.refreshToken";
+// The short-lived access token is held only in memory. The rotating refresh
+// token is an HttpOnly cookie and is therefore unavailable to injected script.
+let accessToken: string | null = null;
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ACCESS_KEY);
+  return accessToken;
 }
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(REFRESH_KEY);
-}
-export function setTokens(accessToken: string, refreshToken?: string) {
-  if (typeof window === "undefined") return;
-  if (accessToken) window.localStorage.setItem(ACCESS_KEY, accessToken);
-  if (refreshToken) window.localStorage.setItem(REFRESH_KEY, refreshToken);
+export function setTokens(token: string) {
+  accessToken = token || null;
 }
 export function clearTokens() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+  accessToken = null;
 }
 
 // Exchange the refresh token for a fresh access token. Returns true on success.
@@ -32,17 +21,15 @@ let refreshInFlight: Promise<boolean> | null = null;
 export function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
     try {
       const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
       });
       if (!res.ok) return false;
-      const data = (await res.json()) as { accessToken: string; refreshToken: string };
-      setTokens(data.accessToken, data.refreshToken);
+      const data = (await res.json()) as { accessToken: string };
+      setTokens(data.accessToken);
       return true;
     } catch {
       return false;
@@ -68,6 +55,7 @@ export async function authFetch(input: string, init?: RequestInit, _retried = fa
   const token = getAccessToken();
   const res = await fetch(input, {
     ...init,
+    credentials: "include",
     headers: {
       ...(init?.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -132,6 +120,7 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
   const token = getAccessToken();
   const response = await fetch(`${OUTBOUND_API_BASE}${path}`, {
     cache: "no-store",
+    credentials: "include",
     ...init,
     headers: {
       "Content-Type": "application/json",

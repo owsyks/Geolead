@@ -9,10 +9,12 @@ import { Router } from 'express';
 import prisma from '../config/db.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { sendContactNotification } from '../services/mailer.js';
+import { createHash, randomBytes } from 'node:crypto';
 
 const router = Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hashToken = (value: string) => createHash('sha256').update(value).digest('hex');
 
 router.post('/', rateLimit('contact', 5, 60 * 60 * 1000), async (req, res) => {
   // Honeypot: a hidden checkbox real users never toggle. A plain hidden text
@@ -65,6 +67,7 @@ router.post('/start', rateLimit('contact-chat-start', 8, 60 * 60 * 1000), async 
   if (!email || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required.' });
   if (!message) return res.status(400).json({ error: 'A message is required.' });
 
+  const accessToken = randomBytes(32).toString('base64url');
   const ticket = await prisma.supportTicket.create({
     data: {
       userId: null,
@@ -73,19 +76,21 @@ router.post('/start', rateLimit('contact-chat-start', 8, 60 * 60 * 1000), async 
       subject: `Chat: ${message}`.slice(0, 200),
       body: message.slice(0, 5000),
       type: 'CHAT',
+      guestAccessTokenHash: hashToken(accessToken),
       messages: { create: { sender: 'USER', body: message.slice(0, 5000) } },
     },
   });
 
   sendContactNotification({ name, email, subject: 'Live chat', message }).catch(() => {});
 
-  res.status(201).json({ ok: true, id: ticket.id });
+  res.status(201).json({ ok: true, id: ticket.id, accessToken });
 });
 
 // Poll a guest ticket's thread (bot/user/admin messages). Scoped to userId:
 // null so this can never expose an authenticated user's ticket.
 router.get('/tickets/:id/messages', rateLimit('contact-chat-poll', 120, 60 * 60 * 1000), async (req, res) => {
-  const ticket = await prisma.supportTicket.findFirst({ where: { id: req.params.id, userId: null } });
+  const token = req.get('x-guest-token') || '';
+  const ticket = token ? await prisma.supportTicket.findFirst({ where: { id: req.params.id, userId: null, guestAccessTokenHash: hashToken(token) } }) : null;
   if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
   const messages = await prisma.supportMessage.findMany({
     where: { ticketId: ticket.id },
@@ -98,7 +103,8 @@ router.get('/tickets/:id/messages', rateLimit('contact-chat-poll', 120, 60 * 60 
 router.post('/tickets/:id/messages', rateLimit('contact-chat-reply', 30, 60 * 60 * 1000), async (req, res) => {
   const body = String(req.body?.body || '').trim();
   if (!body) return res.status(400).json({ error: 'A message is required.' });
-  const ticket = await prisma.supportTicket.findFirst({ where: { id: req.params.id, userId: null } });
+  const token = req.get('x-guest-token') || '';
+  const ticket = token ? await prisma.supportTicket.findFirst({ where: { id: req.params.id, userId: null, guestAccessTokenHash: hashToken(token) } }) : null;
   if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
   const message = await prisma.supportMessage.create({
     data: { ticketId: ticket.id, sender: 'USER', body: body.slice(0, 5000) },

@@ -31,6 +31,7 @@ import {
   getCampaignEvents,
   deleteCampaign,
   recordClick,
+  resolveClickDestination,
   recordOpen,
   rewriteGeneratedEmail,
   saveSenderAccount,
@@ -43,6 +44,8 @@ import {
   verifySenderAccount,
 } from '../services/outboundPlatform.js';
 import { requireAuth, requireVerifiedEmail, requirePlanCapacity } from '../middleware/auth.js';
+import { verifyProviderWebhook, verifyResendWebhook } from '../services/webhookSecurity.js';
+import { rateLimit as distributedRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
 const trackingPixel = Buffer.from(
@@ -52,7 +55,6 @@ const trackingPixel = Buffer.from(
 
 type Role = 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
 
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
 router.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -110,7 +112,7 @@ router.post(
         instant: Boolean(req.body.instant),
         senderAccountId: asString(req.body.senderAccountId) || undefined,
       },
-      getActor(req).userId || undefined
+      req.userId!
     );
 
     res.status(201).json(campaign);
@@ -277,7 +279,7 @@ router.post(
   rateLimit({ key: 'sender-verify', limit: 20, windowMs: 15 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
-    const result = await verifySenderAccount(req.params.id, getActor(req).userId || undefined);
+    const result = await verifySenderAccount(req.params.id, req.userId!);
     if (!result) {
       return res.status(404).json({ error: 'Sender account not found.' });
     }
@@ -300,7 +302,7 @@ router.post(
       return res.status(400).json({ error: 'senderAccountId, to, subject, and body are required.' });
     }
     try {
-      const result = await sendOneOff({ senderAccountId, to, subject, body, bodyHtml: asString(req.body.bodyHtml) });
+      const result = await sendOneOff({ senderAccountId, to, subject, body, bodyHtml: asString(req.body.bodyHtml) }, req.userId!);
       res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'Send failed.' });
@@ -351,7 +353,7 @@ router.post(
   rateLimit({ key: 'reply-suggest', limit: 30, windowMs: 10 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER', 'MEMBER'),
   wrap(async (req, res) => {
-    const reply = await suggestReply(req.params.id);
+    const reply = await suggestReply(req.params.id, req.userId!);
     if (!reply) {
       return res.status(404).json({ error: 'Reply not found.' });
     }
@@ -371,7 +373,7 @@ router.post(
       fromEmail: asString(req.body.fromEmail) || 'prospect@example.com',
       subject: asString(req.body.subject) || 'Re: your email',
       body: asString(req.body.body) || '',
-    });
+    }, req.userId!);
 
     await writeAudit(getActor(req), 'Reply', reply.id, 'REPLY_INGESTED', { campaignId: reply.campaignId });
     res.status(201).json(reply);
@@ -396,7 +398,7 @@ router.get(
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
     const limit = Number.parseInt(asString(req.query.limit) || '25', 10);
-    res.json(await listWebhookEvents(Number.isFinite(limit) ? limit : 25));
+    res.json(await listWebhookEvents(req.userId!, Number.isFinite(limit) ? limit : 25));
   })
 );
 
@@ -485,7 +487,9 @@ router.post(
   '/webhooks/:provider',
   rateLimit({ key: 'outbound-webhook', limit: 120, windowMs: 10 * 60 * 1000 }),
   wrap(async (req, res) => {
-    const result = await handleProviderWebhook(req.params.provider, req.body);
+    const verification = verifyProviderWebhook(req, req.params.provider);
+    if (!verification.valid) return res.status(401).json({ error: 'Invalid webhook signature.' });
+    const result = await handleProviderWebhook(req.params.provider, req.body, verification.eventId);
     res.json(result);
   })
 );
@@ -498,12 +502,9 @@ router.post(
   '/inbound/resend',
   rateLimit({ key: 'inbound-resend', limit: 240, windowMs: 10 * 60 * 1000 }),
   wrap(async (req, res) => {
-    const expected = await getSetting('inboundWebhookSecret');
-    if (expected) {
-      const provided = asString(req.query.secret) || asString(req.headers['x-inbound-secret']);
-      if (provided !== expected) {
-        return res.status(401).json({ error: 'Invalid secret.' });
-      }
+    const expected = process.env.RESEND_INBOUND_WEBHOOK_SECRET || await getSetting('inboundWebhookSecret');
+    if (!expected || !verifyResendWebhook(req, expected).valid) {
+      return res.status(401).json({ error: 'Invalid webhook signature.' });
     }
     const result = await handleResendInbound(req.body);
     res.json(result);
@@ -516,7 +517,8 @@ router.get('/track/open/:trackingToken.gif', wrap(async (req, res) => {
 }));
 
 router.get('/track/click/:trackingToken', wrap(async (req, res) => {
-  const url = safeUrl(asString(req.query.url) || '');
+  const url = await resolveClickDestination(req.params.trackingToken, asString(req.query.url) || '');
+  if (!url) return res.status(404).type('text/plain').send('Tracking link not found.');
   await recordClick(req.params.trackingToken, requestInfo(req));
   res.redirect(url);
 }));
@@ -585,25 +587,7 @@ function wrap(handler: RequestHandler): RequestHandler {
 }
 
 function rateLimit(config: { key: string; limit: number; windowMs: number }): RequestHandler {
-  return (req, res, next) => {
-    const bucketKey = `${config.key}:${getClientId(req)}`;
-    const now = Date.now();
-    const bucket = rateBuckets.get(bucketKey);
-
-    if (!bucket || bucket.resetAt <= now) {
-      rateBuckets.set(bucketKey, { count: 1, resetAt: now + config.windowMs });
-      return next();
-    }
-
-    if (bucket.count >= config.limit) {
-      const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-      res.setHeader('Retry-After', String(retryAfter));
-      return res.status(429).json({ error: 'Rate limit exceeded.' });
-    }
-
-    bucket.count += 1;
-    next();
-  };
+  return distributedRateLimit(config.key, config.limit, config.windowMs);
 }
 
 function requireRoles(...roles: Role[]): RequestHandler {
@@ -632,11 +616,6 @@ function getActor(req: Request) {
 }
 
 function getClientId(req: Request) {
-  const forwarded = asString(req.headers['x-forwarded-for']);
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-
   return req.ip || req.socket.remoteAddress || 'unknown';
 }
 

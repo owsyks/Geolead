@@ -199,13 +199,17 @@ export default function CommandCenter() {
   useEffect(() => {
     const wsUrl = OUTBOUND_API_BASE.replace(/^http/, "ws") + "/ws/outbound";
     let socket: WebSocket | null = null;
+    let cancelled = false;
 
     // Coalesce bursts of socket messages into ONE render per animation frame
     // (a chatty backend can emit many events/sec); skip rendering in hidden tabs.
     const pending: OutboundEventSummary[] = [];
     let rafScheduled = false;
-    try {
-      socket = new WebSocket(wsUrl);
+    void (async () => {
+      try {
+      const { ticket } = await fetchOutbound<{ ticket: string }>("/api/auth/ws-ticket", { method: "POST" });
+      if (cancelled) return;
+      socket = new WebSocket(`${wsUrl}?ticket=${encodeURIComponent(ticket)}`);
       socket.onmessage = (message) => {
         try {
           const raw = JSON.parse(message.data);
@@ -235,11 +239,13 @@ export default function CommandCenter() {
       };
       socket.onerror = () => { /* expected when backend is offline */ };
       socket.onclose = () => { socket = null; };
-    } catch {
-      socket = null;
-    }
+      } catch {
+        socket = null;
+      }
+    })();
 
     return () => {
+      cancelled = true;
       try { socket?.close(); } catch { /* ignore double-close */ }
     };
   }, []);

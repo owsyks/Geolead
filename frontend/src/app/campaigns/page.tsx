@@ -403,17 +403,21 @@ export default function CampaignsPage() {
     const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
     const found = new Set<string>();
     try {
+      if (file.size > 5 * 1024 * 1024) throw new Error('File exceeds the 5 MB upload limit.');
       const isExcel = /\.(xlsx|xls)$/i.test(file.name);
       if (isExcel) {
-        const XLSX = await import("xlsx");
+        const XLSX = await import("@e965/xlsx");
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        for (const sheetName of wb.SheetNames) {
+        const wb = XLSX.read(buf, { type: "array", dense: true, sheetRows: 50_001 });
+        if (wb.SheetNames.length > 10) throw new Error('Workbook has too many worksheets.');
+        for (const sheetName of wb.SheetNames.slice(0, 10)) {
           const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], { header: 1, raw: false });
+          if (rows.length > 50_000) throw new Error('Worksheet has too many rows.');
           for (const row of rows) {
-            for (const cell of row as unknown[]) {
+            if ((row as unknown[]).length > 50) throw new Error('Worksheet has too many columns.');
+            for (const cell of (row as unknown[]).slice(0, 50)) {
               const matches = String(cell ?? "").match(emailRe);
-              if (matches) matches.forEach((m) => found.add(m.toLowerCase()));
+              if (matches) matches.forEach((m) => { if (found.size < 10_000) found.add(m.toLowerCase()); });
             }
           }
         }

@@ -23,10 +23,10 @@ import { verifyEmailsBulk } from '../services/emailVerification.js';
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isRedisTls = redisUrl.startsWith('rediss://');
 
-console.log(`[Worker] Connecting to Redis at ${redisUrl}...`);
+console.log(`[Worker] Connecting to Redis at ${new URL(redisUrl).host}...`);
 const redisConnection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
-  ...(isRedisTls ? { tls: { rejectUnauthorized: false } } : {}),
+  ...(isRedisTls ? { tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.REDIS_REJECT_UNAUTHORIZED !== 'false' } } : {}),
 });
 
 interface ScrapingJobData {

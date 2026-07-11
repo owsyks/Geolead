@@ -32,5 +32,9 @@ jobs:
             cd /opt/geolead
             git fetch --all
             git reset --hard "origin/${GITHUB_REF_NAME:-feat/auth-multi-tenancy}"
+            if ! grep -Eq '^SECRET_ENCRYPTION_KEY=.{32,}$' .env; then
+              printf '\nSECRET_ENCRYPTION_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
+              chmod 600 .env
+            fi
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f

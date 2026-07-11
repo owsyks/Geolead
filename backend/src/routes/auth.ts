@@ -1,7 +1,7 @@
 // Authentication routes: register, login, token refresh, logout, email
 // verification, password reset, and profile (/me). Email + password only this
 // pass; the schema is OAuth-ready for a later provider integration.
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import prisma from '../config/db.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { requireAuth, isAdminEmail } from '../middleware/auth.js';
@@ -20,6 +20,7 @@ import {
   createResetToken,
   consumeResetToken,
   ensureUserWorkspace,
+  issueWebSocketTicket,
 } from '../services/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/mailer.js';
 import { trialEndFromNow } from '../services/billing.js';
@@ -45,46 +46,70 @@ function publicUser(u: any) {
   };
 }
 
-function sessionMeta(req: any) {
-  return { userAgent: req.headers['user-agent'], ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip };
+function sessionMeta(req: Request) {
+  return { userAgent: req.headers['user-agent'], ip: req.ip };
+}
+
+const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Secure-geolead_refresh' : 'geolead_refresh';
+
+function setRefreshCookie(res: Response, token: string, expiresAt: Date) {
+  res.cookie(REFRESH_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/api/auth',
+    expires: expiresAt,
+  });
+}
+
+function clearRefreshCookie(res: Response) {
+  res.clearCookie(REFRESH_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/api/auth',
+  });
+}
+
+function readCookie(req: Request, name: string): string | null {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === name) {
+      try { return decodeURIComponent(rawValue.join('=')); } catch { return null; }
+    }
+  }
+  return null;
+}
+
+function trustedBrowserOrigin(req: Request, res: Response, next: NextFunction) {
+  const configured = [process.env.FRONTEND_URL, ...(process.env.CORS_ORIGIN || '').split(',')]
+    .filter(Boolean)
+    .map((value) => String(value).trim().replace(/\/$/, ''));
+  const origin = req.get('origin')?.replace(/\/$/, '');
+  const clientHeader = req.get('x-geolead-client');
+  if (!origin || !configured.includes(origin) || clientHeader !== 'web') {
+    return res.status(403).json({ error: 'Untrusted request origin.' });
+  }
+  return next();
 }
 
 // ---- Register -----------------------------------------------------------
-router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (req, res) => {
+router.post('/register', trustedBrowserOrigin, rateLimit('auth-register', 10, 15 * 60 * 1000), async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
 
-  if (!name) return res.status(400).json({ error: 'Name is required.' });
+  if (!name || name.length > 200) return res.status(400).json({ error: 'Name must be between 1 and 200 characters.' });
   if (!validateEmail(email)) return res.status(400).json({ error: 'A valid email is required.' });
   const weak = validatePasswordStrength(password);
   if (weak) return res.status(400).json({ error: weak });
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    // If the seeded admin (no password yet) registers, let them set it here.
-    if (!existing.passwordHash) {
-      const passwordHash = await hashPassword(password);
-      const updated = await prisma.user.update({
-        where: { id: existing.id },
-        data: {
-          name,
-          passwordHash,
-          // Only start a trial clock if this account has never had a plan set.
-          ...(existing.planStatus === 'trialing' && !existing.trialEndsAt
-            ? { plan: 'trial', trialEndsAt: trialEndFromNow() }
-            : {}),
-        },
-      });
-      await ensureUserWorkspace(updated.id);
-      const token = await createVerificationToken(updated.id);
-      sendVerificationEmail(updated.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
-      const access = issueAccessToken(updated.id, updated.email);
-      const refresh = await issueRefreshToken(updated.id, sessionMeta(req));
-      return res.status(201).json({ user: publicUser(updated), accessToken: access, refreshToken: refresh.token });
-    }
-    return res.status(409).json({ error: 'An account with this email already exists.' });
-  }
+  // Passwordless seeded accounts are activated only through the email-bound
+  // reset flow. Registration must never let an attacker claim a known address.
+  if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
@@ -97,11 +122,12 @@ router.post('/register', rateLimit('auth-register', 10, 15 * 60 * 1000), async (
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, sessionMeta(req));
-  return res.status(201).json({ user: publicUser(user), accessToken: access, refreshToken: refresh.token });
+  setRefreshCookie(res, refresh.token, refresh.expiresAt);
+  return res.status(201).json({ user: publicUser(user), accessToken: access });
 });
 
 // ---- Login --------------------------------------------------------------
-router.post('/login', rateLimit('auth-login', 20, 15 * 60 * 1000), async (req, res) => {
+router.post('/login', trustedBrowserOrigin, rateLimit('auth-login', 20, 15 * 60 * 1000), async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
   const remember = !!req.body?.remember;
@@ -116,25 +142,31 @@ router.post('/login', rateLimit('auth-login', 20, 15 * 60 * 1000), async (req, r
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, { remember, ...sessionMeta(req) });
+  setRefreshCookie(res, refresh.token, refresh.expiresAt);
   prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
-  return res.json({ user: publicUser(user), accessToken: access, refreshToken: refresh.token });
+  return res.json({ user: publicUser(user), accessToken: access });
 });
 
 // ---- Refresh ------------------------------------------------------------
-router.post('/refresh', rateLimit('auth-refresh', 60, 15 * 60 * 1000), async (req, res) => {
-  const rawToken = String(req.body?.refreshToken || '');
+router.post('/refresh', trustedBrowserOrigin, rateLimit('auth-refresh', 60, 15 * 60 * 1000), async (req, res) => {
+  const rawToken = readCookie(req, REFRESH_COOKIE);
   if (!rawToken) return res.status(401).json({ error: 'Missing refresh token.' });
   const rotated = await rotateRefresh(rawToken, sessionMeta(req));
-  if (!rotated) return res.status(401).json({ error: 'Session expired. Please log in again.' });
+  if (!rotated) {
+    clearRefreshCookie(res);
+    return res.status(401).json({ error: 'Session expired. Please log in again.' });
+  }
   const access = issueAccessToken(rotated.userId, rotated.email);
+  setRefreshCookie(res, rotated.refresh.token, rotated.refresh.expiresAt);
   prisma.user.update({ where: { id: rotated.userId }, data: { lastSeenAt: new Date() } }).catch(() => {});
-  return res.json({ accessToken: access, refreshToken: rotated.refresh.token });
+  return res.json({ accessToken: access });
 });
 
 // ---- Logout -------------------------------------------------------------
-router.post('/logout', async (req, res) => {
-  const rawToken = String(req.body?.refreshToken || '');
+router.post('/logout', trustedBrowserOrigin, async (req, res) => {
+  const rawToken = readCookie(req, REFRESH_COOKIE);
   if (rawToken) await revokeRefresh(rawToken);
+  clearRefreshCookie(res);
   return res.json({ ok: true });
 });
 
@@ -176,7 +208,7 @@ router.post('/verify-email', rateLimit('auth-verify', 30, 15 * 60 * 1000), async
   return res.json({ ok: true });
 });
 
-router.post('/resend-verification', requireAuth, async (req, res) => {
+router.post('/resend-verification', requireAuth, rateLimit('auth-resend-verification', 5, 60 * 60 * 1000), async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.userId! } });
   if (!user) return res.status(404).json({ error: 'User not found.' });
   if (user.emailVerified) return res.json({ ok: true, message: 'Email already verified.' });
@@ -186,7 +218,7 @@ router.post('/resend-verification', requireAuth, async (req, res) => {
 });
 
 // ---- Change password (authenticated) -----------------------------------
-router.post('/change-password', requireAuth, async (req, res) => {
+router.post('/change-password', requireAuth, rateLimit('auth-change-password', 10, 60 * 60 * 1000), async (req, res) => {
   const current = String(req.body?.currentPassword || '');
   const next = String(req.body?.newPassword || '');
   const weak = validatePasswordStrength(next);
@@ -200,6 +232,10 @@ router.post('/change-password', requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
   await revokeAllSessions(user.id);
   return res.json({ ok: true });
+});
+
+router.post('/ws-ticket', requireAuth, rateLimit('auth-ws-ticket', 30, 60 * 1000), (req, res) => {
+  return res.json({ ticket: issueWebSocketTicket(req.userId!), expiresInSeconds: 30 });
 });
 
 // ---- Profile ------------------------------------------------------------
@@ -218,11 +254,20 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.patch('/me', requireAuth, async (req, res) => {
   const data: any = {};
-  if (typeof req.body?.name === 'string' && req.body.name.trim()) data.name = req.body.name.trim();
-  if (typeof req.body?.avatarUrl === 'string') data.avatarUrl = req.body.avatarUrl.trim() || null;
-  if (typeof req.body?.timezone === 'string') data.timezone = req.body.timezone;
-  if (typeof req.body?.locale === 'string') data.locale = req.body.locale;
-  if (typeof req.body?.dateFormat === 'string') data.dateFormat = req.body.dateFormat;
+  if (typeof req.body?.name === 'string' && req.body.name.trim()) data.name = req.body.name.trim().slice(0, 200);
+  if (typeof req.body?.avatarUrl === 'string') {
+    const avatar = req.body.avatarUrl.trim();
+    if (avatar) {
+      try {
+        const parsed = new URL(avatar);
+        if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error();
+        data.avatarUrl = parsed.toString();
+      } catch { return res.status(400).json({ error: 'avatarUrl must be a valid HTTP(S) URL.' }); }
+    } else data.avatarUrl = null;
+  }
+  if (typeof req.body?.timezone === 'string') data.timezone = req.body.timezone.slice(0, 100);
+  if (typeof req.body?.locale === 'string') data.locale = req.body.locale.slice(0, 20);
+  if (typeof req.body?.dateFormat === 'string') data.dateFormat = req.body.dateFormat.slice(0, 100);
   const user = await prisma.user.update({ where: { id: req.userId! }, data });
   return res.json({ user: publicUser(user) });
 });

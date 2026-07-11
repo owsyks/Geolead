@@ -6,7 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import prisma from './config/db.js';
-import * as xlsx from 'xlsx';
+import * as xlsx from '@e965/xlsx';
 import { resumePendingSearchTasks, startSearchTaskProcessing } from './services/taskProcessor.js';
 import { isPlaceholderEmail, normalizeEmail, normalizePhoneList } from './services/contactUtils.js';
 import outboundRouter from './routes/outbound.js';
@@ -17,6 +17,7 @@ import inboxRouter from './routes/inbox.js';
 import authRouter from './routes/auth.js';
 import watchlistRouter from './routes/watchlist.js';
 import { requireAuth, requireVerifiedEmail, requirePlanCapacity } from './middleware/auth.js';
+import { rateLimit } from './middleware/rateLimit.js';
 import { getEntitlements } from './services/billing.js';
 import billingRouter from './routes/billing.js';
 import adminRouter from './routes/admin.js';
@@ -30,28 +31,40 @@ import { startWatchlistScheduler } from './services/watchlistService.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const requestBuckets = new Map<string, { count: number; resetAt: number }>();
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+  .split(',').map((value) => value.trim().replace(/\/$/, '')).filter(Boolean);
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+  throw new Error('CORS_ORIGIN or FRONTEND_URL must be configured in production.');
+}
 
-// Bucket cleanup — expired entries piled up forever before
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, b] of requestBuckets) {
-    if (b.resetAt <= now) requestBuckets.delete(k);
-  }
-}, 10 * 60 * 1000).unref();
-
-app.use(helmet());
+app.disable('x-powered-by');
+app.use(helmet({
+  hsts: false,
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: { directives: {
+    defaultSrc: ["'none'"],
+    styleSrc: ["'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:'],
+    formAction: ["'self'"],
+    frameAncestors: ["'none'"],
+    baseUri: ["'none'"],
+  } },
+}));
 app.use(cors({
-  origin: (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean).length > 0
-    ? (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean)
-    : true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    return callback(null, allowedOrigins.includes(origin.replace(/\/$/, '')));
+  },
   credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-GeoLead-Client', 'X-Inbound-Secret'],
 }));
 app.set('trust proxy', 1);
 // Capture the raw request body so provider webhooks (Paddle, Coinbase) can be
 // signature-verified against the exact bytes received, while normal routes keep
 // using the parsed JSON body.
-app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
+app.use(express.urlencoded({ extended: false, limit: '64kb', parameterLimit: 100 }));
 app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/admin', adminRouter);
@@ -63,27 +76,6 @@ app.use('/api/domains', domainsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/inbox', inboxRouter);
 app.use('/api/watchlist', watchlistRouter);
-
-function rateLimit(key: string, limit: number, windowMs: number) {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const clientKey = `${key}:${getClientId(req)}`;
-    const now = Date.now();
-    const bucket = requestBuckets.get(clientKey);
-
-    if (!bucket || bucket.resetAt <= now) {
-      requestBuckets.set(clientKey, { count: 1, resetAt: now + windowMs });
-      return next();
-    }
-
-    if (bucket.count >= limit) {
-      res.setHeader('Retry-After', String(Math.ceil((bucket.resetAt - now) / 1000)));
-      return res.status(429).json({ error: 'Rate limit exceeded.' });
-    }
-
-    bucket.count += 1;
-    return next();
-  };
-}
 
 // Basic health check
 app.get('/api/health', (req, res) => {
@@ -612,7 +604,7 @@ app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), asy
     }
 
     if (format === 'xlsx') {
-      const worksheet = xlsx.utils.json_to_sheet(exportData);
+      const worksheet = xlsx.utils.json_to_sheet(exportData.map(sanitizeSpreadsheetRow));
       const workbook = xlsx.utils.book_new();
       xlsx.utils.book_append_sheet(workbook, worksheet, 'GeoLeads');
       
@@ -634,7 +626,7 @@ app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), asy
       headers.join(','), // Header row
       ...exportData.map(row => 
         headers.map(fieldName => {
-          const val = (row as any)[fieldName];
+          const val = safeSpreadsheetCell((row as any)[fieldName]);
           // Escape quotes and wrap in quotes to prevent column splitting
           const escaped = ('' + val).replace(/"/g, '""');
           return `"${escaped}"`;
@@ -649,6 +641,12 @@ app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), asy
     console.error('[Server] Export error:', error);
     return res.status(500).json({ error: 'Failed to generate export file.' });
   }
+});
+
+app.use((_req, res) => res.status(404).json({ error: 'Route not found.' }));
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[Server] Unhandled request error:', err instanceof Error ? err.message : 'Unknown error');
+  if (!res.headersSent) res.status(500).json({ error: 'Internal server error.' });
 });
 
 const server = http.createServer(app);
@@ -679,15 +677,6 @@ function sanitizeTask<T extends { leads?: any[]; validEmails?: number }>(task: T
   };
 }
 
-function getClientId(req: express.Request) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim();
-  }
-
-  return req.ip || req.socket.remoteAddress || 'unknown';
-}
-
 function sanitizeLeads<T extends { emails?: any[]; phoneNumbers?: string[] }>(leads: T[]): T[] {
   return leads.map((lead) => {
     const validEmails = (lead.emails || [])
@@ -702,6 +691,15 @@ function sanitizeLeads<T extends { emails?: any[]; phoneNumbers?: string[] }>(le
       phoneNumbers,
     };
   });
+}
+
+function safeSpreadsheetCell(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  return /^[\t\r=+\-@]/.test(value) ? `'${value}` : value;
+}
+
+function sanitizeSpreadsheetRow<T extends Record<string, unknown>>(row: T): T {
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, safeSpreadsheetCell(value)])) as T;
 }
 
 async function cleanupStoredContacts() {

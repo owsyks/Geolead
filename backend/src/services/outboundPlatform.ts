@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { resolveMx } from 'node:dns/promises';
 import { resolveTxt } from 'node:dns/promises';
 import axios from 'axios';
@@ -12,6 +12,8 @@ import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
 import { getSetting } from './settings.js';
 import { getEntitlements } from './billing.js';
+import { decryptSecret, encryptSecret } from '../config/secrets.js';
+import { assertSafeNetworkTarget } from './ssrfGuard.js';
 
 const OUTBOUND_BASE_URL = process.env.OUTBOUND_BASE_URL || 'http://localhost:5000';
 const DEFAULT_PHYSICAL_ADDRESS = process.env.OUTBOUND_PHYSICAL_ADDRESS || 'GeoLead AI, 123 Market St, Austin, TX 78701';
@@ -357,12 +359,12 @@ export async function getCampaignDetail(id: string, userId: string) {
   };
 }
 
-export async function createCampaign(input: CampaignCreateInput, userId?: string) {
+export async function createCampaign(input: CampaignCreateInput, userId: string) {
   // When a domain is selected from the portfolio, derive campaign defaults
   // from it so the user doesn't re-type domain/niche/city for every campaign.
   // Explicit input values still win — the user can override per campaign.
   const domain = input.domainId
-    ? await prisma.domain.findFirst({ where: { id: input.domainId, userId: userId ?? undefined } })
+    ? await prisma.domain.findFirst({ where: { id: input.domainId, userId } })
     : null;
   const geoDomain = input.geoDomain || domain?.name || 'example.com';
   const niche = input.niche || domain?.niche || domain?.industry || 'local business';
@@ -370,6 +372,9 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
     || [domain?.city, domain?.state].filter(Boolean).join(', ')
     || domain?.state
     || undefined;
+  const selectedSender = input.senderAccountId
+    ? await prisma.senderAccount.findFirst({ where: { id: input.senderAccountId, userId }, select: { id: true } })
+    : null;
 
   const campaign = await prisma.campaign.create({
     data: {
@@ -393,7 +398,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
       metadata: {
         compliance: defaultCompliancePolicy(),
         instant: !!input.instant,
-        ...(input.senderAccountId ? { senderAccountId: input.senderAccountId } : {}),
+        ...(selectedSender ? { senderAccountId: selectedSender.id } : {}),
       },
     },
   });
@@ -408,7 +413,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
   }
 
   const template = input.templateId
-    ? await prisma.template.findUnique({ where: { id: input.templateId } }) || await ensureDefaultTemplate(userId)
+    ? await prisma.template.findFirst({ where: { id: input.templateId, userId } }) || await ensureDefaultTemplate(userId)
     : await ensureDefaultTemplate(userId);
   const sequence = await prisma.sequence.create({
     data: {
@@ -453,7 +458,10 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
     include: { steps: true },
   });
 
-  for (const leadId of input.leadIds || []) {
+  const ownedLeadIds = (await prisma.lead.findMany({
+    where: { id: { in: input.leadIds || [] }, ownerId: userId }, select: { id: true },
+  })).map((lead) => lead.id);
+  for (const leadId of ownedLeadIds) {
     await prisma.campaignLead
       .create({
         data: {
@@ -475,6 +483,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
     // Create a synthetic search task for uploaded emails
     const uploadTask = await prisma.searchTask.create({
       data: {
+        userId,
         keyword: `${input.name} - Uploaded Emails`,
         domainIdea: geoDomain,
         country: 'Unknown',
@@ -492,6 +501,7 @@ export async function createCampaign(input: CampaignCreateInput, userId?: string
         const lead = await prisma.lead.create({
           data: {
             taskId: uploadTask.id,
+            ownerId: userId,
             businessName: email.split('@')[0],
             category: 'Uploaded',
             domainMatchScore: 50,
@@ -568,7 +578,7 @@ export async function updateCampaignStatus(id: string, status: string, userId?: 
   }
 
   await writeAudit(userId, 'Campaign', id, `CAMPAIGN_${status}`, {});
-  broadcastOutboundEvent({ type: 'CAMPAIGN_STATUS', payload: { campaignId: id, status } });
+  broadcastOutboundEvent(userId, { type: 'CAMPAIGN_STATUS', payload: { campaignId: id, status } });
 
   return campaign;
 }
@@ -600,7 +610,7 @@ export async function deleteCampaign(id: string, userId?: string) {
   }
 
   await writeAudit(userId, 'Campaign', id, 'CAMPAIGN_DELETED', { name: campaign.name });
-  broadcastOutboundEvent({ type: 'CAMPAIGN_DELETED', payload: { campaignId: id } });
+  broadcastOutboundEvent(userId, { type: 'CAMPAIGN_DELETED', payload: { campaignId: id } });
   return { deleted: true };
 }
 
@@ -785,6 +795,8 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   // An explicit override (from the Queue action) wins over the campaign's
   // stored choice; persist it so follow-ups use the same sender too.
   if (senderAccountIdOverride) {
+    const ownedSender = await prisma.senderAccount.findFirst({ where: { id: senderAccountIdOverride, userId }, select: { id: true } });
+    if (!ownedSender) throw new Error('Sender account not found.');
     (campaign.metadata as any) = { ...(campaign.metadata as any), senderAccountId: senderAccountIdOverride };
     await prisma.campaign.update({
       where: { id: campaignId },
@@ -868,7 +880,7 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
     queued++;
   }
 
-  broadcastOutboundEvent({ type: 'EMAILS_QUEUED', payload: { campaignId, queued } });
+  broadcastOutboundEvent(campaign.userId, { type: 'EMAILS_QUEUED', payload: { campaignId, queued } });
 
   // Instant campaigns shouldn't wait for the next ~30s scheduler tick — fire one
   // now. The tick still respects ACTIVE status, sender limits, and suppression.
@@ -898,7 +910,7 @@ export async function forceSendCampaign(campaignId: string, userId?: string) {
     if (log.lead.doNotContact || log.lead.unsubscribed || (await isSuppressed(log.toEmail, log.campaign?.userId))) continue;
     if (log.campaignLead?.status && ['REPLIED', 'INTERESTED', 'UNSUBSCRIBED', 'SUPPRESSED'].includes(log.campaignLead.status)) continue;
 
-    const sender = log.senderAccount || (await getRotatedSender());
+    const sender = log.senderAccount || (await getRotatedSender(log.campaign.userId || undefined));
     if (!sender) continue;
 
     // Assign variant if missing
@@ -1095,7 +1107,7 @@ async function runOutboundQueueTick() {
       }
     }
 
-    const sender = log.senderAccount || (await getRotatedSender());
+    const sender = log.senderAccount || (await getRotatedSender(log.campaign.userId || undefined));
     if (!sender) continue;
     // Once a sender has hit its hourly/daily cap, remember it so we don't run two
     // count queries for every remaining log in this (now larger) batch.
@@ -1223,7 +1235,7 @@ async function queueNextSequenceStep(emailLogId: string) {
   });
   if (existingNextLog) return existingNextLog;
 
-  const sender = await getRotatedSender();
+  const sender = await getRotatedSender(log.campaign.userId || undefined);
   const toEmail = campaignLead.lead.emails[0]?.email || log.toEmail;
   if (!sender || !toEmail) return null;
 
@@ -1402,8 +1414,8 @@ export async function saveSenderAccount(input: SenderAccountInput, userId?: stri
   });
 }
 
-export async function verifySenderAccount(id: string, userId?: string) {
-  const sender = await prisma.senderAccount.findUnique({ where: { id } });
+export async function verifySenderAccount(id: string, userId: string) {
+  const sender = await prisma.senderAccount.findFirst({ where: { id, userId } });
   if (!sender) {
     return null;
   }
@@ -1521,8 +1533,9 @@ export async function listAuditLogs(userId: string, limit = 25) {
   }));
 }
 
-export async function listWebhookEvents(limit = 25) {
+export async function listWebhookEvents(userId: string, limit = 25) {
   const events = await prisma.webhookEvent.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: clamp(limit, 1, 100),
   });
@@ -1859,12 +1872,12 @@ export async function ingestReply(input: {
   fromEmail: string;
   subject: string;
   body: string;
-}) {
+}, userId: string) {
   const emailLog = input.emailLogId
-    ? await prisma.emailLog.findUnique({ where: { id: input.emailLogId }, include: { campaignLead: true } })
+    ? await prisma.emailLog.findFirst({ where: { id: input.emailLogId, campaign: { userId } }, include: { campaignLead: true } })
     : null;
   const campaignLead = input.campaignLeadId
-    ? await prisma.campaignLead.findUnique({ where: { id: input.campaignLeadId } })
+    ? await prisma.campaignLead.findFirst({ where: { id: input.campaignLeadId, campaign: { userId } } })
     : emailLog?.campaignLead || null;
 
   if (!campaignLead && !emailLog) {
@@ -1973,13 +1986,15 @@ export async function handleResendInbound(payload: any) {
     return { processed: false, reason: 'no matching outbound message' };
   }
 
+  const owner = await prisma.campaign.findUnique({ where: { id: emailLog.campaignId }, select: { userId: true } });
+  if (!owner?.userId) return { processed: false, reason: 'unowned campaign' };
   const reply = await ingestReply({
     emailLogId: emailLog.id,
     campaignLeadId: emailLog.campaignLeadId || undefined,
     fromEmail,
     subject,
     body,
-  });
+  }, owner.userId);
   return { processed: true, replyId: reply.id };
 }
 
@@ -2023,8 +2038,8 @@ function stripHtml(html: any): string {
   return html.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-export async function suggestReply(id: string) {
-  const reply = await prisma.reply.findUnique({ where: { id }, include: { lead: true, campaign: true } });
+export async function suggestReply(id: string, userId: string) {
+  const reply = await prisma.reply.findFirst({ where: { id, ...replyOwnershipWhere(userId) }, include: { lead: true, campaign: true } });
   if (!reply) return null;
 
   const classification = classifyReply(reply.body);
@@ -2146,6 +2161,23 @@ export async function recordClick(trackingToken: string, requestInfo: RequestInf
   return log;
 }
 
+export async function resolveClickDestination(trackingToken: string, requestedUrl: string): Promise<string | null> {
+  const log = await prisma.emailLog.findUnique({
+    where: { trackingToken },
+    select: { bodyText: true, clickDestination: true },
+  });
+  if (!log) return null;
+  let parsed: URL;
+  try { parsed = new URL(requestedUrl); } catch { return null; }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+  const normalized = parsed.toString();
+  if (log.clickDestination) return normalized === log.clickDestination ? normalized : null;
+  const allowed = Array.from(log.bodyText.matchAll(/https?:\/\/[^\s<>"']+/g), (match) => {
+    try { return new URL(match[0].replace(/[),.;!?]+$/, '')).toString(); } catch { return ''; }
+  });
+  return allowed.includes(normalized) ? normalized : null;
+}
+
 export async function unsubscribe(unsubscribeToken: string) {
   const log = await prisma.emailLog.findFirst({ where: { unsubscribeToken }, include: { lead: true, campaignLead: true, campaign: true } });
   if (!log) return null;
@@ -2203,17 +2235,25 @@ function rememberWebhookKey(key: string): boolean {
   return true;
 }
 
-export async function handleProviderWebhook(provider: string, payload: unknown) {
-  const event = await prisma.webhookEvent.create({
+export async function handleProviderWebhook(provider: string, payload: unknown, externalId?: string) {
+  let event;
+  try {
+    event = await prisma.webhookEvent.create({
     data: {
       provider,
       type: inferWebhookType(payload),
-      payload: payload as any,
+      externalId: externalId || undefined,
+      payload: { eventCount: Array.isArray(payload) ? payload.length : 1, type: inferWebhookType(payload) },
       processed: false,
     },
   });
+  } catch (error: any) {
+    if (error?.code === 'P2002') return { processed: true, duplicate: true };
+    throw error;
+  }
 
   const events = Array.isArray(payload) ? payload : [payload];
+  let ownerId: string | null = null;
   for (const item of events) {
     try {
       const data = item as Record<string, any>;
@@ -2227,6 +2267,9 @@ export async function handleProviderWebhook(provider: string, payload: unknown) 
         : null;
 
       if (log && eventType) {
+        if (!ownerId) {
+          ownerId = (await prisma.campaign.findUnique({ where: { id: log.campaignId }, select: { userId: true } }))?.userId || null;
+        }
         // Provider retry dedup. Bucket by 60-second window so legit retries
         // from the same provider collapse but a genuine OPEN-then-OPEN minutes
         // apart still increments.
@@ -2246,7 +2289,7 @@ export async function handleProviderWebhook(provider: string, payload: unknown) 
     }
   }
 
-  await prisma.webhookEvent.update({ where: { id: event.id }, data: { processed: true } });
+  await prisma.webhookEvent.update({ where: { id: event.id }, data: { processed: true, userId: ownerId } });
   return { processed: true, webhookEventId: event.id };
 }
 
@@ -2436,7 +2479,7 @@ export async function recordEmailEvent(
   payload: Record<string, unknown>
 ) {
   if (!emailLogId) return null;
-  const log = await prisma.emailLog.findUnique({ where: { id: emailLogId }, include: { lead: { select: { businessName: true } } } });
+  const log = await prisma.emailLog.findUnique({ where: { id: emailLogId }, include: { lead: { select: { businessName: true } }, campaign: { select: { userId: true } } } });
   if (!log) return null;
 
   const event = await prisma.emailEvent.create({
@@ -2457,7 +2500,7 @@ export async function recordEmailEvent(
     updateSenderHealth(log.senderAccountId),
   ]);
 
-  broadcastOutboundEvent({
+  broadcastOutboundEvent(log.campaign?.userId ?? null, {
     type,
     payload: {
       emailLogId: log.id,
@@ -2677,9 +2720,9 @@ export async function getSendQuota(userId: string) {
   };
 }
 
-async function getRotatedSender() {
+async function getRotatedSender(userId?: string) {
   const senders = await prisma.senderAccount.findMany({
-    where: { status: { in: ['active', 'warming'] } },
+    where: { status: { in: ['active', 'warming'] }, ...(userId ? { userId } : { userId: null }) },
     orderBy: [{ rotationRank: 'asc' }, { createdAt: 'asc' }],
   });
   // Prefer a real, configured provider (has an apiKey/password) over the
@@ -2699,10 +2742,10 @@ function senderHasConfig(config: unknown): boolean {
 async function resolveCampaignSender(campaign: any) {
   const chosenId = (campaign?.metadata as any)?.senderAccountId;
   if (chosenId) {
-    const chosen = await prisma.senderAccount.findUnique({ where: { id: chosenId } });
+    const chosen = await prisma.senderAccount.findFirst({ where: { id: chosenId, userId: campaign.userId } });
     if (chosen && (chosen.status === 'active' || chosen.status === 'warming')) return chosen;
   }
-  return getRotatedSender();
+  return getRotatedSender(campaign.userId || undefined);
 }
 
 async function senderWithinLimits(senderAccountId: string, _hourlyLimit: number, dailyLimit: number) {
@@ -2762,8 +2805,8 @@ export async function sendOneOff(input: {
   subject: string;
   body: string;
   bodyHtml?: string;
-}) {
-  const sender = await prisma.senderAccount.findUnique({ where: { id: input.senderAccountId } });
+}, userId: string) {
+  const sender = await prisma.senderAccount.findFirst({ where: { id: input.senderAccountId, userId } });
   if (!sender) throw new Error('Sender account not found.');
   if (sender.status !== 'active') throw new Error(`Sender is ${sender.status}, not active.`);
 
@@ -2935,22 +2978,27 @@ async function sendViaSes(log: any, sender: any, config: Record<string, any>) {
 
 async function sendViaSmtp(log: any, sender: any, config: Record<string, any>) {
   const host = String(config.host);
-  const port = Number(config.port || (config.secure ? 465 : 25));
+  const port = Number(config.port || (config.secure ? 465 : 587));
   const secure = Boolean(config.secure || port === 465);
   const username = typeof config.username === 'string' ? config.username : undefined;
   const password = typeof config.password === 'string' ? config.password : undefined;
   const timeoutMs = Number(config.timeoutMs || 15000);
+  await assertSafeNetworkTarget(host, port, [465, 587]);
+  const fromEmail = safeMailbox(sender.fromEmail);
+  const toEmail = safeMailbox(log.toEmail);
+  safeMailbox(sender.replyTo || sender.fromEmail);
   const client = await connectSmtp(host, port, secure, timeoutMs);
 
   try {
     await client.expect([220]);
     await client.command(`EHLO ${config.heloDomain || 'geolead.ai'}`, [250]);
 
-    if (!secure && config.starttls && client.capabilities.has('STARTTLS')) {
+    if (!secure && client.capabilities.has('STARTTLS')) {
       await client.command('STARTTLS', [220]);
       await client.upgradeToTls();
       await client.command(`EHLO ${config.heloDomain || 'geolead.ai'}`, [250]);
     }
+    if (!secure && !client.capabilities.has('STARTTLS')) throw new Error('SMTP server does not offer STARTTLS.');
 
     if (username && password) {
       await client.command('AUTH LOGIN', [334]);
@@ -2958,8 +3006,8 @@ async function sendViaSmtp(log: any, sender: any, config: Record<string, any>) {
       await client.command(Buffer.from(password, 'utf8').toString('base64'), [235]);
     }
 
-    await client.command(`MAIL FROM:<${sender.fromEmail}>`, [250, 251]);
-    await client.command(`RCPT TO:<${log.toEmail}>`, [250, 251]);
+    await client.command(`MAIL FROM:<${fromEmail}>`, [250, 251]);
+    await client.command(`RCPT TO:<${toEmail}>`, [250, 251]);
     await client.command('DATA', [354]);
     await client.data(buildSmtpMessage(log, sender));
     await client.command('.', [250]);
@@ -2975,10 +3023,10 @@ function buildSmtpMessage(log: any, sender: any) {
   const html = log.bodyHtml || textToTrackedHtml(log.bodyText, log.trackingToken);
   const safeSubject = String(log.subject || '').replace(/[\r\n]+/g, ' ').trim();
   return [
-    `From: ${sender.fromName} <${sender.fromEmail}>`,
-    `To: ${log.toEmail}`,
+    `From: ${String(sender.fromName || '').replace(/[\r\n]/g, ' ')} <${safeMailbox(sender.fromEmail)}>`,
+    `To: ${safeMailbox(log.toEmail)}`,
     `Subject: ${safeSubject}`,
-    `Reply-To: ${sender.replyTo || sender.fromEmail}`,
+    `Reply-To: ${safeMailbox(sender.replyTo || sender.fromEmail)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
@@ -2995,6 +3043,14 @@ function buildSmtpMessage(log: any, sender: any) {
     `--${boundary}--`,
     '',
   ].join('\r\n');
+}
+
+function safeMailbox(value: unknown): string {
+  const email = String(value || '').trim().toLowerCase();
+  if (email.length > 320 || !/^[^\s@<>\r\n]+@[^\s@<>\r\n]+\.[^\s@<>\r\n]+$/.test(email)) {
+    throw new Error('Invalid email address.');
+  }
+  return email;
 }
 
 function buildAwsV4Headers(input: {
@@ -3457,31 +3513,6 @@ function decryptProviderConfig(config: Record<string, unknown> | null): Record<s
     decrypted[key] = typeof value === 'string' && value.startsWith('enc:') ? decryptSecret(value) : value;
   }
   return decrypted;
-}
-
-function encryptSecret(value: string) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', encryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `enc:${iv.toString('base64')}:${tag.toString('base64')}:${encrypted.toString('base64')}`;
-}
-
-function decryptSecret(value: string) {
-  try {
-    const [, iv, tag, encrypted] = value.split(':');
-    const decipher = createDecipheriv('aes-256-gcm', encryptionKey(), Buffer.from(iv, 'base64'));
-    decipher.setAuthTag(Buffer.from(tag, 'base64'));
-    return Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64')), decipher.final()]).toString('utf8');
-  } catch {
-    return '';
-  }
-}
-
-function encryptionKey() {
-  return createHash('sha256')
-    .update(process.env.OUTBOUND_SECRET_KEY || process.env.DATABASE_URL || 'geolead-ai-local-dev-key')
-    .digest();
 }
 
 function defaultTemplates(userId: string) {

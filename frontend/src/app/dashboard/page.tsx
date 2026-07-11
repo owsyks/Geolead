@@ -1014,7 +1014,9 @@ export default function DashboardPage() {
             ...exportData.map(row =>
               headers.map(fieldName => {
                 const val = row[fieldName];
-                const escaped = ('' + (val !== null && val !== undefined ? val : '')).replace(/"/g, '""');
+                const raw = '' + (val !== null && val !== undefined ? val : '');
+                const safe = /^[\t\r=+\-@]/.test(raw) ? `'${raw}` : raw;
+                const escaped = safe.replace(/"/g, '""');
                 return `"${escaped}"`;
               }).join(',')
             )

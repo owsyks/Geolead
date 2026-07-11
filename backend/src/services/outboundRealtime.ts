@@ -1,11 +1,18 @@
 import { createHash } from 'node:crypto';
-import type { Server, IncomingMessage } from 'node:http';
+import type { Server } from 'node:http';
 import type { Duplex } from 'node:stream';
+import { consumeWebSocketTicket } from './auth.js';
 
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 type UpgradeSocket = Duplex & { destroyed: boolean };
 
-const clients = new Set<UpgradeSocket>();
+// Each realtime client is bound to the authenticated user that opened it, so
+// events are delivered only to their owner — never broadcast across tenants.
+interface Client {
+  socket: UpgradeSocket;
+  userId: string;
+}
+const clients = new Set<Client>();
 
 export interface OutboundRealtimeEvent {
   type: string;
@@ -13,8 +20,11 @@ export interface OutboundRealtimeEvent {
   createdAt?: string;
 }
 
+// Browsers first obtain a 30-second, single-use WebSocket ticket through an
+// authenticated HTTPS request. The long-lived access token is never placed in
+// a URL or WebSocket subprotocol.
 export function attachOutboundWebSocket(server: Server) {
-  server.on('upgrade', (request, socket) => {
+  server.on('upgrade', (request, socket: UpgradeSocket) => {
     if (!request.url?.startsWith('/ws/outbound')) {
       return;
     }
@@ -25,10 +35,20 @@ export function attachOutboundWebSocket(server: Server) {
       return;
     }
 
-    completeHandshake(request, socket, key);
-    clients.add(socket);
-    socket.on('close', () => clients.delete(socket));
-    socket.on('error', () => clients.delete(socket));
+    const requestUrl = new URL(request.url, 'http://localhost');
+    const userId = consumeWebSocketTicket(requestUrl.searchParams.get('ticket') || '');
+    if (!userId) {
+      // Fail closed: reject unauthenticated upgrades before completing handshake.
+      socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    completeHandshake(socket, key);
+    const client: Client = { socket, userId };
+    clients.add(client);
+    socket.on('close', () => clients.delete(client));
+    socket.on('error', () => clients.delete(client));
 
     sendSocketEvent(socket, {
       type: 'CONNECTED',
@@ -37,18 +57,23 @@ export function attachOutboundWebSocket(server: Server) {
   });
 }
 
-export function broadcastOutboundEvent(event: OutboundRealtimeEvent) {
+// Deliver an event only to the sockets owned by `userId`. A null/undefined
+// owner (legacy unclaimed data) delivers to nobody rather than leaking to all.
+export function broadcastOutboundEvent(userId: string | null | undefined, event: OutboundRealtimeEvent) {
+  if (!userId) return;
   const payload = {
     ...event,
     createdAt: event.createdAt || new Date().toISOString(),
   };
 
   for (const client of clients) {
-    sendSocketEvent(client, payload);
+    if (client.userId === userId) {
+      sendSocketEvent(client.socket, payload);
+    }
   }
 }
 
-function completeHandshake(request: IncomingMessage, socket: UpgradeSocket, key: string) {
+function completeHandshake(socket: UpgradeSocket, key: string) {
   const accept = createHash('sha1')
     .update(`${key}${WS_GUID}`)
     .digest('base64');
@@ -67,7 +92,6 @@ function completeHandshake(request: IncomingMessage, socket: UpgradeSocket, key:
 
 function sendSocketEvent(socket: UpgradeSocket, event: OutboundRealtimeEvent) {
   if (socket.destroyed) {
-    clients.delete(socket);
     return;
   }
 

@@ -5,6 +5,7 @@
 import axios from 'axios';
 import prisma from '../config/db.js';
 import { decryptSecret, encryptSecret, isEncrypted } from '../config/secrets.js';
+import { assertSafeNetworkTarget } from './ssrfGuard.js';
 import { connectSmtp } from './smtpTransport.js';
 
 export interface SettingDefinition {
@@ -254,6 +255,7 @@ async function testSmtp(userId: string): Promise<{ ok: boolean; message: string 
   if (!host) return { ok: false, message: 'No SMTP host set.' };
   const port = Number(portRaw) || (secureRaw === 'true' ? 465 : 587);
   const secure = secureRaw === 'true' || port === 465;
+  await assertSafeNetworkTarget(host, port, [465, 587]);
   let client;
   try {
     client = await connectSmtp(host, port, secure, 8000);
@@ -263,6 +265,9 @@ async function testSmtp(userId: string): Promise<{ ok: boolean; message: string 
       await client.command('STARTTLS', [220]);
       await client.upgradeToTls();
       await client.command(`EHLO geolead.local`, [250]);
+    }
+    if (!secure && !client.capabilities.has('STARTTLS')) {
+      throw new Error('SMTP server does not offer STARTTLS; credentials were not sent.');
     }
     if (user && password) {
       await client.command('AUTH LOGIN', [334]);

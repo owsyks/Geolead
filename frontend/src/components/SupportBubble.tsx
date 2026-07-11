@@ -71,6 +71,7 @@ export default function SupportBubble() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"chat" | "history">("chat");
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [guestAccessToken, setGuestAccessToken] = useState<string | null>(null);
   const [messages, setMessages] = useState<BubbleMessage[]>([]);
   const [ticketList, setTicketList] = useState<MyTicket[]>([]);
   const [seen, setSeen] = useState<Record<string, string>>({});
@@ -105,8 +106,9 @@ export default function SupportBubble() {
       setSeen(stored.seen);
       seenCount.current = stored.messages.length;
     } else {
-      const stored = readJson(GUEST_KEY, { ticketId: null as string | null, messages: [] as BubbleMessage[], identity: null as GuestIdentity | null });
+      const stored = readJson(GUEST_KEY, { ticketId: null as string | null, accessToken: null as string | null, messages: [] as BubbleMessage[], identity: null as GuestIdentity | null });
       setTicketId(stored.ticketId);
+      setGuestAccessToken(stored.accessToken);
       setMessages(stored.messages);
       setGuestIdentity(stored.identity);
       seenCount.current = stored.messages.length;
@@ -118,9 +120,9 @@ export default function SupportBubble() {
     if (user) {
       window.localStorage.setItem(AUTH_KEY, JSON.stringify({ ticketId, messages, seen }));
     } else {
-      window.localStorage.setItem(GUEST_KEY, JSON.stringify({ ticketId, messages, identity: guestIdentity }));
+      window.localStorage.setItem(GUEST_KEY, JSON.stringify({ ticketId, accessToken: guestAccessToken, messages, identity: guestIdentity }));
     }
-  }, [user, loading, ticketId, messages, seen, guestIdentity]);
+  }, [user, loading, ticketId, guestAccessToken, messages, seen, guestIdentity]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -131,13 +133,15 @@ export default function SupportBubble() {
   // means a reply that landed while the bubble was closed/collapsed shows up
   // the moment it's reopened, instead of waiting out a full interval first.
   useVisiblePolling({
-    enabled: !!ticketId,
+    enabled: !!ticketId && (!!user || !!guestAccessToken),
     intervalMs: 15000,
     maxIntervalMs: 60000,
     immediate: true,
     poll: async () => {
       if (!ticketId) return false;
-      const { messages: thread } = user ? await getTicketMessages(ticketId) : await getGuestTicketMessages(ticketId);
+      const { messages: thread } = user
+        ? await getTicketMessages(ticketId)
+        : await getGuestTicketMessages(ticketId, guestAccessToken!);
       const mapped = mapThread(thread);
       threadCache.current[ticketId] = mapped;
       setMessages(mapped);
@@ -221,8 +225,9 @@ export default function SupportBubble() {
     if (guestIdentity) {
       setBusy(true);
       try {
-        const { id } = await startGuestChat(guestIdentity.name, guestIdentity.email, triggerText);
+        const { id, accessToken } = await startGuestChat(guestIdentity.name, guestIdentity.email, triggerText);
         setTicketId(id);
+        setGuestAccessToken(accessToken);
         seenCount.current = messages.length;
         await botSay("Thanks! You're connected with our team — they'll reply right here, and by email too.");
       } catch {
@@ -245,9 +250,10 @@ export default function SupportBubble() {
     setFormError(null);
     setFormBusy(true);
     try {
-      const { id } = await startGuestChat(name, email, pendingEscalate || "Chat bubble — talk to a human");
+      const { id, accessToken } = await startGuestChat(name, email, pendingEscalate || "Chat bubble — talk to a human");
       setGuestIdentity({ name, email });
       setTicketId(id);
+      setGuestAccessToken(accessToken);
       setPendingEscalate(null);
       seenCount.current = messages.length;
       await botSay("Thanks! You're connected with our team — they'll reply right here, and by email too.");
@@ -268,7 +274,8 @@ export default function SupportBubble() {
       setBusy(true);
       try {
         if (user) await postTicketMessage(ticketId, text);
-        else await postGuestTicketMessage(ticketId, text);
+        else if (guestAccessToken) await postGuestTicketMessage(ticketId, guestAccessToken, text);
+        else throw new Error('Missing guest ticket capability.');
       } catch {
         pushLocal({ from: "bot", text: "That message didn't send — please try again." });
       } finally {

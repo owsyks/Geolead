@@ -127,8 +127,12 @@ export default function InboxPage() {
     }
     const base = OUTBOUND_API_BASE.replace(/^http/, "ws");
     let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(`${base}/ws/outbound`);
+    let cancelled = false;
+    void (async () => {
+      try {
+      const { ticket } = await fetchOutbound<{ ticket: string }>("/api/auth/ws-ticket", { method: "POST" });
+      if (cancelled) return;
+      ws = new WebSocket(`${base}/ws/outbound?ticket=${encodeURIComponent(ticket)}`);
       wsRef.current = ws;
       ws.onmessage = (event) => {
         try {
@@ -146,8 +150,9 @@ export default function InboxPage() {
           }
         } catch { /* ignore */ }
       };
-    } catch { /* ws unavailable */ }
-    return () => { try { ws?.close(); } catch { /* ignore */ } };
+      } catch { /* ws unavailable */ }
+    })();
+    return () => { cancelled = true; try { ws?.close(); } catch { /* ignore */ } };
   }, [load]);
 
   const enableNotifications = async () => {

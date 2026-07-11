@@ -9,7 +9,7 @@ export const redisConnection = new IORedis(redisUrl, {
   lazyConnect: true,
   enableOfflineQueue: false,
   retryStrategy: (times) => (times > 3 ? null : Math.min(times * 500, 2000)),
-  ...(isTls ? { tls: { rejectUnauthorized: false } } : {}),
+  ...(isTls ? { tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.REDIS_REJECT_UNAUTHORIZED !== 'false' } } : {}),
 });
 
 redisConnection.on('error', (err) => {

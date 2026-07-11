@@ -596,6 +596,10 @@ export async function listBuyers(domainId: string, userId: string) {
 
 export async function createBuyer(domainId: string, input: BuyerInput, userId: string) {
   await assertDomainOwner(domainId, userId);
+  if (input.leadId) {
+    const ownedLead = await prisma.lead.findFirst({ where: { id: input.leadId, ownerId: userId }, select: { id: true } });
+    if (!ownedLead) throw new Error('Lead not found.');
+  }
   return prisma.domainBuyer.create({
     data: {
       domainId,
@@ -646,6 +650,10 @@ export async function recordOffer(domainId: string, input: OfferInput, userId: s
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new Error('Offer amount must be greater than zero.');
   }
+  if (input.buyerId) {
+    const buyer = await prisma.domainBuyer.findFirst({ where: { id: input.buyerId, domainId }, select: { id: true } });
+    if (!buyer) throw new Error('Buyer not found.');
+  }
   return prisma.domainOffer.create({
     data: {
       domainId,
@@ -661,8 +669,12 @@ export async function recordOffer(domainId: string, input: OfferInput, userId: s
 }
 
 export async function updateOffer(offerId: string, input: Partial<OfferInput>, userId: string) {
-  const owned = await prisma.domainOffer.findFirst({ where: { id: offerId, domain: { userId } }, select: { id: true } });
+  const owned = await prisma.domainOffer.findFirst({ where: { id: offerId, domain: { userId } }, select: { id: true, domainId: true } });
   if (!owned) throw new Error('Offer not found.');
+  if (input.buyerId) {
+    const buyer = await prisma.domainBuyer.findFirst({ where: { id: input.buyerId, domainId: owned.domainId }, select: { id: true } });
+    if (!buyer) throw new Error('Buyer not found.');
+  }
   return prisma.domainOffer.update({
     where: { id: offerId },
     data: {

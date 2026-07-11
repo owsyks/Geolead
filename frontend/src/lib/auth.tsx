@@ -20,7 +20,6 @@ import {
   setTokens,
   clearTokens,
   getAccessToken,
-  getRefreshToken,
   setUnauthorizedHandler,
   setUpgradeHandler,
   type UpgradeSignal,
@@ -80,11 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/";
 
   const loadMe = useCallback(async () => {
-    if (!getAccessToken() && !getRefreshToken()) {
-      setUser(null);
-      clearAllCache();
-      return;
-    }
     try {
       const data = await fetchOutbound<{ user: AuthUser }>("/api/auth/me");
       setUser(data.user);
@@ -100,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // (Initial state stays null/true so SSR and first client render match.)
   useIsoLayoutEffect(() => {
     const cached = readCache<AuthUser>(USER_CACHE_KEY);
-    if (cached && (getAccessToken() || getRefreshToken())) {
+    if (cached && getAccessToken()) {
       setUser(cached);
       setLoading(false);
     }
@@ -148,12 +142,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string, remember = true) => {
     const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
       body: JSON.stringify({ email, password, remember }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Login failed.");
-    setTokens(data.accessToken, data.refreshToken);
+    setTokens(data.accessToken);
     clearAllCache(); // drop any previous account's cached page data
     setUser(data.user);
     writeCache(USER_CACHE_KEY, data.user);
@@ -162,24 +157,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (name: string, email: string, password: string) => {
     const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
       body: JSON.stringify({ name, email, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Registration failed.");
-    setTokens(data.accessToken, data.refreshToken);
+    setTokens(data.accessToken);
     clearAllCache();
     setUser(data.user);
     writeCache(USER_CACHE_KEY, data.user);
   }, []);
 
   const logout = useCallback(async () => {
-    const refreshToken = getRefreshToken();
     try {
       await fetch(`${OUTBOUND_API_BASE}/api/auth/logout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
       });
     } catch {
       /* best-effort */

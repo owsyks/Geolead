@@ -1,5 +1,6 @@
 import net from 'node:net';
 import tls from 'node:tls';
+import { assertSafeNetworkTarget } from './ssrfGuard.js';
 import { resolveMx } from 'node:dns/promises';
 
 const SMTP_TIMEOUT_MS = 6000;
@@ -187,6 +188,7 @@ export async function inspectSsl(domain: string): Promise<SslCheckResult> {
 
 async function performSslCheck(domain: string): Promise<SslCheckResult> {
   const empty: SslCheckResult = { valid: false, issuer: null, daysToExpiry: null, selfSigned: false };
+  try { await assertSafeNetworkTarget(domain, 443, [443]); } catch { return empty; }
   return new Promise<SslCheckResult>((resolve) => {
     let resolved = false;
     const settle = (v: SslCheckResult) => { if (!resolved) { resolved = true; resolve(v); } };

@@ -191,6 +191,8 @@ router.post('/webhook/paddle', async (req, res) => {
   const event = req.body as { event_type?: string; data?: any };
   const type = event?.event_type || '';
   const data = event?.data || {};
+  const eventId = String((req.body as any)?.event_id || (req.body as any)?.notification_id || '');
+  if (!eventId) return res.status(400).json({ error: 'Webhook event id is required.' });
 
   try {
     const userId: string | undefined = data.custom_data?.userId;
@@ -209,6 +211,7 @@ router.post('/webhook/paddle', async (req, res) => {
       console.warn(`[Billing] Paddle webhook ${type} without a resolvable user.`);
       return res.json({ received: true });
     }
+    if (!(await claimBillingEvent('paddle', eventId, type, localUserId))) return res.json({ received: true, duplicate: true });
 
     switch (type) {
       case 'subscription.activated':
@@ -242,6 +245,8 @@ router.post('/webhook/coinbase', async (req, res) => {
   const event = req.body?.event as { type?: string; data?: any };
   const type = event?.type || '';
   const data = event?.data || {};
+  const eventId = String((event as any)?.id || data?.id || '');
+  if (!eventId) return res.status(400).json({ error: 'Webhook event id is required.' });
 
   try {
     const userId: string | undefined = data.metadata?.userId;
@@ -251,6 +256,7 @@ router.post('/webhook/coinbase', async (req, res) => {
       console.warn(`[Billing] Coinbase webhook ${type} missing userId/tier.`);
       return res.json({ received: true });
     }
+    if (!(await claimBillingEvent('coinbase', eventId, type, userId))) return res.json({ received: true, duplicate: true });
 
     // Grant access on confirmed/resolved payments. Idempotent: extends from the
     // later of now / existing period end so a re-delivered webhook won't shrink it.
@@ -268,6 +274,18 @@ router.post('/webhook/coinbase', async (req, res) => {
     return res.json({ received: true, error: 'handling_failed' });
   }
 });
+
+async function claimBillingEvent(provider: string, externalId: string, type: string, userId: string): Promise<boolean> {
+  try {
+    await prisma.webhookEvent.create({
+      data: { provider, externalId, type, userId, payload: { type }, processed: true },
+    });
+    return true;
+  } catch (error: any) {
+    if (error?.code === 'P2002') return false;
+    throw error;
+  }
+}
 
 // Reconcile a Paddle subscription status into our Subscription + User. Idempotent.
 async function applyPaddleState(

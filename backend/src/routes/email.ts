@@ -15,9 +15,9 @@ import {
 } from '../services/deliverabilityEngine.js';
 import { emailVerificationQueue } from '../queues/queues.js';
 import { requireAuth } from '../middleware/auth.js';
+import { rateLimit as distributedRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 const MAX_INLINE_BULK = 50;
 
 interface ProgressEntry {
@@ -26,6 +26,7 @@ interface ProgressEntry {
   confidenceScore: number;
 }
 interface ProgressSlot {
+  userId: string;
   results: ProgressEntry[];
   total: number;
   done: number;
@@ -75,7 +76,7 @@ router.post(
     if (emails.length <= MAX_INLINE_BULK) {
       const token = randomBytes(32).toString('hex');
       const now = Date.now();
-      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
+      const slot: ProgressSlot = { userId: req.userId!, results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
       progressStore.set(token, slot);
 
       let stalledTimer: NodeJS.Timeout | null = null;
@@ -106,7 +107,7 @@ router.post(
     }
 
     const job = await prisma.emailVerificationJob.create({
-      data: { status: 'PENDING', totalEmails: emails.length },
+      data: { userId: req.userId!, status: 'PENDING', totalEmails: emails.length },
     });
 
     try {
@@ -120,7 +121,7 @@ router.post(
       console.warn('[email] Queue enqueue failed; running inline:', err?.message);
       const token = randomBytes(12).toString('hex');
       const now = Date.now();
-      const slot: ProgressSlot = { results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
+      const slot: ProgressSlot = { userId: req.userId!, results: [], total: emails.length, done: 0, complete: false, lastActivityAt: now };
       progressStore.set(token, slot);
 
       let stalledTimer: NodeJS.Timeout | null = null;
@@ -161,7 +162,7 @@ router.get(
   '/verify-bulk/progress/:token',
   wrap(async (req, res) => {
     const slot = progressStore.get(req.params.token);
-    if (!slot) return res.status(404).json({ error: 'Progress token not found or expired' });
+    if (!slot || slot.userId !== req.userId) return res.status(404).json({ error: 'Progress token not found or expired' });
     // Auto-complete if no activity for 60s (SMTP timeouts may silently stall workers)
     if (!slot.complete && Date.now() - slot.lastActivityAt > 60_000) {
       slot.complete = true;
@@ -180,7 +181,7 @@ router.get(
 router.get(
   '/verify-bulk/:jobId',
   wrap(async (req, res) => {
-    const job = await prisma.emailVerificationJob.findUnique({ where: { id: req.params.jobId } });
+    const job = await prisma.emailVerificationJob.findFirst({ where: { id: req.params.jobId, userId: req.userId! } });
     if (!job) return res.status(404).json({ error: 'Job not found' });
     const percent = job.totalEmails > 0 ? Math.round((job.processedEmails / job.totalEmails) * 100) : 0;
     res.json({ ...job, percentComplete: percent });
@@ -232,14 +233,14 @@ router.get(
   '/statistics',
   wrap(async (_req, res) => {
     const [total, valid, risky, invalid, disposable, role, freeProv, mxValid] = await Promise.all([
-      prisma.leadEmail.count(),
-      prisma.leadEmail.count({ where: { status: 'VALID' } }),
-      prisma.leadEmail.count({ where: { status: 'RISKY' } }),
-      prisma.leadEmail.count({ where: { status: 'INVALID' } }),
-      prisma.leadEmail.count({ where: { disposable: true } }),
-      prisma.leadEmail.count({ where: { roleAccount: true } }),
-      prisma.leadEmail.count({ where: { freeProvider: true } }),
-      prisma.leadEmail.count({ where: { mxValid: true } }),
+      prisma.leadEmail.count({ where: { lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { status: 'VALID', lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { status: 'RISKY', lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { status: 'INVALID', lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { disposable: true, lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { roleAccount: true, lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { freeProvider: true, lead: { ownerId: _req.userId! } } }),
+      prisma.leadEmail.count({ where: { mxValid: true, lead: { ownerId: _req.userId! } } }),
     ]);
 
     const ratio = (n: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);
@@ -297,27 +298,7 @@ function summarize(results: EmailVerificationResult[]) {
 interface RateLimitConfig { key: string; limit: number; windowMs: number }
 
 function rateLimit(config: RateLimitConfig): RequestHandler {
-  return (req, res, next) => {
-    const clientKey = `${config.key}:${getClientId(req)}`;
-    const now = Date.now();
-    const bucket = rateBuckets.get(clientKey);
-    if (!bucket || bucket.resetAt <= now) {
-      rateBuckets.set(clientKey, { count: 1, resetAt: now + config.windowMs });
-      return next();
-    }
-    if (bucket.count >= config.limit) {
-      res.setHeader('Retry-After', String(Math.ceil((bucket.resetAt - now) / 1000)));
-      return res.status(429).json({ error: 'Rate limit exceeded.' });
-    }
-    bucket.count += 1;
-    return next();
-  };
-}
-
-function getClientId(req: Request): string {
-  const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.trim()) return fwd.split(',')[0].trim();
-  return req.ip || req.socket.remoteAddress || 'unknown';
+  return distributedRateLimit(config.key, config.limit, config.windowMs);
 }
 
 function wrap(handler: (req: Request, res: Response, next: NextFunction) => Promise<unknown>): RequestHandler {
@@ -325,7 +306,7 @@ function wrap(handler: (req: Request, res: Response, next: NextFunction) => Prom
     handler(req, res, next).catch((err) => {
       console.error('[email] Route error:', err);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error', detail: err?.message });
+        res.status(500).json({ error: 'Internal server error' });
       }
     });
   };

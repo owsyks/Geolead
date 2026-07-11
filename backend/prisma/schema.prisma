@@ -129,6 +129,7 @@ model User {
   sessions      Session[]
   passwordResetTokens PasswordResetToken[]
   verificationTokens  VerificationToken[]
+  emailVerificationJobs EmailVerificationJob[]
   oauthAccounts OAuthAccount[]
   integrations  Integration[]
   userSettings  UserSettings?
@@ -136,6 +137,7 @@ model User {
   watchedDomains WatchedDomain[]
   subscription  Subscription?
   supportTickets SupportTicket[]
+  webhookEvents WebhookEvent[]
 }
 
 // User-submitted support/bug/feature requests, surfaced in the admin Tickets tab.
@@ -153,6 +155,7 @@ model SupportTicket {
   priority   String   @default("NORMAL")   // LOW | NORMAL | HIGH | URGENT
   status     String   @default("OPEN")     // OPEN | IN_PROGRESS | DONE | BACKLOG
   assignedTo String?
+  guestAccessTokenHash String? @unique
   messages   SupportMessage[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -202,6 +205,7 @@ model Session {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash  String   @unique
+  familyId   String
   userAgent  String?
   ip         String?
   expiresAt  DateTime
@@ -209,6 +213,7 @@ model Session {
   createdAt  DateTime @default(now())
 
   @@index([userId])
+  @@index([familyId])
 }
 
 model PasswordResetToken {
@@ -474,6 +479,7 @@ model EmailLog {
   status           String      @default("QUEUED")
   trackingToken    String      @unique
   unsubscribeToken String
+  clickDestination String?   @db.Text
   scheduledAt      DateTime?
   sentAt           DateTime?
   deliveredAt      DateTime?
@@ -564,12 +570,17 @@ model AnalyticsSnapshot {
 
 model WebhookEvent {
   id             String      @id @default(uuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   provider       String
   type           String
   externalId     String?
   payload        Json
   processed      Boolean     @default(false)
   createdAt      DateTime    @default(now())
+
+  @@unique([provider, externalId])
+  @@index([userId])
 }
 
 model SuppressionEntry {
@@ -630,6 +641,8 @@ model LeadEmail {
 
 model EmailVerificationJob {
   id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   status          String   @default("PENDING") // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
   totalEmails     Int      @default(0)
   processedEmails Int      @default(0)
@@ -640,6 +653,8 @@ model EmailVerificationJob {
   metadata        Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // Key/value config table that the Settings page reads & writes. Lets users

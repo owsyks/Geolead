@@ -57,8 +57,8 @@ export function verifyWebhookSignature(rawBody: string, signature: string | unde
   if (!secret || !signature) return false;
   try {
     const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-    const a = Buffer.from(expected);
-    const b = Buffer.from(signature);
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(signature, 'hex');
     return a.length === b.length && timingSafeEqual(a, b);
   } catch (err: any) {
     console.error('[Coinbase] Webhook verification failed:', err?.message);

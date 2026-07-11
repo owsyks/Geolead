@@ -5,6 +5,7 @@ import { encryptSecret, decryptSecret, isEncrypted } from '../config/secrets.js'
 import { getMailbox, syncMailbox, testImapConnection } from '../services/inboxSync.js';
 import { REPLY_CATEGORIES } from '../services/replyAnalysis.js';
 import { requireAuth } from '../middleware/auth.js';
+import { assertSafeNetworkTarget } from '../services/ssrfGuard.js';
 
 const router = Router();
 
@@ -45,6 +46,8 @@ router.patch('/mailbox', wrap(async (req, res) => {
     enabled: req.body.enabled === undefined ? (existing?.enabled ?? false) : Boolean(req.body.enabled),
     syncIntervalSec: asNumber(req.body.syncIntervalSec) ?? existing?.syncIntervalSec ?? 60,
   };
+  if (process.env.NODE_ENV === 'production' && !data.useSsl) return res.status(400).json({ error: 'TLS is required for IMAP in production.' });
+  await assertSafeNetworkTarget(data.imapHost, data.imapPort, data.useSsl ? [993] : [143]);
 
   // Only overwrite the app password when a new one is supplied.
   const newPassword = asString(req.body.appPassword);
@@ -68,11 +71,16 @@ router.post('/mailbox/test', wrap(async (req, res) => {
       ? decryptSecret(existing.appPassword)
       : existing?.appPassword || '';
   if (!password) return res.status(400).json({ error: 'No app password available to test.' });
+  const imapHost = asString(req.body.imapHost) || existing?.imapHost || 'imap.gmail.com';
+  const imapPort = asNumber(req.body.imapPort) ?? existing?.imapPort ?? 993;
+  const useSsl = req.body.useSsl === undefined ? (existing?.useSsl ?? true) : Boolean(req.body.useSsl);
+  if (process.env.NODE_ENV === 'production' && !useSsl) return res.status(400).json({ error: 'TLS is required for IMAP in production.' });
+  await assertSafeNetworkTarget(imapHost, imapPort, useSsl ? [993] : [143]);
 
   const result = await testImapConnection({
-    imapHost: asString(req.body.imapHost) || existing?.imapHost || 'imap.gmail.com',
-    imapPort: asNumber(req.body.imapPort) ?? existing?.imapPort ?? 993,
-    useSsl: req.body.useSsl === undefined ? (existing?.useSsl ?? true) : Boolean(req.body.useSsl),
+    imapHost,
+    imapPort,
+    useSsl,
     username: asString(req.body.username) || existing?.username || asString(req.body.email) || existing?.email || '',
     password,
   });
