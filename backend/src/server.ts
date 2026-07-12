@@ -60,7 +60,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-GeoLead-Client', 'X-Inbound-Secret'],
 }));
 app.set('trust proxy', 1);
-// Capture the raw request body so provider webhooks (Paddle, Coinbase) can be
+// Capture the raw request body so the Paymento IPN signature can be
 // signature-verified against the exact bytes received, while normal routes keep
 // using the parsed JSON body.
 app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));

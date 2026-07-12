@@ -138,6 +138,7 @@ model User {
   subscription  Subscription?
   supportTickets SupportTicket[]
   webhookEvents WebhookEvent[]
+  paymentAttempts PaymentAttempt[]
 }
 
 // User-submitted support/bug/feature requests, surfaced in the admin Tickets tab.
@@ -177,16 +178,14 @@ model SupportMessage {
   @@index([ticketId])
 }
 
-// One active billing record per user. provider = 'paddle' (card subscription) or
-// 'coinbase' (one-time crypto payment granting a fixed access window). Created/
-// updated from the checkout flow + provider webhooks. planTier drives
-// entitlements in billing.ts.
+// One active billing record per user. Legacy provider values remain readable,
+// while all new purchases use Paymento one-time crypto access windows.
 model Subscription {
   id                     String    @id @default(uuid())
   userId                 String    @unique
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider               String    @default("paddle") // paddle | coinbase
-  providerSubscriptionId String?   @unique // Paddle subscription id / Coinbase charge id
+  provider               String    @default("paymento")
+  providerSubscriptionId String?   @unique
   providerCustomerId     String?
   planTier               String    // starter | pro
   status                 String    // pending | active | past_due | canceled | expired (or provider-native)
@@ -581,6 +580,41 @@ model WebhookEvent {
 
   @@unique([provider, externalId])
   @@index([userId])
+}
+
+model RegistrationChallenge {
+  email           String   @id
+  codeHash        String
+  expiresAt       DateTime
+  attempts        Int      @default(0)
+  lastSentAt      DateTime
+  windowStartedAt DateTime
+  sendCount       Int      @default(1)
+  consumedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+model PaymentAttempt {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerToken     String?  @unique
+  providerPaymentId String?
+  tier              String
+  amountCents       Int
+  currency          String   @default("USD")
+  status            String   @default("creating")
+  providerStatus    Int?
+  processedAt       DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
 
 model SuppressionEntry {

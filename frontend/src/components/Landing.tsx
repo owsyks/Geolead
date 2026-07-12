@@ -397,7 +397,7 @@ export default function Landing() {
                   See how it works
                 </a>
               </div>
-              <p className="text-[11px] text-text-faint font-mono">Cancel anytime · CAN-SPAM compliant · Secured by Stripe</p>
+              <p className="text-[11px] text-text-faint font-mono">No card required · CAN-SPAM compliant · One-time crypto access</p>
             </div>
 
             {/* right — terminal */}
@@ -822,7 +822,7 @@ export default function Landing() {
             </Link>
           </div>
           <div className="mt-6 flex items-center justify-center gap-6 text-[12px] text-text-faint font-mono flex-wrap">
-            <span className="flex items-center gap-1.5"><Lock className="w-3 h-3" /> Secured by Stripe</span>
+            <span className="flex items-center gap-1.5"><Lock className="w-3 h-3" /> Secure Paymento crypto checkout</span>
             <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> CAN-SPAM compliant</span>
             <span className="flex items-center gap-1.5"><Check className="w-3 h-3" /> Cancel anytime</span>
           </div>

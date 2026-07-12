@@ -55,6 +55,31 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   );
 }
 
+// Registration codes are part of the account-creation security boundary. In
+// production, delivery failure must fail closed so the UI never claims a code
+// was sent when it was not. Local development may log the code when Resend is
+// intentionally absent; production never logs it.
+export async function sendRegistrationCode(to: string, code: string): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === 'production') throw new Error('RESEND_NOT_CONFIGURED');
+    console.log(`[Mailer] Registration code for ${to}: ${code}`);
+    return;
+  }
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="margin:0 0 12px">Verify your email</h2>
+    <p style="margin:0 0 20px;line-height:1.5;color:#334155">Enter this code to create your GeoLead AI account. It expires in 10 minutes.</p>
+    <div style="font-size:32px;font-weight:800;letter-spacing:10px;padding:16px 20px;background:#f1f5f9;border-radius:10px;text-align:center">${code}</div>
+    <p style="margin:20px 0 0;font-size:12px;color:#64748b">If you did not request this code, you can ignore this email.</p>
+  </div>`;
+  await axios.post(
+    'https://api.resend.com/emails',
+    { from: systemFrom(), to, subject: `${code} is your GeoLead AI verification code`, html },
+    { headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+  );
+}
+
 export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
   const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
   await sendEmail(

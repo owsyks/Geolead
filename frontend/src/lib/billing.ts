@@ -1,6 +1,3 @@
-// Frontend billing client: plan catalogue, current subscription summary, and the
-// checkout calls — cards via Paddle, crypto via Coinbase Commerce. All go through
-// fetchOutbound so the Bearer token + 402 upgrade handling are shared app-wide.
 import { fetchOutbound } from "@/lib/outbound";
 
 export type Tier = "trial" | "starter" | "pro";
@@ -24,7 +21,6 @@ export interface PlanCatalogItem {
 
 export interface PlansResponse {
   plans: PlanCatalogItem[];
-  cardConfigured: boolean;
   cryptoConfigured: boolean;
   cryptoAccessDays: number;
 }
@@ -55,38 +51,9 @@ export function getBillingSummary(): Promise<BillingSummary> {
   return fetchOutbound<BillingSummary>("/api/billing/me");
 }
 
-export interface CheckoutResponse {
-  provider: "paddle" | "coinbase";
-  checkoutUrl: string | null;
-  tier: Tier;
-}
-
-// Card checkout via Paddle — returns a hosted checkout URL to redirect to.
-export function subscribe(tier: Tier): Promise<CheckoutResponse> {
-  return fetchOutbound("/api/billing/subscribe", {
+export function createPaymentoCheckout(tier: Tier): Promise<{ provider: "paymento"; checkoutUrl: string; tier: Tier }> {
+  return fetchOutbound("/api/billing/paymento/checkout", {
     method: "POST",
     body: JSON.stringify({ tier }),
   });
-}
-
-// Crypto checkout via Coinbase Commerce — returns a hosted charge URL.
-export function createCryptoCharge(tier: Tier): Promise<CheckoutResponse> {
-  return fetchOutbound("/api/billing/crypto/charge", {
-    method: "POST",
-    body: JSON.stringify({ tier }),
-  });
-}
-
-// Switch an existing active card subscription to another tier (proration handled
-// by Paddle — no second charge). Throws ApiError with code NO_ACTIVE_SUBSCRIPTION
-// (409) when there's no live subscription; callers then fall back to subscribe().
-export function changePlan(tier: Tier): Promise<{ ok: boolean; tier: Tier }> {
-  return fetchOutbound("/api/billing/change-plan", {
-    method: "POST",
-    body: JSON.stringify({ tier }),
-  });
-}
-
-export function cancelSubscription(): Promise<{ ok: boolean; message: string }> {
-  return fetchOutbound("/api/billing/cancel", { method: "POST" });
 }

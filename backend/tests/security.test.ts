@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { assertSafeUrl, isBlockedAddress } from '../src/services/ssrfGuard.js';
 import { validatePasswordStrength } from '../src/services/auth.js';
 import { verifyResendWebhook } from '../src/services/webhookSecurity.js';
+import { verifyIpnSignature } from '../src/services/paymento.js';
 import {
   campaignEmailLogTenantWhere,
   isConsistentReplyThread,
@@ -39,6 +40,22 @@ test('Resend webhook signatures require an authentic fresh raw body', () => {
   assert.equal(verifyResendWebhook(req, secret).valid, true);
   req.rawBody = Buffer.from('{"type":"email.bounced"}');
   assert.equal(verifyResendWebhook(req, secret).valid, false);
+});
+
+test('Paymento IPN requires an uppercase HMAC over the exact raw body', () => {
+  const previous = process.env.PAYMENTO_IPN_SECRET;
+  const secret = 'paymento-test-secret-with-sufficient-entropy';
+  process.env.PAYMENTO_IPN_SECRET = secret;
+  try {
+    const raw = Buffer.from('{"Token":"abc123","OrderStatus":7}');
+    const valid = createHmac('sha256', secret).update(raw).digest('hex').toUpperCase();
+    assert.equal(verifyIpnSignature(raw, valid), true);
+    assert.equal(verifyIpnSignature(Buffer.from('{"Token":"abc123","OrderStatus":8}'), valid), false);
+    assert.equal(verifyIpnSignature(raw, 'not-a-signature'), false);
+  } finally {
+    if (previous === undefined) delete process.env.PAYMENTO_IPN_SECRET;
+    else process.env.PAYMENTO_IPN_SECRET = previous;
+  }
 });
 
 test('tenant predicates require campaign, lead, and mailbox ownership to agree', () => {

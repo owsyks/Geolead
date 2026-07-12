@@ -2,6 +2,8 @@
 // verification, password reset, and profile (/me). Email + password only this
 // pass; the schema is OAuth-ready for a later provider integration.
 import { Router, type Request, type Response, type NextFunction } from 'express';
+import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { requireAuth, isAdminEmail } from '../middleware/auth.js';
@@ -19,10 +21,9 @@ import {
   consumeVerificationToken,
   createResetToken,
   consumeResetToken,
-  ensureUserWorkspace,
   issueWebSocketTicket,
 } from '../services/auth.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/mailer.js';
+import { sendVerificationEmail, sendPasswordResetEmail, sendRegistrationCode } from '../services/mailer.js';
 import { trialEndFromNow } from '../services/billing.js';
 
 const router = Router();
@@ -95,30 +96,153 @@ function trustedBrowserOrigin(req: Request, res: Response, next: NextFunction) {
   return next();
 }
 
+const REGISTRATION_CODE_TTL_MS = 10 * 60 * 1000;
+const REGISTRATION_RESEND_MS = 60 * 1000;
+const REGISTRATION_SEND_WINDOW_MS = 60 * 60 * 1000;
+const REGISTRATION_MAX_SENDS = 5;
+const REGISTRATION_MAX_ATTEMPTS = 5;
+
+function registrationCodeHash(email: string, code: string): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is required for registration codes.');
+  return createHmac('sha256', secret).update(`geolead:registration:v1\0${email}\0${code}`).digest('hex');
+}
+
+function codeMatches(expectedHex: string, actualHex: string): boolean {
+  if (expectedHex.length !== actualHex.length) return false;
+  return timingSafeEqual(Buffer.from(expectedHex, 'ascii'), Buffer.from(actualHex, 'ascii'));
+}
+
+class RegistrationThrottleError extends Error {
+  constructor(public retryAfterSeconds: number) { super('REGISTRATION_THROTTLED'); }
+}
+
+async function storeRegistrationChallenge(email: string, codeHash: string, now: Date): Promise<void> {
+  for (let retry = 0; retry < 3; retry += 1) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        if (await tx.user.findUnique({ where: { email }, select: { id: true } })) throw new Error('REGISTRATION_EXISTS');
+        const existing = await tx.registrationChallenge.findUnique({ where: { email } });
+        if (existing && now.getTime() - existing.lastSentAt.getTime() < REGISTRATION_RESEND_MS) {
+          throw new RegistrationThrottleError(Math.ceil((REGISTRATION_RESEND_MS - (now.getTime() - existing.lastSentAt.getTime())) / 1000));
+        }
+        const withinWindow = !!existing && now.getTime() - existing.windowStartedAt.getTime() < REGISTRATION_SEND_WINDOW_MS;
+        if (withinWindow && existing!.sendCount >= REGISTRATION_MAX_SENDS) {
+          const retryAfter = Math.max(1, Math.ceil((REGISTRATION_SEND_WINDOW_MS - (now.getTime() - existing!.windowStartedAt.getTime())) / 1000));
+          throw new RegistrationThrottleError(retryAfter);
+        }
+        await tx.registrationChallenge.upsert({
+          where: { email },
+          create: { email, codeHash, expiresAt: new Date(now.getTime() + REGISTRATION_CODE_TTL_MS), lastSentAt: now, windowStartedAt: now },
+          update: {
+            codeHash,
+            expiresAt: new Date(now.getTime() + REGISTRATION_CODE_TTL_MS),
+            lastSentAt: now,
+            attempts: 0,
+            consumedAt: null,
+            windowStartedAt: withinWindow ? existing!.windowStartedAt : now,
+            sendCount: withinWindow ? existing!.sendCount + 1 : 1,
+          },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return;
+    } catch (error: any) {
+      if (error?.code === 'P2034' && retry < 2) continue;
+      throw error;
+    }
+  }
+}
+
+// Send mailbox proof before creating any User or session.
+router.post('/registration-code', trustedBrowserOrigin, rateLimit('auth-registration-code', 10, 60 * 60 * 1000), async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!validateEmail(email)) return res.status(400).json({ error: 'A valid email is required.' });
+  if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) {
+    return res.status(409).json({ error: 'An account with this email already exists.' });
+  }
+
+  const now = new Date();
+  const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+  const codeHash = registrationCodeHash(email, code);
+  try {
+    await storeRegistrationChallenge(email, codeHash, now);
+  } catch (error) {
+    if (error instanceof RegistrationThrottleError) {
+      res.setHeader('Retry-After', String(error.retryAfterSeconds));
+      return res.status(429).json({ error: 'Too many verification code requests. Please wait before trying again.' });
+    }
+    if (error instanceof Error && error.message === 'REGISTRATION_EXISTS') {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+    throw error;
+  }
+
+  try {
+    await sendRegistrationCode(email, code);
+  } catch (error) {
+    await prisma.registrationChallenge.updateMany({ where: { email, codeHash }, data: { expiresAt: now } });
+    console.error('[Auth] Registration email delivery failed:', error instanceof Error ? error.message : 'unknown');
+    return res.status(502).json({ error: 'Could not send the verification code. Please try again.' });
+  }
+  return res.json({ ok: true, expiresInSeconds: REGISTRATION_CODE_TTL_MS / 1000, resendAfterSeconds: REGISTRATION_RESEND_MS / 1000 });
+});
+
 // ---- Register -----------------------------------------------------------
 router.post('/register', trustedBrowserOrigin, rateLimit('auth-register', 10, 15 * 60 * 1000), async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
+  const code = String(req.body?.code || '').trim();
 
   if (!name || name.length > 200) return res.status(400).json({ error: 'Name must be between 1 and 200 characters.' });
   if (!validateEmail(email)) return res.status(400).json({ error: 'A valid email is required.' });
   const weak = validatePasswordStrength(password);
   if (weak) return res.status(400).json({ error: weak });
+  if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit verification code.' });
 
   const existing = await prisma.user.findUnique({ where: { email } });
   // Passwordless seeded accounts are activated only through the email-bound
   // reset flow. Registration must never let an attacker claim a known address.
   if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
 
-  const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { name, email, passwordHash, role: 'ADMIN', plan: 'trial', planStatus: 'trialing', trialEndsAt: trialEndFromNow() },
-  });
-  await ensureUserWorkspace(user.id);
+  const challenge = await prisma.registrationChallenge.findUnique({ where: { email } });
+  if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) {
+    return res.status(400).json({ error: 'This verification code is invalid or has expired.' });
+  }
+  if (challenge.attempts >= REGISTRATION_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: 'Too many incorrect attempts. Request a new code.' });
+  }
+  const suppliedHash = registrationCodeHash(email, code);
+  if (!codeMatches(challenge.codeHash, suppliedHash)) {
+    await prisma.registrationChallenge.updateMany({
+      where: { email, codeHash: challenge.codeHash, consumedAt: null, attempts: { lt: REGISTRATION_MAX_ATTEMPTS } },
+      data: { attempts: { increment: 1 } },
+    });
+    return res.status(400).json({ error: 'This verification code is invalid or has expired.' });
+  }
 
-  const token = await createVerificationToken(user.id);
-  sendVerificationEmail(user.email, token).catch(err => console.error('[Auth] Failed to send verification email:', err));
+  const passwordHash = await hashPassword(password);
+  let user: any;
+  try {
+    user = await prisma.$transaction(async (tx) => {
+      const consumed = await tx.registrationChallenge.updateMany({
+        where: { email, codeHash: challenge.codeHash, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: REGISTRATION_MAX_ATTEMPTS } },
+        data: { consumedAt: new Date() },
+      });
+      if (consumed.count !== 1) throw new Error('REGISTRATION_CODE_ALREADY_USED');
+      return tx.user.create({
+        data: {
+          name, email, passwordHash, emailVerified: true, role: 'ADMIN', plan: 'trial', planStatus: 'trialing', trialEndsAt: trialEndFromNow(),
+          userSettings: { create: {} },
+          notificationPreference: { create: {} },
+        },
+      });
+    });
+  } catch (error: any) {
+    if (error?.code === 'P2002') return res.status(409).json({ error: 'An account with this email already exists.' });
+    if (error?.message === 'REGISTRATION_CODE_ALREADY_USED') return res.status(400).json({ error: 'This verification code is invalid or has expired.' });
+    throw error;
+  }
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, sessionMeta(req));

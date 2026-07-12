@@ -2,7 +2,7 @@
 
 ## Vulnerability Summary
 
-The production Express/Prisma API and Next.js frontend were reviewed against OWASP Top 10, ASVS, CWE guidance, least privilege, defense in depth, and fail-secure defaults. Seventeen vulnerability classes were confirmed and remediated. The highest-risk paths were account takeover through seeded-account registration, durable browser token theft, cross-tenant object access, unsigned provider webhooks, and SSRF through user-configurable network targets.
+The production Express/Prisma API and Next.js frontend were reviewed against OWASP Top 10, ASVS, CWE guidance, least privilege, defense in depth, and fail-secure defaults. Nineteen vulnerability classes were confirmed and remediated. The highest-risk paths were account takeover through seeded-account registration, durable browser token theft, cross-tenant object access, unsigned provider webhooks, payment fulfillment races, and SSRF through user-configurable network targets.
 
 Production dependency audits now report zero known vulnerabilities for both backend and frontend. Backend and frontend production builds pass, the Prisma schema validates, and the targeted security regression suite passes.
 
@@ -151,6 +151,20 @@ Outbound seed/provisioning counted templates and senders globally and only provi
 
 Explicit per-user Resend and SMTP settings now create only that user's encrypted sender account; list responses remain redacted and never return provider credentials.
 
+### SEC-018 — Account creation before mailbox proof
+
+**Severity:** High — **CWE-287/CWE-640** — **OWASP A07** — **CVSS 7.4**
+
+Registration previously created a user, workspace, session, and trial before email ownership was proven. Attackers could register arbitrary addresses, consume resources, and create confusing legacy identities. `backend/src/routes/auth.ts` now issues a cryptographically random six-digit code before signup, stores only a domain-separated HMAC, applies IP and durable per-email abuse limits, enforces a ten-minute lifetime and five-attempt cap, and atomically consumes the challenge with user creation. New users are created with `emailVerified=true`; no user or session exists before successful proof. The frontend no longer collects or discards a Company field and redirects verified signups to the server-sourced pricing catalogue.
+
+### SEC-019 — Spoofable or lost crypto fulfillment
+
+**Severity:** Critical — **CWE-345/CWE-362/CWE-841** — **OWASP A04/A08** — **CVSS 9.0**
+
+The previous crypto handler trusted provider metadata for the user/tier, claimed webhook events before granting access, returned HTTP 200 after failures, and could permanently lose a paid entitlement after a transient database error. Card and Coinbase paths were also exposed despite the product being crypto-only.
+
+All new billing now uses Paymento. The backend creates a price-bound `PaymentAttempt` before redirect, accepts only the official Paymento gateway origin, verifies the exact raw IPN bytes with timing-safe HMAC-SHA256, independently calls Paymento's Verify API, binds token and order ID to the stored attempt, and grants only Paid/Approve statuses. Entitlement, subscription snapshot, and `processedAt` are committed in one serializable transaction; transient failures return non-2xx for retry. Same-tier payments add 30 days, Starter-to-Pro upgrades immediately while preserving remaining time, and active Pro cannot be downgraded. A racing Starter payment can only extend Pro, never weaken it. Historical provider rows remain readable but no old provider route or secret is active.
+
 ## Explanation
 
 The changes preserve GeoLead?s web-only UX: login still yields an immediately usable session, reloads silently refresh through the cookie, WebSocket events reconnect through a short-lived ticket, email tracking and unsubscribe links remain public, campaign sending retains all providers, and CSV/XLSX workflows remain available. Security-sensitive interfaces changed only where retaining the old behavior would preserve the vulnerability.
@@ -170,7 +184,7 @@ The installed security skill drove the use of evidence-based findings, complete 
 - Backend TypeScript build: passed.
 - Next.js production build and type checking: passed.
 - Prisma schema validation: passed.
-- Security regression tests: 5 passed (SSRF ranges, password bounds, signed/tampered Resend webhook, fail-closed tenant predicates, and reply-thread integrity).
+- Security regression tests: 6 passed (SSRF ranges, password bounds, signed/tampered Resend webhook, signed/tampered Paymento IPN, fail-closed tenant predicates, and reply-thread integrity).
 - Backend `npm audit --omit=dev`: 0 vulnerabilities.
 - Frontend `npm audit --omit=dev`: 0 vulnerabilities.
 - Production tenant-consistency audit: passed; all orphan and cross-tenant relation counts are zero after the targeted repair migration.
@@ -179,6 +193,7 @@ The installed security skill drove the use of evidence-based findings, complete 
 
 ## Remaining Risks
 
-- Full frontend ESLint is not clean because the existing application has 77 errors and 29 warnings outside this security change; the production build and TypeScript checks pass.
+- Full frontend ESLint is not clean because the existing application has 71 errors and 28 warnings outside this security change; targeted lint for every modified frontend file has zero errors, and the production build and TypeScript checks pass.
+- Paymento checkout remains intentionally unavailable until the exposed API key is rotated and the replacement `PAYMENTO_API_KEY` plus dashboard `PAYMENTO_IPN_SECRET` are placed in the VPS secret environment. The Paymento store IPN URL must be set to `/api/billing/webhook/paymento`.
 - The local SSH alias reports that the VPS host key changed. Direct local SSH administration must remain blocked until the new ED25519 fingerprint is independently verified and the stale known-host entry is replaced. The GitHub deployment path completed successfully, but its SSH action should also be configured with a pinned fingerprint secret for defense in depth.
 - The certificate-intelligence probe deliberately connects with Node certificate rejection disabled so it can measure invalid/self-signed certificates; it sends no credentials or application data and is protected by the SSRF network-target guard.

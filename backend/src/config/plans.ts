@@ -4,9 +4,8 @@
 // follows. Usage is derived from existing tables (SearchTask/Lead/EmailLog/
 // SenderAccount) in billing.ts, so these are pure limits with no counter state.
 //
-// Payments: cards via Paddle Billing (recurring, priced by paddlePriceId), and
-// crypto via Coinbase Commerce (one-time payment granting CRYPTO_ACCESS_DAYS of
-// the tier, since crypto can't auto-charge on a schedule).
+// Payments are one-time crypto purchases through Paymento. Each confirmed
+// purchase grants CRYPTO_ACCESS_DAYS of the selected tier.
 
 export type Tier = 'trial' | 'starter' | 'pro';
 
@@ -24,9 +23,7 @@ export interface PlanLimits {
 export interface PlanDef extends PlanLimits {
   tier: Tier;
   label: string;
-  priceUSD: number; // monthly (card) / per-purchase (crypto); 0 for trial
-  // Paddle Billing price id, injected from env for paid tiers. null for trial.
-  paddlePriceId: string | null;
+  priceUSD: number; // per one-time crypto purchase; 0 for trial
   purchasable: boolean;
 }
 
@@ -38,7 +35,6 @@ export const PLANS: Record<Tier, PlanDef> = {
     tier: 'trial',
     label: 'Free Trial',
     priceUSD: 0,
-    paddlePriceId: null,
     purchasable: false,
     searchesPerMonth: 15,
     maxDepth: 25,
@@ -50,7 +46,6 @@ export const PLANS: Record<Tier, PlanDef> = {
     tier: 'starter',
     label: 'Starter',
     priceUSD: 49,
-    paddlePriceId: process.env.PADDLE_PRICE_STARTER_ID || null,
     purchasable: true,
     searchesPerMonth: 100,
     maxDepth: 50,
@@ -62,7 +57,6 @@ export const PLANS: Record<Tier, PlanDef> = {
     tier: 'pro',
     label: 'Pro',
     priceUSD: 149,
-    paddlePriceId: process.env.PADDLE_PRICE_PRO_ID || null,
     purchasable: true,
     searchesPerMonth: 500,
     maxDepth: 200,

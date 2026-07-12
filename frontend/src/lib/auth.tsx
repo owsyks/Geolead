@@ -55,7 +55,8 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  requestRegistrationCode: (email: string) => Promise<{ resendAfterSeconds: number }>;
+  register: (name: string, email: string, password: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -134,7 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user && !isPublic(pathname)) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
-    if (user && (pathname === "/login" || pathname === "/register")) {
+    if (user && !user.emailVerified && pathname !== "/verify-email") {
+      router.replace("/verify-email");
+    } else if (user && pathname === "/register") {
+      router.replace("/pricing");
+    } else if (user && pathname === "/login") {
       router.replace("/overview");
     }
   }, [loading, user, pathname, router]);
@@ -154,12 +159,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeCache(USER_CACHE_KEY, data.user);
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string) => {
+  const requestRegistrationCode = useCallback(async (email: string) => {
+    const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/registration-code`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Could not send verification code.");
+    return { resendAfterSeconds: Number(data.resendAfterSeconds || 60) };
+  }, []);
+
+  const register = useCallback(async (name: string, email: string, password: string, code: string) => {
     const res = await fetch(`${OUTBOUND_API_BASE}/api/auth/register`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json", "X-GeoLead-Client": "web" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, code }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Registration failed.");
@@ -186,8 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, register, logout, refreshUser: loadMe }),
-    [user, loading, login, register, logout, loadMe]
+    () => ({ user, loading, login, requestRegistrationCode, register, logout, refreshUser: loadMe }),
+    [user, loading, login, requestRegistrationCode, register, logout, loadMe]
   );
 
   // Block app rendering until the session is resolved, and don't flash app

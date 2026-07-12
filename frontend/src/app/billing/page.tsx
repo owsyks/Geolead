@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import { OutboundShell } from "@/components/OutboundShell";
-import { getBillingSummary, cancelSubscription, type BillingSummary } from "@/lib/billing";
+import { getBillingSummary, type BillingSummary } from "@/lib/billing";
 
 function Meter({ label, used, limit }: { label: string; used: number; limit: number }) {
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
@@ -31,34 +31,19 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
 export default function BillingPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canceling, setCanceling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = () => getBillingSummary().then(setSummary).catch(() => {}).finally(() => setLoading(false));
   useEffect(() => {
     load();
-    // Coinbase redirects here after a crypto payment; the webhook activates the
+    // The browser return is advisory; the verified Paymento IPN activates the
     // plan moments later, so nudge the user and re-check shortly.
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("crypto") === "success") {
-      setNotice("Payment received — finalizing your plan. This can take a moment.");
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("payment") === "return") {
+      const noticeTimer = setTimeout(() => setNotice("Payment returned — waiting for verified blockchain confirmation."), 0);
       const t = setTimeout(load, 4000);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(noticeTimer); clearTimeout(t); };
     }
   }, []);
-
-  async function handleCancel() {
-    if (!confirm("Cancel your subscription? Your plan stays active until the end of the current period.")) return;
-    setCanceling(true);
-    try {
-      const res = await cancelSubscription();
-      setNotice(res.message);
-      await load();
-    } catch (err: any) {
-      setNotice(err?.message || "Could not cancel.");
-    } finally {
-      setCanceling(false);
-    }
-  }
 
   const isPaid = summary?.tier === "starter" || summary?.tier === "pro";
   const statusLabel: Record<string, string> = {
@@ -96,18 +81,13 @@ export default function BillingPage() {
                   </p>
                 )}
                 {summary.currentPeriodEnd && (
-                  <p className="text-xs text-text-muted mt-2">Renews {new Date(summary.currentPeriodEnd).toLocaleDateString()}.</p>
+                  <p className="text-xs text-text-muted mt-2">Access through {new Date(summary.currentPeriodEnd).toLocaleDateString()}.</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Link href="/pricing" className="px-4 py-2.5 rounded-xl bg-brand text-bg text-sm font-bold hover:bg-brand-hover transition-colors flex items-center gap-2">
                   <Sparkles className="w-4 h-4" /> {isPaid ? "Change plan" : "Upgrade"}
                 </Link>
-                {isPaid && (
-                  <button onClick={handleCancel} disabled={canceling} className="px-4 py-2.5 rounded-xl bg-surface border border-border text-text-muted hover:text-text text-sm font-semibold transition-colors disabled:opacity-60">
-                    {canceling ? "Canceling…" : "Cancel"}
-                  </button>
-                )}
               </div>
             </div>
 

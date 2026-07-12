@@ -3,20 +3,25 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OUTBOUND_API_BASE } from "@/lib/outbound";
+import { fetchOutbound } from "@/lib/outbound";
+import { useAuth } from "@/lib/auth";
 import { AuthShell } from "@/components/AuthShell";
 
 type Status = "verifying" | "success" | "error";
 
 export default function VerifyEmailPage() {
+  const { user } = useAuth();
   const [status, setStatus] = useState<Status>("verifying");
   const [message, setMessage] = useState("Verifying your email…");
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("token") || "";
     if (!token) {
-      setStatus("error");
-      setMessage("This verification link is missing its token.");
-      return;
+      const timer = setTimeout(() => {
+        setStatus("error");
+        setMessage(user && !user.emailVerified ? "Your legacy account still needs email verification. Send a fresh verification link below." : "This verification link is missing its token.");
+      }, 0);
+      return () => clearTimeout(timer);
     }
     (async () => {
       try {
@@ -29,12 +34,24 @@ export default function VerifyEmailPage() {
         if (!res.ok) throw new Error(data?.error || "Verification failed.");
         setStatus("success");
         setMessage("Your email is verified. You're all set!");
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStatus("error");
-        setMessage(err?.message || "Verification failed.");
+        setMessage(err instanceof Error ? err.message : "Verification failed.");
       }
     })();
-  }, []);
+  }, [user]);
+
+  async function resend() {
+    setMessage("Sending a new verification link…");
+    try {
+      await fetchOutbound("/api/auth/resend-verification", { method: "POST" });
+      setStatus("success");
+      setMessage("A new verification link has been sent. Check your inbox.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Could not send verification email.");
+    }
+  }
 
   return (
     <AuthShell
@@ -56,6 +73,9 @@ export default function VerifyEmailPage() {
       >
         {message}
       </div>
+      {user && !user.emailVerified && (
+        <button onClick={resend} className="mt-4 w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-bg">Send verification link</button>
+      )}
     </AuthShell>
   );
 }
