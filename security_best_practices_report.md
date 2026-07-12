@@ -135,6 +135,8 @@ Acquisition-scan jobs stored no owner, so any authenticated user holding another
 
 Default-template selection also queried the first template globally, allowing a new campaign to copy another tenant's private template. `ensureDefaultTemplate` at `backend/src/services/outboundPlatform.ts:3613` now requires a user ID and selects or creates templates only inside that tenant.
 
+The production consistency audit found three legacy sequence-template links and historical email-log sender/template links created before this control existed. Migration `20260712050000_repair_tenant_relations` detaches only those optional cross-tenant foreign keys; copied sequence content and immutable email history remain intact.
+
 ### SEC-016 ? Shared-browser cached tenant data
 
 **Severity:** High ? **CWE-922/CWE-200** ? **OWASP A01/A04** ? **CVSS 7.1**

@@ -33,8 +33,16 @@ async function main() {
       count: await count`SELECT COUNT(*) AS count FROM "SequenceStep" ss JOIN "Sequence" s ON s.id = ss."sequenceId" JOIN "Campaign" c ON c.id = s."campaignId" JOIN "Template" t ON t.id = ss."templateId" WHERE c."userId" IS DISTINCT FROM t."userId"`,
     },
     {
-      name: 'email_log_owner_mismatch',
-      count: await count`SELECT COUNT(*) AS count FROM "EmailLog" e JOIN "Campaign" c ON c.id = e."campaignId" JOIN "Lead" l ON l.id = e."leadId" LEFT JOIN "SenderAccount" s ON s.id = e."senderAccountId" LEFT JOIN "Template" t ON t.id = e."templateId" WHERE c."userId" IS DISTINCT FROM l."ownerId" OR (s.id IS NOT NULL AND c."userId" IS DISTINCT FROM s."userId") OR (t.id IS NOT NULL AND c."userId" IS DISTINCT FROM t."userId")`,
+      name: 'email_log_lead_owner_mismatch',
+      count: await count`SELECT COUNT(*) AS count FROM "EmailLog" e JOIN "Campaign" c ON c.id = e."campaignId" JOIN "Lead" l ON l.id = e."leadId" WHERE c."userId" IS DISTINCT FROM l."ownerId"`,
+    },
+    {
+      name: 'email_log_sender_owner_mismatch',
+      count: await count`SELECT COUNT(*) AS count FROM "EmailLog" e JOIN "Campaign" c ON c.id = e."campaignId" JOIN "SenderAccount" s ON s.id = e."senderAccountId" WHERE c."userId" IS DISTINCT FROM s."userId"`,
+    },
+    {
+      name: 'email_log_template_owner_mismatch',
+      count: await count`SELECT COUNT(*) AS count FROM "EmailLog" e JOIN "Campaign" c ON c.id = e."campaignId" JOIN "Template" t ON t.id = e."templateId" WHERE c."userId" IS DISTINCT FROM t."userId"`,
     },
     {
       name: 'email_log_thread_mismatch',
