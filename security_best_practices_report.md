@@ -170,13 +170,15 @@ The installed security skill drove the use of evidence-based findings, complete 
 - Backend TypeScript build: passed.
 - Next.js production build and type checking: passed.
 - Prisma schema validation: passed.
-- Security regression tests: 3 passed (SSRF ranges, password bounds, signed/tampered Resend webhook).
+- Security regression tests: 5 passed (SSRF ranges, password bounds, signed/tampered Resend webhook, fail-closed tenant predicates, and reply-thread integrity).
 - Backend `npm audit --omit=dev`: 0 vulnerabilities.
 - Frontend `npm audit --omit=dev`: 0 vulnerabilities.
+- Production tenant-consistency audit: passed; all orphan and cross-tenant relation counts are zero after the targeted repair migration.
+- GitHub CI and VPS deployment: passed for commit `7d1622d`; live API and frontend both return HTTP 200.
 - Final scans found no browser authentication tokens in Web Storage, body-based refresh flow, JWT WebSocket subprotocol, permissive CORS fallback, database-derived encryption key, or production TLS-disable switch.
 
 ## Remaining Risks
 
 - Full frontend ESLint is not clean because the existing application has 77 errors and 29 warnings outside this security change; the production build and TypeScript checks pass.
-- Deployment requires production secrets to be populated before the SSH workflow rebuilds the fail-closed backend. The migration is committed and will run automatically through `prisma migrate deploy`.
+- The local SSH alias reports that the VPS host key changed. Direct local SSH administration must remain blocked until the new ED25519 fingerprint is independently verified and the stale known-host entry is replaced. The GitHub deployment path completed successfully, but its SSH action should also be configured with a pinned fingerprint secret for defense in depth.
 - The certificate-intelligence probe deliberately connects with Node certificate rejection disabled so it can measure invalid/self-signed certificates; it sends no credentials or application data and is protected by the SSRF network-target guard.
