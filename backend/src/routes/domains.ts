@@ -1,5 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Router } from 'express';
+import { randomBytes } from 'node:crypto';
 import axios from 'axios';
 import {
   archiveDomain,
@@ -33,6 +34,7 @@ const router = Router();
 // ─── In-memory job store (avoids Heroku's 30s router timeout) ────────────────
 // Jobs run in the background; clients poll /acquisition-scan/status/:jobId.
 type ScanJob = {
+  userId: string;
   status: 'processing' | 'done' | 'error';
   result?: BulkScanResult;
   error?: string;
@@ -76,7 +78,7 @@ router.get('/archive-check', wrap(async (req, res) => {
 // Poll background scan job status — must be before /:id routes.
 router.get('/acquisition-scan/status/:jobId', wrap(async (req, res) => {
   const job = scanJobs.get(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job not found or expired.' });
+  if (!job || job.userId !== req.userId) return res.status(404).json({ error: 'Job not found or expired.' });
   res.json({
     jobId: req.params.jobId,
     status: job.status,
@@ -190,9 +192,9 @@ router.post('/acquisition-scan', wrap(async (req, res) => {
   if (domains.length > 100) return res.status(400).json({ error: 'Maximum 100 domains per scan.' });
 
   pruneOldJobs();
-  const jobId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  const jobId = randomBytes(32).toString('base64url');
   const userId = req.userId!;
-  scanJobs.set(jobId, { status: 'processing', domains, startedAt: new Date() });
+  scanJobs.set(jobId, { userId, status: 'processing', domains, startedAt: new Date() });
 
   // Fire-and-forget — response returns immediately.
   void runBulkAcquisitionScan(domains, userId)

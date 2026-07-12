@@ -129,7 +129,7 @@ router.patch(
       return res.status(400).json({ error: 'status is required.' });
     }
 
-    const updated = await updateCampaignStatus(req.params.id, status, getActor(req).userId || undefined);
+    const updated = await updateCampaignStatus(req.params.id, status, req.userId!);
     await writeAudit(getActor(req), 'Campaign', req.params.id, `STATUS_${status.toUpperCase()}`, { status });
     res.json(updated);
   })
@@ -202,7 +202,7 @@ router.delete(
   rateLimit({ key: 'campaign-delete', limit: 40, windowMs: 10 * 60 * 1000 }),
   requireRoles('ADMIN', 'MANAGER'),
   wrap(async (req, res) => {
-    const result = await deleteCampaign(req.params.id, getActor(req).userId || undefined);
+    const result = await deleteCampaign(req.params.id, req.userId!);
     if (!result.deleted) return res.status(404).json({ error: 'Campaign not found.' });
     res.json(result);
   })
@@ -229,7 +229,7 @@ router.post(
         body: asString(req.body.body) || '',
         tags: asStringArray(req.body.tags),
       },
-      getActor(req).userId || undefined
+      req.userId!
     );
 
     await writeAudit(getActor(req), 'Template', template.id, 'TEMPLATE_CREATED', { name: template.name });
@@ -266,7 +266,7 @@ router.post(
         timezone: asString(req.body.timezone),
         providerConfig: asObject(req.body.providerConfig),
       },
-      getActor(req).userId || undefined
+      req.userId!
     );
 
     await writeAudit(getActor(req), 'SenderAccount', sender.id, 'SENDER_CREATED', { provider: sender.provider });
@@ -338,7 +338,7 @@ router.post(
         action: asString(req.body.action),
         reminderAt: asString(req.body.reminderAt),
       },
-      getActor(req).userId || undefined
+      req.userId!
     );
     if (!result) {
       return res.status(404).json({ error: 'Reply not found.' });

@@ -9,6 +9,7 @@ import prisma from '../config/db.js';
 import { decryptSecret, isEncrypted } from '../config/secrets.js';
 import { analyzeReply, type ReplyAnalysis } from './replyAnalysis.js';
 import { broadcastOutboundEvent } from './outboundRealtime.js';
+import { ownedEmailLogWhere } from '../security/tenantIsolation.js';
 
 const FIRST_SYNC_LOOKBACK_DAYS = 14;
 const MAX_MESSAGES_PER_SYNC = 100;
@@ -22,7 +23,9 @@ export interface SyncResult {
   error?: string;
 }
 
-let syncing = false;
+// A mailbox-scoped lock prevents duplicate work without allowing one tenant's
+// slow IMAP server to block every other tenant's inbox sync.
+const syncingMailboxes = new Set<string>();
 let workerStarted = false;
 let workerTimer: NodeJS.Timeout | null = null;
 
@@ -50,10 +53,9 @@ export function startInboxSyncWorker() {
       if (mailboxes.length) {
         intervalSec = Math.max(30, Math.min(...mailboxes.map((m) => m.syncIntervalSec || 60)));
         for (const mailbox of mailboxes) {
-          if (syncing) break;
           const res = await syncMailbox(mailbox.id);
           if (res.imported > 0) console.log(`[InboxSyncWorker] Imported ${res.imported} reply(ies) for ${mailbox.email}.`);
-          else if (res.error && res.error !== 'A sync is already running.') {
+          else if (res.error && res.error !== 'This mailbox sync is already running.') {
             console.warn('[InboxSyncWorker]', mailbox.email, res.error);
           }
         }
@@ -113,12 +115,13 @@ function friendlyImapError(err: any): string {
 
 // Run a single sync pass for one mailbox (by id).
 export async function syncMailbox(mailboxId: string, force = false): Promise<SyncResult> {
-  if (syncing) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'A sync is already running.' };
+  if (syncingMailboxes.has(mailboxId)) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'This mailbox sync is already running.' };
   const mailbox = await prisma.mailbox.findUnique({ where: { id: mailboxId } });
   if (!mailbox) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'No mailbox configured.' };
+  if (!mailbox.userId) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'Mailbox has no owner and cannot be synchronized.' };
   if (!mailbox.enabled && !force) return { ok: false, imported: 0, scanned: 0, matched: 0, skipped: 0, error: 'Mailbox sync is disabled.' };
 
-  syncing = true;
+  syncingMailboxes.add(mailboxId);
   await prisma.mailbox.update({ where: { id: mailbox.id }, data: { lastSyncStatus: 'running' } });
 
   const password = isEncrypted(mailbox.appPassword) ? decryptSecret(mailbox.appPassword) : mailbox.appPassword;
@@ -199,7 +202,7 @@ export async function syncMailbox(mailboxId: string, force = false): Promise<Syn
       data: { lastSyncAt: new Date(), lastSyncStatus: 'error', lastSyncError: result.error },
     });
   } finally {
-    syncing = false;
+    syncingMailboxes.delete(mailboxId);
   }
 
   if (result.imported > 0) {
@@ -211,7 +214,7 @@ export async function syncMailbox(mailboxId: string, force = false): Promise<Syn
 type IngestOutcome = 'imported' | 'matched-duplicate' | 'skipped';
 
 // Parse → match → analyze → persist a single inbound message.
-async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string, ownerId: string | null): Promise<IngestOutcome> {
+async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string, ownerId: string): Promise<IngestOutcome> {
   const messageId = parsed.messageId || undefined;
   const fromAddr = firstAddress(parsed.from?.value);
   const subject = parsed.subject || '(no subject)';
@@ -223,7 +226,7 @@ async function ingestParsedMessage(parsed: ParsedMail, mailboxId: string, ownerI
     if (existing) return 'matched-duplicate';
   }
 
-  const match = await matchMessage(parsed, fromAddr, parsed.date || new Date());
+  const match = await matchMessage(parsed, fromAddr, parsed.date || new Date(), ownerId);
   if (!match) {
     // Not one of our outreach threads — ignore (keeps the inbox focused).
     return 'skipped';
@@ -299,21 +302,21 @@ interface MatchResult {
 // Match an inbound message to an outbound email/lead using, in order of
 // confidence: Message-ID/In-Reply-To/References → tracking token → recipient
 // email → known lead email.
-async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, messageDate: Date): Promise<MatchResult | null> {
+async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, messageDate: Date, ownerId: string): Promise<MatchResult | null> {
   const refs = `${parsed.inReplyTo || ''} ${asArray(parsed.references).join(' ')}`;
   const ids = extractIds(refs);
 
   // 1. Header references → providerMessageId (Resend message id is a UUID).
   // Only sent emails have a providerMessageId, so this is inherently a reply.
   for (const id of ids) {
-    const log = await findLog({ providerMessageId: id });
+    const log = await findOwnedLog(ownerId, { providerMessageId: id });
     if (log) return toMatch(log, 95, 'message-id');
   }
 
   // 2. Tracking / unsubscribe token quoted in the reply body.
   const tokens = extractTrackingTokens(`${parsed.text || ''}\n${(parsed.html as string) || ''}`);
   for (const token of tokens) {
-    const log = await findLog({ OR: [{ trackingToken: token }, { unsubscribeToken: token }] });
+    const log = await findOwnedLog(ownerId, { OR: [{ trackingToken: token }, { unsubscribeToken: token }] });
     if (log) return toMatch(log, 90, 'tracking-token');
   }
 
@@ -325,6 +328,7 @@ async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, me
     const tolerance = 30 * 60_000; // 30-minute tolerance for clock skew / timezone drift
     const log = await prisma.emailLog.findFirst({
       where: {
+        campaign: { userId: ownerId },
         toEmail: { equals: fromAddr, mode: 'insensitive' },
         sentAt: { not: null, lte: new Date(messageDate.getTime() + tolerance) },
       },
@@ -335,13 +339,14 @@ async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, me
 
     // 4. Sender is a known lead with a sent outbound predating the reply.
     const leadEmail = await prisma.leadEmail.findFirst({
-      where: { email: { equals: fromAddr, mode: 'insensitive' } },
+      where: { email: { equals: fromAddr, mode: 'insensitive' }, lead: { ownerId } },
       include: { lead: true },
     });
     if (leadEmail) {
       const sentLog = await prisma.emailLog.findFirst({
         where: {
           leadId: leadEmail.leadId,
+          campaign: { userId: ownerId },
           sentAt: { not: null, lte: new Date(messageDate.getTime() + tolerance) },
         },
         orderBy: { sentAt: 'desc' },
@@ -354,8 +359,12 @@ async function matchMessage(parsed: ParsedMail, fromAddr: string | undefined, me
   return null;
 }
 
-async function findLog(where: any) {
-  return prisma.emailLog.findFirst({ where, orderBy: { createdAt: 'desc' }, include: { campaign: true, lead: true } });
+async function findOwnedLog(ownerId: string, where: any) {
+  return prisma.emailLog.findFirst({
+    where: ownedEmailLogWhere(ownerId, where),
+    orderBy: { createdAt: 'desc' },
+    include: { campaign: true, lead: true },
+  });
 }
 
 function toMatch(log: any, confidence: number, method: string): MatchResult {

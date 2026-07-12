@@ -388,7 +388,7 @@ export async function getDomain(id: string, userId: string) {
   });
 }
 
-export async function createDomain(input: DomainInput, userId?: string) {
+export async function createDomain(input: DomainInput, userId: string) {
   const name = normalizeDomainName(input.name);
   if (!name) throw new Error('Domain name is required.');
   const intel = buildIntelligenceFields(name, input);
@@ -505,7 +505,7 @@ export async function reanalyzeDomain(id: string, userId: string) {
 // Bulk import: accepts either DomainInput rows or plain strings (one per line
 // from TXT). Skips dupes by name, returns counts so the UI can show what
 // landed.
-export async function bulkImportDomains(input: BulkImportInput, userId?: string) {
+export async function bulkImportDomains(input: BulkImportInput, userId: string) {
   const rows = (input.rows || []).filter((row) => {
     if (typeof row === 'string') return row.trim().length > 0;
     return row && typeof row.name === 'string' && row.name.trim().length > 0;
@@ -526,7 +526,7 @@ export async function bulkImportDomains(input: BulkImportInput, userId?: string)
     if (seen.has(name)) { skipped += 1; continue; }
     seen.add(name);
     try {
-      const existing = await prisma.domain.findFirst({ where: { name, userId: userId ?? null } });
+      const existing = await prisma.domain.findFirst({ where: { name, userId } });
       if (existing) { skipped += 1; continue; }
       await createDomain({ ...candidate, name }, userId);
       created.push(name);

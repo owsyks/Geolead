@@ -4,6 +4,12 @@ import { createHmac } from 'node:crypto';
 import { assertSafeUrl, isBlockedAddress } from '../src/services/ssrfGuard.js';
 import { validatePasswordStrength } from '../src/services/auth.js';
 import { verifyResendWebhook } from '../src/services/webhookSecurity.js';
+import {
+  campaignEmailLogTenantWhere,
+  isConsistentReplyThread,
+  ownedEmailLogWhere,
+  replyTenantWhere,
+} from '../src/security/tenantIsolation.js';
 
 test('SSRF guard rejects private and metadata address families', async () => {
   for (const address of ['127.0.0.1', '10.0.0.1', '169.254.169.254', '192.168.1.1']) {
@@ -33,4 +39,34 @@ test('Resend webhook signatures require an authentic fresh raw body', () => {
   assert.equal(verifyResendWebhook(req, secret).valid, true);
   req.rawBody = Buffer.from('{"type":"email.bounced"}');
   assert.equal(verifyResendWebhook(req, secret).valid, false);
+});
+
+test('tenant predicates require campaign, lead, and mailbox ownership to agree', () => {
+  assert.deepEqual(replyTenantWhere('user-a'), {
+    AND: [
+      { campaign: { userId: 'user-a' } },
+      { lead: { ownerId: 'user-a' } },
+      { OR: [{ mailboxId: null }, { mailbox: { userId: 'user-a' } }] },
+    ],
+  });
+  assert.deepEqual(campaignEmailLogTenantWhere('campaign-a', 'user-a'), {
+    campaignId: 'campaign-a',
+    campaign: { userId: 'user-a' },
+  });
+  assert.deepEqual(ownedEmailLogWhere('user-a', { providerMessageId: 'message-a' }), {
+    AND: [{ campaign: { userId: 'user-a' } }, { providerMessageId: 'message-a' }],
+  });
+});
+
+test('reply ingestion rejects references from different threads', () => {
+  const campaignLead = { id: 'cl-a', campaignId: 'campaign-a', leadId: 'lead-a' };
+  assert.equal(isConsistentReplyThread(campaignLead, {
+    campaignId: 'campaign-a', leadId: 'lead-a', campaignLeadId: 'cl-a',
+  }), true);
+  assert.equal(isConsistentReplyThread(campaignLead, {
+    campaignId: 'campaign-b', leadId: 'lead-a', campaignLeadId: 'cl-a',
+  }), false);
+  assert.equal(isConsistentReplyThread(campaignLead, {
+    campaignId: 'campaign-a', leadId: 'lead-b', campaignLeadId: 'cl-a',
+  }), false);
 });

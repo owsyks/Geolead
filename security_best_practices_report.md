@@ -2,13 +2,13 @@
 
 ## Vulnerability Summary
 
-The production Express/Prisma API and Next.js frontend were reviewed against OWASP Top 10, ASVS, CWE guidance, least privilege, defense in depth, and fail-secure defaults. Twelve vulnerability classes were confirmed and remediated. The highest-risk paths were account takeover through seeded-account registration, durable browser token theft, cross-tenant object access, unsigned provider webhooks, and SSRF through user-configurable network targets.
+The production Express/Prisma API and Next.js frontend were reviewed against OWASP Top 10, ASVS, CWE guidance, least privilege, defense in depth, and fail-secure defaults. Seventeen vulnerability classes were confirmed and remediated. The highest-risk paths were account takeover through seeded-account registration, durable browser token theft, cross-tenant object access, unsigned provider webhooks, and SSRF through user-configurable network targets.
 
 Production dependency audits now report zero known vulnerabilities for both backend and frontend. Backend and frontend production builds pass, the Prisma schema validates, and the targeted security regression suite passes.
 
 ## Root Cause
 
-The application evolved from a single-user deployment into a multi-tenant SaaS. Several service methods retained optional ownership parameters or global fallbacks, authentication credentials were designed for browser persistence rather than XSS resistance, and public integration endpoints trusted caller-provided identifiers or destinations. Security controls were also duplicated across routes, causing inconsistent rate limiting, proxy handling, TLS verification, and validation.
+The application evolved from a single-user deployment into a multi-tenant SaaS. Several service methods retained optional ownership parameters or global fallbacks, background reply matching and job stores did not bind results to a tenant, and browser caches assumed only one account would use a device. Authentication credentials were designed for browser persistence rather than XSS resistance, and public integration endpoints trusted caller-provided identifiers or destinations. Security controls were also duplicated across routes, causing inconsistent rate limiting, proxy handling, TLS verification, and validation.
 
 ## Affected Files
 
@@ -19,8 +19,9 @@ Primary remediation locations include:
 - `backend/src/services/ssrfGuard.ts:23-184`
 - `backend/src/services/webhookSecurity.ts:1-75`
 - `backend/src/middleware/rateLimit.ts`
+- `backend/src/security/tenantIsolation.ts` and `backend/src/scripts/auditTenantIsolation.ts`
 - `backend/prisma/schema.prisma:96-660`
-- `frontend/src/lib/outbound.ts`, `frontend/src/lib/auth.tsx`, and `frontend/next.config.ts`
+- `frontend/src/lib/outbound.ts`, `frontend/src/lib/auth.tsx`, `frontend/src/lib/domainContext.tsx`, `frontend/src/components/SupportBubble.tsx`, and `frontend/next.config.ts`
 
 ## Complete Secure Fix
 
@@ -111,6 +112,42 @@ Attacker-controlled lead fields beginning with spreadsheet formula characters co
 **Severity:** Medium ? **CWE-639** ? **OWASP A01** ? **CVSS 6.5**
 
 Knowledge of a guest ticket UUID allowed reading or appending its conversation. Guest chat creation now returns a separate 256-bit capability; only its SHA-256 hash is stored. Poll and reply operations require both ticket ID and capability.
+
+### SEC-013 ? Campaign event-history IDOR
+
+**Severity:** High ? **CWE-639/CWE-862** ? **OWASP A01** ? **CVSS 8.1**
+
+`getCampaignEvents` accepted the authenticated user ID but omitted it from the query. An authenticated attacker who obtained or guessed another campaign UUID could read recipient addresses, subjects, user agents, IP addresses, and delivery/open/click history. The shared predicate at `backend/src/security/tenantIsolation.ts:15` now requires both campaign ID and campaign owner, and `backend/src/services/outboundPlatform.ts:3673` applies it to both the result and count queries.
+
+### SEC-014 ? Cross-tenant IMAP reply matching
+
+**Severity:** Critical ? **CWE-639/CWE-862** ? **OWASP A01** ? **CVSS 9.1**
+
+IMAP ingestion matched In-Reply-To IDs, tracking tokens, recipient addresses, and lead emails across the entire database. If two customers contacted the same prospect, one mailbox could attach a reply to the other tenant's campaign and mutate its lead, sequence, suppression, and domain state. `backend/src/services/inboxSync.ts:305-367` now requires the mailbox owner in every matching strategy, rejects ownerless mailboxes, and uses mailbox-scoped synchronization locks. Reply reads additionally require campaign, lead, and optional mailbox ownership to agree.
+
+Resend's weaker sender-address fallback now fails closed when recent matching sends belong to more than one tenant; it never chooses a tenant merely because that tenant sent most recently.
+
+### SEC-015 ? Cross-tenant background job and template state
+
+**Severity:** High ? **CWE-639/CWE-200** ? **OWASP A01** ? **CVSS 7.7**
+
+Acquisition-scan jobs stored no owner, so any authenticated user holding another job ID could poll its domain analysis. Job records now carry `userId`, polling returns not-found on an owner mismatch, and IDs use 256 bits of cryptographic randomness at `backend/src/routes/domains.ts:36-82`.
+
+Default-template selection also queried the first template globally, allowing a new campaign to copy another tenant's private template. `ensureDefaultTemplate` at `backend/src/services/outboundPlatform.ts:3613` now requires a user ID and selects or creates templates only inside that tenant.
+
+### SEC-016 ? Shared-browser cached tenant data
+
+**Severity:** High ? **CWE-922/CWE-200** ? **OWASP A01/A04** ? **CVSS 7.1**
+
+The authenticated support bubble and active-domain state used device-global localStorage keys and retained in-memory state across identity changes. On a shared browser, the next account could briefly see the previous account's cached support messages or domains even though the API correctly rejected subsequent requests. Support and domain storage are now namespaced by authenticated user ID at `frontend/src/components/SupportBubble.tsx:39-139` and `frontend/src/lib/domainContext.tsx:19-106`; identity changes fail closed while the correct tenant state hydrates.
+
+### SEC-017 ? Integration provisioning crossed global and tenant defaults
+
+**Severity:** High ? **CWE-668/CWE-862** ? **OWASP A01/A05** ? **CVSS 7.5**
+
+Outbound seed/provisioning counted templates and senders globally and only provisioned the seeded administrator, so one tenant's existing records influenced whether another tenant received defaults. Per-user Resend/SMTP settings were testable but were not reliably connected to a tenant-owned sender. Provisioning now scopes every existence check and created record to the authenticated user. `getUserSettingOverride` at `backend/src/services/settings.ts:121` deliberately excludes platform environment fallbacks, preventing a platform-wide API key or SMTP password from being copied into every customer's sender configuration.
+
+Explicit per-user Resend and SMTP settings now create only that user's encrypted sender account; list responses remain redacted and never return provider credentials.
 
 ## Explanation
 

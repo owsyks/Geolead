@@ -10,10 +10,11 @@ import { generateCampaignVariants, localVariants, VARIANT_ORDER, type GeneratedV
 import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
 import { connectSmtp, type SmtpClient } from './smtpTransport.js';
-import { getSetting } from './settings.js';
+import { getSetting, getUserSettingOverride } from './settings.js';
 import { getEntitlements } from './billing.js';
 import { decryptSecret, encryptSecret } from '../config/secrets.js';
 import { assertSafeNetworkTarget } from './ssrfGuard.js';
+import { campaignEmailLogTenantWhere, isConsistentReplyThread, replyTenantWhere } from '../security/tenantIsolation.js';
 
 const OUTBOUND_BASE_URL = process.env.OUTBOUND_BASE_URL || 'http://localhost:5000';
 const DEFAULT_PHYSICAL_ADDRESS = process.env.OUTBOUND_PHYSICAL_ADDRESS || 'GeoLead AI, 123 Market St, Austin, TX 78701';
@@ -81,26 +82,29 @@ export interface SenderVerificationResult {
   };
 }
 
-export async function ensureOutboundSeedData() {
-  const user = await prisma.user.upsert({
-    where: { email: DEFAULT_ADMIN_EMAIL },
-    update: { isActive: true },
-    create: {
-      email: DEFAULT_ADMIN_EMAIL,
-      name: 'GeoLead Admin',
-      role: 'ADMIN',
-      timezone: 'America/Chicago',
-      locale: 'en',
-    },
-  });
+export async function ensureOutboundSeedData(requestedUserId?: string) {
+  const user = requestedUserId
+    ? await prisma.user.findUnique({ where: { id: requestedUserId } })
+    : await prisma.user.upsert({
+        where: { email: DEFAULT_ADMIN_EMAIL },
+        update: { isActive: true },
+        create: {
+          email: DEFAULT_ADMIN_EMAIL,
+          name: 'GeoLead Admin',
+          role: 'ADMIN',
+          timezone: 'America/Chicago',
+          locale: 'en',
+        },
+      });
+  if (!user) throw new Error('User not found.');
 
-  if ((await prisma.template.count()) === 0) {
+  if ((await prisma.template.count({ where: { userId: user.id } })) === 0) {
     await prisma.template.createMany({
       data: defaultTemplates(user.id),
     });
   }
 
-  if ((await prisma.senderAccount.count()) === 0) {
+  if ((await prisma.senderAccount.count({ where: { userId: user.id } })) === 0) {
     await prisma.senderAccount.create({
       data: {
         userId: user.id,
@@ -126,19 +130,21 @@ export async function ensureOutboundSeedData() {
     });
   }
 
-  // Auto-create Resend sender if configured (from Settings or env) and not
-  // already present. getSetting falls back to env, so existing deployments keep
-  // working and users who set the key in the Settings page get provisioned too.
+  // Auto-create a tenant-owned Resend sender when explicitly configured for
+  // that tenant. Only the startup admin may inherit platform env defaults.
+  const resolveProvisioningSetting = (key: string) => requestedUserId
+    ? getUserSettingOverride(key, user.id)
+    : getSetting(key, user.id);
   const [resendKey, resendFromEmail, resendFromName, resendReplyTo] = await Promise.all([
-    getSetting('resendApiKey', user.id),
-    getSetting('resendFromEmail', user.id),
-    getSetting('resendFromName', user.id),
-    getSetting('resendReplyTo', user.id),
+    resolveProvisioningSetting('resendApiKey'),
+    resolveProvisioningSetting('resendFromEmail'),
+    resolveProvisioningSetting('resendFromName'),
+    resolveProvisioningSetting('resendReplyTo'),
   ]);
   if (resendKey && resendFromEmail) {
     const fromEmail = resendFromEmail;
     const existingResend = await prisma.senderAccount.findFirst({
-      where: { provider: 'RESEND', fromEmail },
+      where: { userId: user.id, provider: 'RESEND', fromEmail },
     });
     if (!existingResend) {
       await prisma.senderAccount.create({
@@ -168,9 +174,47 @@ export async function ensureOutboundSeedData() {
     }
   }
 
-  if ((await prisma.campaign.count()) === 0) {
+  const [smtpHost, smtpPort, smtpSecure, smtpUser, smtpPassword, smtpFromEmail, smtpFromName] = await Promise.all([
+    resolveProvisioningSetting('smtpHost'),
+    resolveProvisioningSetting('smtpPort'),
+    resolveProvisioningSetting('smtpSecure'),
+    resolveProvisioningSetting('smtpUser'),
+    resolveProvisioningSetting('smtpPassword'),
+    resolveProvisioningSetting('smtpFromEmail'),
+    resolveProvisioningSetting('smtpFromName'),
+  ]);
+  if (smtpHost && smtpUser && smtpPassword && smtpFromEmail) {
+    const existingSmtp = await prisma.senderAccount.findFirst({
+      where: { userId: user.id, provider: 'SMTP', fromEmail: smtpFromEmail },
+    });
+    if (!existingSmtp) {
+      await prisma.senderAccount.create({
+        data: {
+          userId: user.id,
+          label: `SMTP - ${smtpFromEmail}`,
+          provider: 'SMTP',
+          fromName: smtpFromName || 'Outreach',
+          fromEmail: smtpFromEmail,
+          replyTo: smtpFromEmail,
+          status: 'active',
+          timezone: user.timezone || 'UTC',
+          dailyLimit: 100,
+          hourlyLimit: 20,
+          providerConfig: encryptProviderConfig({
+            host: smtpHost,
+            port: Number(smtpPort) || (smtpSecure === 'true' ? 465 : 587),
+            secure: smtpSecure === 'true',
+            username: smtpUser,
+            password: smtpPassword,
+          }) as any,
+        },
+      });
+    }
+  }
+
+  if (!requestedUserId && (await prisma.campaign.count({ where: { userId: user.id } })) === 0) {
     const leads = await prisma.lead.findMany({
-      where: { emails: { some: { status: 'VALID' } } },
+      where: { ownerId: user.id, emails: { some: { status: 'VALID' } } },
       take: 5,
       orderBy: { domainMatchScore: 'desc' },
     });
@@ -230,7 +274,7 @@ export async function enqueueOutboundQueueTick() {
 }
 
 export async function getOutboundOverview(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
 
   const [campaigns, senders, queued, replies, recentEvents, topLeads] = await Promise.all([
     prisma.campaign.findMany({
@@ -309,7 +353,7 @@ export async function getOutboundOverview(userId: string) {
 }
 
 export async function listCampaigns(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   const campaigns = await prisma.campaign.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
@@ -555,11 +599,9 @@ export async function createCampaign(input: CampaignCreateInput, userId: string)
   return getCampaignDetail(campaign.id, userId as string);
 }
 
-export async function updateCampaignStatus(id: string, status: string, userId?: string) {
-  if (userId) {
-    const owned = await prisma.campaign.findFirst({ where: { id, userId }, select: { id: true } });
-    if (!owned) throw new Error('Campaign not found.');
-  }
+export async function updateCampaignStatus(id: string, status: string, userId: string) {
+  const owned = await prisma.campaign.findFirst({ where: { id, userId }, select: { id: true } });
+  if (!owned) throw new Error('Campaign not found.');
   const campaign = await prisma.campaign.update({
     where: { id },
     data: {
@@ -574,7 +616,7 @@ export async function updateCampaignStatus(id: string, status: string, userId?: 
     if (!meta.variants) {
       try { await generateAndStoreVariants(id, userId); } catch { /* non-critical */ }
     }
-    await queueCampaignSends(id);
+    await queueCampaignSends(id, undefined, userId);
   }
 
   await writeAudit(userId, 'Campaign', id, `CAMPAIGN_${status}`, {});
@@ -587,8 +629,8 @@ export async function updateCampaignStatus(id: string, status: string, userId?: 
 // replies, events, sequences, analytics all cascade via the schema). Synthetic
 // "Uploaded" leads created just for this campaign are cleaned up too so they
 // don't linger as orphans in the lead list.
-export async function deleteCampaign(id: string, userId?: string) {
-  const campaign = await prisma.campaign.findFirst({ where: { id, ...(userId ? { userId } : {}) } });
+export async function deleteCampaign(id: string, userId: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id, userId } });
   if (!campaign) return { deleted: false };
 
   // Collect upload-only leads tied solely to this campaign before cascade.
@@ -666,8 +708,8 @@ function buildVariantPicker(approved: GeneratedVariant[], stats: Record<string, 
 
 // Generate the 5 AI variants for a campaign and persist them on the campaign's
 // metadata so the queue can rotate them. Returns the stored bundle.
-export async function generateAndStoreVariants(campaignId: string, userId?: string) {
-  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) } });
+export async function generateAndStoreVariants(campaignId: string, userId: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId } });
   if (!campaign) throw new Error('Campaign not found.');
 
   const sender = await resolveCampaignSender(campaign);
@@ -689,8 +731,8 @@ export async function generateAndStoreVariants(campaignId: string, userId?: stri
 
 // Return the stored variants plus live performance, with best subject / variant
 // / CTA highlighted. Powers the Variants panel in the UI.
-export async function getCampaignVariants(campaignId: string, userId?: string) {
-  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) } });
+export async function getCampaignVariants(campaignId: string, userId: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId } });
   if (!campaign) throw new Error('Campaign not found.');
 
   const bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
@@ -721,8 +763,8 @@ export async function getCampaignVariants(campaignId: string, userId?: string) {
 }
 
 // Per-recipient open detail: who opened, which variant, how many times, and when.
-export async function getCampaignRecipients(campaignId: string, userId?: string) {
-  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ...(userId ? { userId } : {}) }, select: { id: true } });
+export async function getCampaignRecipients(campaignId: string, userId: string) {
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
   if (!campaign) throw new Error('Campaign not found.');
 
   const logs = await prisma.emailLog.findMany({
@@ -772,11 +814,9 @@ export async function getCampaignRecipients(campaignId: string, userId?: string)
   });
 }
 
-export async function queueCampaignSends(campaignId: string, senderAccountIdOverride?: string, userId?: string) {
-  if (userId) {
-    const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
-    if (!owned) throw new Error('Campaign not found.');
-  }
+export async function queueCampaignSends(campaignId: string, senderAccountIdOverride: string | undefined, userId: string) {
+  const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
+  if (!owned) throw new Error('Campaign not found.');
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
     include: {
@@ -891,11 +931,9 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   return { queued };
 }
 
-export async function forceSendCampaign(campaignId: string, userId?: string) {
-  if (userId) {
-    const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
-    if (!owned) throw new Error('Campaign not found.');
-  }
+export async function forceSendCampaign(campaignId: string, userId: string) {
+  const owned = await prisma.campaign.findFirst({ where: { id: campaignId, userId }, select: { id: true } });
+  if (!owned) throw new Error('Campaign not found.');
 
   const logs = await prisma.emailLog.findMany({
     where: { campaignId, status: 'QUEUED' },
@@ -1359,11 +1397,11 @@ function parseTimeToMinutes(value: string) {
 }
 
 export async function listTemplates(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   return prisma.template.findMany({ where: { isArchived: false, userId }, orderBy: { updatedAt: 'desc' } });
 }
 
-export async function saveTemplate(input: TemplateInput, userId?: string) {
+export async function saveTemplate(input: TemplateInput, userId: string) {
   return prisma.template.create({
     data: {
       userId,
@@ -1386,12 +1424,12 @@ export async function saveTemplate(input: TemplateInput, userId?: string) {
 }
 
 export async function listSenderAccounts(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   const senders = await prisma.senderAccount.findMany({ where: { userId }, orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] });
   return senders.map(maskSenderAccount);
 }
 
-export async function saveSenderAccount(input: SenderAccountInput, userId?: string) {
+export async function saveSenderAccount(input: SenderAccountInput, userId: string) {
   const encryptedConfig = input.providerConfig ? encryptProviderConfig(input.providerConfig) : undefined;
   return prisma.senderAccount.create({
     data: {
@@ -1487,11 +1525,9 @@ export async function verifySenderAccount(id: string, userId: string) {
   };
 }
 
-export async function updateLeadCrm(id: string, input: Record<string, unknown>, userId?: string) {
-  if (userId) {
-    const owned = await prisma.lead.findFirst({ where: { id, ownerId: userId }, select: { id: true } });
-    if (!owned) throw new Error('Lead not found.');
-  }
+export async function updateLeadCrm(id: string, input: Record<string, unknown>, userId: string) {
+  const owned = await prisma.lead.findFirst({ where: { id, ownerId: userId }, select: { id: true } });
+  if (!owned) throw new Error('Lead not found.');
   return prisma.lead.update({
     where: { id },
     data: {
@@ -1507,7 +1543,7 @@ export async function updateLeadCrm(id: string, input: Record<string, unknown>, 
 }
 
 export async function listAuditLogs(userId: string, limit = 25) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   const logs = await prisma.auditLog.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
@@ -1653,14 +1689,15 @@ export async function addSuppressionEntry(
   };
 }
 
-// A reply belongs to a user if it landed in their mailbox, is tied to their
-// campaign, or is matched to a lead they own.
+// Fail closed unless every ownership-bearing relation agrees on the tenant.
+// This prevents an inconsistent legacy/imported row from becoming a bridge
+// between otherwise isolated campaign, lead, and mailbox data.
 function replyOwnershipWhere(userId: string) {
-  return { OR: [{ mailbox: { userId } }, { campaign: { userId } }, { lead: { ownerId: userId } }] };
+  return replyTenantWhere(userId);
 }
 
 export async function listInbox(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   const replies = await prisma.reply.findMany({
     where: replyOwnershipWhere(userId),
     orderBy: { receivedAt: 'desc' },
@@ -1774,10 +1811,10 @@ export async function getReplyThread(id: string, userId: string) {
 export async function applyInboxAction(
   id: string,
   input: { action?: string; reminderAt?: string },
-  userId?: string
+  userId: string
 ) {
   const reply = await prisma.reply.findFirst({
-    where: { id, ...(userId ? replyOwnershipWhere(userId) : {}) },
+    where: { id, ...replyOwnershipWhere(userId) },
     include: { lead: true, campaignLead: true },
   });
 
@@ -1863,7 +1900,7 @@ export async function applyInboxAction(
   await Promise.all(updates);
   await writeAudit(userId, 'Reply', id, `INBOX_${action.toUpperCase()}`, { action });
 
-  return getReplyThread(id, userId as string);
+  return getReplyThread(id, userId);
 }
 
 export async function ingestReply(input: {
@@ -1882,6 +1919,9 @@ export async function ingestReply(input: {
 
   if (!campaignLead && !emailLog) {
     throw new Error('Reply must include a campaignLeadId or emailLogId.');
+  }
+  if (campaignLead && emailLog && !isConsistentReplyThread(campaignLead, emailLog)) {
+    throw new Error('Reply references do not belong to the same campaign thread.');
   }
 
   const classification = classifyReply(input.body);
@@ -1972,29 +2012,48 @@ export async function handleResendInbound(payload: any) {
 
   let emailLog: any = null;
   for (const candidate of candidateIds) {
-    emailLog = await prisma.emailLog.findFirst({ where: { providerMessageId: candidate } });
+    emailLog = await prisma.emailLog.findFirst({
+      where: { providerMessageId: candidate, campaign: { userId: { not: null } } },
+      include: { campaign: { select: { userId: true } } },
+    });
     if (emailLog) break;
   }
   if (!emailLog) {
-    emailLog = await prisma.emailLog.findFirst({
-      where: { toEmail: fromEmail.toLowerCase() },
+    // A sender-address fallback is inherently weaker than In-Reply-To. Only
+    // use it when every recent matching send belongs to one tenant; otherwise
+    // fail closed instead of attaching the reply to whichever tenant sent last.
+    const candidates = await prisma.emailLog.findMany({
+      where: {
+        toEmail: { equals: fromEmail, mode: 'insensitive' },
+        sentAt: { not: null },
+        campaign: { userId: { not: null } },
+      },
       orderBy: { sentAt: 'desc' },
+      take: 20,
+      include: { campaign: { select: { userId: true } } },
     });
+    const owners = new Set(candidates.map((candidate) => candidate.campaign.userId).filter(Boolean));
+    if (owners.size === 1) emailLog = candidates[0] || null;
+    else if (owners.size > 1) {
+      console.warn(`[ResendInbound] Ambiguous fallback match for ${fromEmail}; refusing cross-tenant assignment.`);
+      return { processed: false, reason: 'ambiguous outbound message' };
+    }
   }
   if (!emailLog) {
     console.warn(`[ResendInbound] No matching EmailLog for ${fromEmail} (inReplyTo=${inReplyTo})`);
     return { processed: false, reason: 'no matching outbound message' };
   }
 
-  const owner = await prisma.campaign.findUnique({ where: { id: emailLog.campaignId }, select: { userId: true } });
-  if (!owner?.userId) return { processed: false, reason: 'unowned campaign' };
+  const ownerId = emailLog.campaign?.userId
+    || (await prisma.campaign.findUnique({ where: { id: emailLog.campaignId }, select: { userId: true } }))?.userId;
+  if (!ownerId) return { processed: false, reason: 'unowned campaign' };
   const reply = await ingestReply({
     emailLogId: emailLog.id,
     campaignLeadId: emailLog.campaignLeadId || undefined,
     fromEmail,
     subject,
     body,
-  }, owner.userId);
+  }, ownerId);
   return { processed: true, replyId: reply.id };
 }
 
@@ -2051,7 +2110,7 @@ export async function suggestReply(id: string, userId: string) {
 }
 
 export async function getAnalytics(userId: string) {
-  await ensureOutboundSeedData();
+  await ensureOutboundSeedData(userId);
   const overview = await getOutboundOverview(userId);
   const campaigns = await listCampaigns(userId);
   const snapshots = await prisma.analyticsSnapshot.findMany({
@@ -3550,11 +3609,11 @@ function defaultTemplates(userId: string) {
   ];
 }
 
-async function ensureDefaultTemplate(userId?: string) {
-  const existing = await prisma.template.findFirst({ orderBy: { createdAt: 'asc' } });
+async function ensureDefaultTemplate(userId: string) {
+  const existing = await prisma.template.findFirst({ where: { userId }, orderBy: { createdAt: 'asc' } });
   if (existing) return existing;
 
-  const [created] = await prisma.$transaction(defaultTemplates(userId || '').map((template) => prisma.template.create({ data: template })));
+  const [created] = await prisma.$transaction(defaultTemplates(userId).map((template) => prisma.template.create({ data: template })));
   return created;
 }
 
@@ -3611,7 +3670,7 @@ function escapeHtml(value: string) {
 }
 
 export async function getCampaignEvents(campaignId: string, userId: string, filter?: string, search?: string, page = 1, limit = 20) {
-  const where: any = { campaignId };
+  const where: any = campaignEmailLogTenantWhere(campaignId, userId);
   if (filter) {
     if (filter === 'OPENED') where.openedAt = { not: null };
     else if (filter === 'BOUNCED') where.status = 'BOUNCED';

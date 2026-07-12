@@ -37,4 +37,5 @@ jobs:
               chmod 600 .env
             fi
             docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
             docker image prune -f

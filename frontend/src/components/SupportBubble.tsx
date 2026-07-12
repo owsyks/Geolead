@@ -36,7 +36,7 @@ interface GuestIdentity {
   email: string;
 }
 
-const AUTH_KEY = "geolead.supportBubble";
+const authKey = (userId: string) => `geolead.supportBubble.${userId}`;
 const GUEST_KEY = "geolead.supportBubble.guest";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -86,7 +86,7 @@ export default function SupportBubble() {
   const [typing, setTyping] = useState(false);
   const [threadLoading, setThreadLoading] = useState(false);
   const [localUnread, setLocalUnread] = useState(false);
-  const hydrated = useRef(false);
+  const hydratedScope = useRef<string | null>(null);
   const seenCount = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   // Cache each ticket's thread once fetched so re-opening it from History (or
@@ -97,28 +97,43 @@ export default function SupportBubble() {
   // Hydrate from the right localStorage bucket once we know whether this is
   // an authenticated session or an anonymous visitor.
   useEffect(() => {
-    if (loading || hydrated.current) return;
-    hydrated.current = true;
-    if (user) {
-      const stored = readJson(AUTH_KEY, { ticketId: null as string | null, messages: [] as BubbleMessage[], seen: {} as Record<string, string> });
-      setTicketId(stored.ticketId);
-      setMessages(stored.messages);
-      setSeen(stored.seen);
-      seenCount.current = stored.messages.length;
-    } else {
-      const stored = readJson(GUEST_KEY, { ticketId: null as string | null, accessToken: null as string | null, messages: [] as BubbleMessage[], identity: null as GuestIdentity | null });
-      setTicketId(stored.ticketId);
-      setGuestAccessToken(stored.accessToken);
-      setMessages(stored.messages);
-      setGuestIdentity(stored.identity);
-      seenCount.current = stored.messages.length;
-    }
+    if (loading) return;
+    const scope = user ? `user:${user.id}` : "guest";
+    if (hydratedScope.current === scope) return;
+    let active = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!active) return;
+      setTicketId(null);
+      setGuestAccessToken(null);
+      setMessages([]);
+      setSeen({});
+      setGuestIdentity(null);
+      threadCache.current = {};
+      if (user) {
+        const stored = readJson(authKey(user.id), { ticketId: null as string | null, messages: [] as BubbleMessage[], seen: {} as Record<string, string> });
+        setTicketId(stored.ticketId);
+        setMessages(stored.messages);
+        setSeen(stored.seen);
+        seenCount.current = stored.messages.length;
+      } else {
+        const stored = readJson(GUEST_KEY, { ticketId: null as string | null, accessToken: null as string | null, messages: [] as BubbleMessage[], identity: null as GuestIdentity | null });
+        setTicketId(stored.ticketId);
+        setGuestAccessToken(stored.accessToken);
+        setMessages(stored.messages);
+        setGuestIdentity(stored.identity);
+        seenCount.current = stored.messages.length;
+      }
+      hydratedScope.current = scope;
+    })();
+    return () => { active = false; };
   }, [loading, user]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || loading || !hydrated.current) return;
+    const scope = user ? `user:${user.id}` : "guest";
+    if (typeof window === "undefined" || loading || hydratedScope.current !== scope) return;
     if (user) {
-      window.localStorage.setItem(AUTH_KEY, JSON.stringify({ ticketId, messages, seen }));
+      window.localStorage.setItem(authKey(user.id), JSON.stringify({ ticketId, messages, seen }));
     } else {
       window.localStorage.setItem(GUEST_KEY, JSON.stringify({ ticketId, accessToken: guestAccessToken, messages, identity: guestIdentity }));
     }
@@ -139,9 +154,11 @@ export default function SupportBubble() {
     immediate: true,
     poll: async () => {
       if (!ticketId) return false;
+      const requestScope = user ? `user:${user.id}` : "guest";
       const { messages: thread } = user
         ? await getTicketMessages(ticketId)
         : await getGuestTicketMessages(ticketId, guestAccessToken!);
+      if (hydratedScope.current !== requestScope) return false;
       const mapped = mapThread(thread);
       threadCache.current[ticketId] = mapped;
       setMessages(mapped);
@@ -159,7 +176,9 @@ export default function SupportBubble() {
     immediate: true,
     poll: async () => {
       if (!user) return;
+      const requestScope = `user:${user.id}`;
       const { tickets } = await getMyTickets();
+      if (hydratedScope.current !== requestScope) return;
       setTicketList(tickets);
     },
   });
@@ -168,7 +187,6 @@ export default function SupportBubble() {
     if (!open || view !== "chat" || !ticketId || !user) return;
     const t = ticketList.find((x) => x.id === ticketId);
     if (t) markSeen(t.id, t.updatedAt);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view, ticketId, ticketList, user]);
 
   if (loading) return null;
@@ -257,8 +275,8 @@ export default function SupportBubble() {
       setPendingEscalate(null);
       seenCount.current = messages.length;
       await botSay("Thanks! You're connected with our team — they'll reply right here, and by email too.");
-    } catch (err: any) {
-      setFormError(err?.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setFormBusy(false);
     }
@@ -340,6 +358,9 @@ export default function SupportBubble() {
       return next;
     });
   }
+
+  const currentScope = user ? `user:${user.id}` : "guest";
+  if (loading || hydratedScope.current !== currentScope) return null;
 
   return createPortal(
     <>

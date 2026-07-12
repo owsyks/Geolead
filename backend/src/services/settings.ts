@@ -115,6 +115,16 @@ export async function getSetting(key: string, userId?: string | null): Promise<s
   return undefined;
 }
 
+// Resolve only a tenant's explicit database override. This is used when
+// provisioning tenant-owned integrations so a platform-wide environment key
+// is never copied into every customer's sender account.
+export async function getUserSettingOverride(key: string, userId: string): Promise<string | undefined> {
+  const store = await loadCache();
+  const stored = store.get(ck(userId, key));
+  if (stored == null || stored === '') return undefined;
+  return isEncrypted(stored) ? decryptSecret(stored) : stored;
+}
+
 export async function getSettings(keys: string[], userId?: string | null): Promise<Record<string, string | undefined>> {
   const out: Record<string, string | undefined> = {};
   await Promise.all(keys.map(async (key) => { out[key] = await getSetting(key, userId); }));

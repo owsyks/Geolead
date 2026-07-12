@@ -6,6 +6,7 @@ import { getMailbox, syncMailbox, testImapConnection } from '../services/inboxSy
 import { REPLY_CATEGORIES } from '../services/replyAnalysis.js';
 import { requireAuth } from '../middleware/auth.js';
 import { assertSafeNetworkTarget } from '../services/ssrfGuard.js';
+import { replyTenantWhere } from '../security/tenantIsolation.js';
 
 const router = Router();
 
@@ -17,11 +18,10 @@ router.use((_req, res, next) => {
 // The inbox is per-user.
 router.use(requireAuth);
 
-// A reply belongs to a user if it's in their mailbox, tied to their campaign,
-// or matched to a lead they own.
-const ownershipWhere = (userId: string) => ({
-  OR: [{ mailbox: { userId } }, { campaign: { userId } }, { lead: { ownerId: userId } }],
-});
+// Every ownership-bearing relation must agree. Using OR here would let a
+// malformed cross-tenant row expose another user's campaign or lead through a
+// mailbox the caller owns.
+const ownershipWhere = replyTenantWhere;
 
 // ---- Mailbox configuration ---------------------------------------------
 
