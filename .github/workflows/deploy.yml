@@ -38,4 +38,5 @@ jobs:
             fi
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
+            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAuthBillingReadiness.js
             docker image prune -f

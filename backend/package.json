@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "test:security": "tsx --test tests/security.test.ts",
-    "audit:tenants": "tsx src/scripts/auditTenantIsolation.ts"
+    "audit:tenants": "tsx src/scripts/auditTenantIsolation.ts",
+    "audit:auth-billing": "tsx src/scripts/auditAuthBillingReadiness.ts"
   },
   "engines": {
     "node": ">=20 <23"
