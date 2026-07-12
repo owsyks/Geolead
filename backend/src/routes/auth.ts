@@ -25,6 +25,7 @@ import {
 } from '../services/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail, sendRegistrationCode } from '../services/mailer.js';
 import { trialEndFromNow } from '../services/billing.js';
+import { browserOrigins } from '../config/origins.js';
 
 const router = Router();
 
@@ -85,9 +86,7 @@ function readCookie(req: Request, name: string): string | null {
 }
 
 function trustedBrowserOrigin(req: Request, res: Response, next: NextFunction) {
-  const configured = [process.env.FRONTEND_URL, ...(process.env.CORS_ORIGIN || '').split(',')]
-    .filter(Boolean)
-    .map((value) => String(value).trim().replace(/\/$/, ''));
+  const configured = browserOrigins();
   const origin = req.get('origin')?.replace(/\/$/, '');
   const clientHeader = req.get('x-geolead-client');
   if (!origin || !configured.includes(origin) || clientHeader !== 'web') {

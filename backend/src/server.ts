@@ -28,11 +28,11 @@ import { startInboxSyncWorker } from './services/inboxSync.js';
 import { attachOutboundWebSocket } from './services/outboundRealtime.js';
 import { ensureOutboundSeedData, startOutboundScheduler } from './services/outboundPlatform.js';
 import { startWatchlistScheduler } from './services/watchlistService.js';
+import { browserOrigins } from './config/origins.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
-  .split(',').map((value) => value.trim().replace(/\/$/, '')).filter(Boolean);
+const allowedOrigins = browserOrigins();
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   throw new Error('CORS_ORIGIN or FRONTEND_URL must be configured in production.');
 }
@@ -646,7 +646,10 @@ app.get('/api/export', requireAuth, rateLimit('export', 20, 10 * 60 * 1000), asy
 app.use((_req, res) => res.status(404).json({ error: 'Route not found.' }));
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[Server] Unhandled request error:', err instanceof Error ? err.message : 'Unknown error');
-  if (!res.headersSent) res.status(500).json({ error: 'Internal server error.' });
+  if (!res.headersSent) {
+    if (err instanceof SyntaxError && 'body' in err) return res.status(400).json({ error: 'Malformed JSON request.' });
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
 });
 
 const server = http.createServer(app);
