@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -183,11 +184,11 @@ export function OutboundShell({
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-bg">
           {/* Sidebar header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 object-contain" />
+            <div className="flex items-center gap-3.5">
+              <Image src="/logo.png" alt="GeoLead AI" width={40} height={40} className="w-10 h-10 shrink-0 object-contain" priority />
               <div>
-                <div className="font-black text-text">GeoLead AI</div>
-                <div className="text-[11px] text-text-muted uppercase tracking-wider">Find. Connect. Close.</div>
+                <div className="font-black text-[15px] leading-none tracking-tight text-text">GeoLead AI</div>
+                <div className="mt-1 text-[10px] leading-none text-text-muted uppercase tracking-[0.12em]">Find. Connect. Close.</div>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-surface-2 rounded-lg text-text-muted">
@@ -230,11 +231,11 @@ export function OutboundShell({
 
       {/* ── Desktop Sidebar (288px fixed) ── */}
       <aside className="hidden lg:flex w-[288px] shrink-0 h-screen glass border-r border-border flex-col fixed left-0 top-0 z-40">
-        <div className="p-6 flex items-center gap-3">
-          <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 rounded-lg object-contain shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]" />
+        <div className="px-6 py-5 flex items-center gap-3.5">
+          <Image src="/logo.png" alt="GeoLead AI" width={40} height={40} className="w-10 h-10 shrink-0 object-contain" priority />
           <div>
-            <div className="font-black text-text leading-tight">GeoLead AI</div>
-            <div className="text-[11px] text-text-muted leading-tight uppercase tracking-wider">Find. Connect. Close.</div>
+            <div className="font-black text-[15px] leading-none tracking-tight text-text">GeoLead AI</div>
+            <div className="mt-1 text-[10px] leading-none text-text-muted uppercase tracking-[0.12em]">Find. Connect. Close.</div>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
