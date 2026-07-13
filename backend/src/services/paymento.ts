@@ -75,6 +75,16 @@ export async function verifyPayment(token: string): Promise<PaymentoVerification
   return result;
 }
 
+export async function configurePaymentoIpn(): Promise<void> {
+  const configured = process.env.PAYMENTO_IPN_URL?.trim();
+  if (!configured) throw new Error('PAYMENTO_IPN_URL_NOT_CONFIGURED');
+  const url = new URL(configured);
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
+    throw new Error('PAYMENTO_IPN_URL_INVALID');
+  }
+  await call<unknown>('/v1/payment/settings', { ipN_URL: url.toString(), ipN_Method: 1 });
+}
+
 export function verifyIpnSignature(rawBody: Buffer, received: string | undefined): boolean {
   const secret = process.env.PAYMENTO_IPN_SECRET?.trim();
   if (!secret || !received || !/^[A-Fa-f0-9]{64}$/.test(received)) return false;

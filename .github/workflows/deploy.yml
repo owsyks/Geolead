@@ -23,13 +23,15 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          PAYMENTO_API_KEY: ${{ secrets.PAYMENTO_API_KEY }}
+          PAYMENTO_IPN_SECRET: ${{ secrets.PAYMENTO_IPN_SECRET }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           command_timeout: 30m
-          envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL
+          envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL,PAYMENTO_API_KEY,PAYMENTO_IPN_SECRET
           script: |
             set -e
             cd /opt/geolead
@@ -42,4 +44,5 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAuthBillingReadiness.js
+            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/configurePaymento.js
             docker image prune -f

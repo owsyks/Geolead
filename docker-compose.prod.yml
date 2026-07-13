@@ -42,6 +42,9 @@ services:
       # in the container environment, never in the repository or image layers.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-verify@geolead.tech}
+      PAYMENTO_API_KEY: ${PAYMENTO_API_KEY:-}
+      PAYMENTO_IPN_SECRET: ${PAYMENTO_IPN_SECRET:-}
+      PAYMENTO_IPN_URL: https://api.geolead.tech/api/billing/webhook/paymento
     depends_on:
       - postgres
       - redis
