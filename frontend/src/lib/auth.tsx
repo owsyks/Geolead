@@ -66,7 +66,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // Routes reachable without a session. "/" serves the public marketing Landing
 // to logged-out visitors (and the dashboard to signed-in users), and "/contact"
 // is a public marketing page.
-const PUBLIC_ROUTES = ["/", "/contact", "/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
+const PUBLIC_ROUTES = ["/", "/pricing", "/contact", "/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 
 function isPublic(path: string): boolean {
   return PUBLIC_ROUTES.some((r) => path === r || path.startsWith(`${r}?`));
