@@ -38,6 +38,10 @@ services:
       PORT: 5000
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/geolead_ai?schema=public
       REDIS_URL: redis://redis:6379
+      # Supplied by GitHub Actions secrets at deploy time. The values are stored
+      # in the container environment, never in the repository or image layers.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-verify@geolead.tech}
     depends_on:
       - postgres
       - redis
