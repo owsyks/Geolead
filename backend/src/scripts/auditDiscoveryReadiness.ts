@@ -7,44 +7,55 @@ async function main(): Promise<void> {
   ];
 
   const configuredKeyNames = keyNames.filter((name) => Boolean(process.env[name]?.trim()));
-  const uniqueKeys = Array.from(new Set(
-    configuredKeyNames.map((name) => process.env[name]!.trim()),
-  ));
+  const keysByValue = new Map<string, string[]>();
+  for (const name of configuredKeyNames) {
+    const value = process.env[name]!.trim();
+    keysByValue.set(value, [...(keysByValue.get(value) || []), name]);
+  }
 
   console.log(JSON.stringify({
-    platformSerperKeyCount: uniqueKeys.length,
+    platformSerperKeyCount: keysByValue.size,
     configuredVariables: configuredKeyNames,
     crawlerFallbackConfigured: Boolean(process.env.CRAWLER_BASE_URL?.trim()),
   }));
 
-  if (uniqueKeys.length === 0) {
+  if (keysByValue.size === 0) {
     console.error('[Discovery readiness] No platform Serper key is available to the worker.');
     process.exitCode = 2;
     return;
   }
 
-  try {
-    const response = await axios.post(
-      'https://google.serper.dev/search',
-      { q: 'openai', num: 1 },
-      {
-        headers: {
-          'X-API-KEY': uniqueKeys[0],
-          'Content-Type': 'application/json',
+  let healthyKeys = 0;
+  for (const [key, variableNames] of keysByValue) {
+    try {
+      const response = await axios.post(
+        'https://google.serper.dev/search',
+        { q: 'openai', num: 1 },
+        {
+          headers: {
+            'X-API-KEY': key,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15_000,
         },
-        timeout: 15_000,
-      },
-    );
-    console.log(JSON.stringify({
-      serperProbeStatus: response.status,
-      organicResults: Array.isArray(response.data?.organic) ? response.data.organic.length : 0,
-    }));
-  } catch (error: any) {
-    console.error(JSON.stringify({
-      serperProbeStatus: error?.response?.status || null,
-      errorCode: error?.code || null,
-      message: error?.response?.status ? 'Serper rejected the platform credential or request.' : 'Serper could not be reached.',
-    }));
+      );
+      healthyKeys++;
+      console.log(JSON.stringify({
+        variables: variableNames,
+        serperProbeStatus: response.status,
+        organicResults: Array.isArray(response.data?.organic) ? response.data.organic.length : 0,
+      }));
+    } catch (error: any) {
+      console.error(JSON.stringify({
+        variables: variableNames,
+        serperProbeStatus: error?.response?.status || null,
+        errorCode: error?.code || null,
+        message: error?.response?.status ? 'Serper rejected the platform credential or request.' : 'Serper could not be reached.',
+      }));
+    }
+  }
+
+  if (healthyKeys === 0) {
     process.exitCode = 3;
   }
 }
