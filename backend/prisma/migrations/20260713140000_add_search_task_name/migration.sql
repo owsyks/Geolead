@@ -1,0 +1,1 @@
+ALTER TABLE "SearchTask" ADD COLUMN "name" TEXT;

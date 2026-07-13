@@ -11,6 +11,7 @@ model SearchTask {
   id            String   @id @default(uuid())
   userId        String?
   user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name          String?
   keyword       String
   domainIdea    String
   country       String?

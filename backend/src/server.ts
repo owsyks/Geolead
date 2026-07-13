@@ -87,10 +87,13 @@ app.get('/api/health', (req, res) => {
  * Initiates a lead search task.
  */
 app.post('/api/search', requireAuth, requireVerifiedEmail, requirePlanCapacity('searches'), rateLimit('search', 10, 10 * 60 * 1000), async (req, res) => {
-  const { keyword, domainIdea, country, cityState, searchDepth, searchSource, proxyscrapeEnabled } = req.body;
+  const { name, keyword, domainIdea, country, cityState, searchDepth, searchSource, proxyscrapeEnabled } = req.body;
 
   if (!keyword || !domainIdea) {
     return res.status(400).json({ error: 'Keyword and domainIdea are required fields.' });
+  }
+  if (name != null && (typeof name !== 'string' || name.trim().length > 80)) {
+    return res.status(400).json({ error: 'Search name must be 80 characters or fewer.' });
   }
 
   try {
@@ -105,6 +108,9 @@ app.post('/api/search', requireAuth, requireVerifiedEmail, requirePlanCapacity('
     const task = await prisma.searchTask.create({
       data: {
         userId: req.userId!,
+        name: typeof name === 'string' && name.trim()
+          ? name.trim()
+          : [String(keyword).trim(), typeof cityState === 'string' ? cityState.trim() : ''].filter(Boolean).join(' — ').slice(0, 80),
         keyword,
         domainIdea,
         country: country || null,
@@ -234,6 +240,7 @@ app.delete('/api/tasks/:id', requireAuth, rateLimit('delete-search', 30, 10 * 60
         data: {
           status: 'CANCELLED',
           progress: 100,
+          name: '[deleted]',
           keyword: '[deleted]',
           domainIdea: '[deleted]',
           country: null,
@@ -282,10 +289,12 @@ app.post('/api/search/cleanup', requireAuth, async (req, res) => {
  */
 app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), async (req, res) => {
   try {
+    const requestedLimit = Number.parseInt(String(req.query.limit || '20'), 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 20;
     const tasks = await prisma.searchTask.findMany({
       where: { userId: req.userId!, deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: limit,
     });
     return res.json(tasks);
   } catch (error) {

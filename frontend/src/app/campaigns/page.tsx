@@ -57,6 +57,17 @@ interface AvailableLead {
   emails: Array<{ email: string; status: string }>;
 }
 
+interface LeadSearchOption {
+  id: string;
+  name?: string;
+  keyword: string;
+  domainIdea: string;
+  cityState?: string;
+  totalLeads: number;
+  validEmails: number;
+  createdAt: string;
+}
+
 const INPUT = "mt-2 h-10 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text outline-none focus:border-brand transition-colors";
 const LABEL = "block text-[11px] font-bold uppercase tracking-wider text-text-muted";
 
@@ -148,6 +159,8 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<OutboundCampaignSummary[]>(() => readCache<OutboundCampaignSummary[]>(CAMPAIGNS_CACHE_KEY) ?? demoCampaigns);
   const [overview, setOverview] = useState<OutboundOverview | null>(() => readCache<OutboundOverview>(OVERVIEW_CACHE_KEY));
   const [leads, setLeads] = useState<AvailableLead[]>([]);
+  const [leadSearches, setLeadSearches] = useState<LeadSearchOption[]>([]);
+  const [selectedSearchTaskId, setSelectedSearchTaskId] = useState("");
   const [availableLeadCount, setAvailableLeadCount] = useState(0);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [selectingLeadMode, setSelectingLeadMode] = useState<"all" | "valid" | null>(null);
@@ -182,6 +195,12 @@ export default function CampaignsPage() {
     smartDelayMax: "1",
   });
 
+  const applyLeadSearches = useCallback((searches: LeadSearchOption[]) => {
+    const withLeads = searches.filter((item) => item.totalLeads > 0);
+    setLeadSearches(withLeads);
+    setSelectedSearchTaskId((current) => withLeads.some((item) => item.id === current) ? current : (withLeads[0]?.id || ""));
+  }, []);
+
   useEffect(() => {
     const senders = overview?.senders || [];
     if (senders.length === 0) return;
@@ -198,14 +217,16 @@ export default function CampaignsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [campaignData, overviewData, templateData] = await Promise.all([
+      const [campaignData, overviewData, templateData, searchData] = await Promise.all([
         fetchOutbound<OutboundCampaignSummary[]>("/api/outbound/campaigns"),
         fetchOutbound<OutboundOverview>("/api/outbound/overview"),
         fetchOutbound<Array<{ id: string; name: string; subject: string }>>("/api/outbound/templates"),
+        fetchOutbound<LeadSearchOption[]>("/api/history?limit=100"),
       ]);
       setCampaigns(campaignData);
       setOverview(overviewData);
       setTemplates(templateData);
+      applyLeadSearches(searchData);
       writeCache(CAMPAIGNS_CACHE_KEY, campaignData);
       writeCache(OVERVIEW_CACHE_KEY, overviewData);
       setMessage("");
@@ -216,13 +237,14 @@ export default function CampaignsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyLeadSearches]);
 
-  const loadLeadsForDomain = useCallback(async (domain: string, scoped: boolean) => {
+  const loadLeadsForDomain = useCallback(async (domain: string, scoped: boolean, taskId: string) => {
     setLeadsLoading(true);
     try {
       const params = new URLSearchParams({ hasEmails: "true", limit: "50", page: "1" });
-      if (scoped && domain.trim()) params.set("domain", domain.trim());
+      if (taskId) params.set("taskId", taskId);
+      else if (scoped && domain.trim()) params.set("domain", domain.trim());
       const res = await fetchOutbound<{ leads: AvailableLead[]; pagination: { total: number } }>(`/api/leads?${params.toString()}`);
       setLeads(res.leads);
       setAvailableLeadCount(res.pagination.total);
@@ -235,19 +257,20 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     if (loading) return;
-    const handle = setTimeout(() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain), 400);
+    const handle = setTimeout(() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain, selectedSearchTaskId), 400);
     return () => clearTimeout(handle);
-  }, [form.geoDomain, leadsScopedToDomain, loading, loadLeadsForDomain]);
+  }, [form.geoDomain, leadsScopedToDomain, selectedSearchTaskId, loading, loadLeadsForDomain]);
 
   useEffect(() => {
     let active = true;
     const bootstrap = async () => {
       try {
-        const [campaignData, overviewData, leadData, templateData] = await Promise.all([
+        const [campaignData, overviewData, leadData, templateData, searchData] = await Promise.all([
           fetchOutbound<OutboundCampaignSummary[]>("/api/outbound/campaigns"),
           fetchOutbound<OutboundOverview>("/api/outbound/overview"),
           fetchOutbound<{ leads: AvailableLead[]; pagination: { total: number } }>("/api/leads?hasEmails=true&limit=12&page=1"),
           fetchOutbound<Array<{ id: string; name: string; subject: string }>>("/api/outbound/templates"),
+          fetchOutbound<LeadSearchOption[]>("/api/history?limit=100"),
         ]);
         if (!active) return;
         setCampaigns(campaignData);
@@ -255,6 +278,7 @@ export default function CampaignsPage() {
         setLeads(leadData.leads);
         setAvailableLeadCount(leadData.pagination.total);
         setTemplates(templateData);
+        applyLeadSearches(searchData);
         writeCache(CAMPAIGNS_CACHE_KEY, campaignData);
         writeCache(OVERVIEW_CACHE_KEY, overviewData);
       } catch {
@@ -267,7 +291,7 @@ export default function CampaignsPage() {
     };
     void bootstrap();
     return () => { active = false; };
-  }, []);
+  }, [applyLeadSearches]);
 
   useEffect(() => {
     let active = true;
@@ -397,7 +421,8 @@ export default function CampaignsPage() {
     try {
       const params = new URLSearchParams({ hasEmails: "true" });
       if (mode === "valid") params.set("emailStatus", "VALID");
-      if (leadsScopedToDomain && form.geoDomain.trim()) params.set("domain", form.geoDomain.trim());
+      if (selectedSearchTaskId) params.set("taskId", selectedSearchTaskId);
+      else if (leadsScopedToDomain && form.geoDomain.trim()) params.set("domain", form.geoDomain.trim());
       const result = await fetchOutbound<{ ids: string[]; truncated: boolean }>(`/api/leads/ids?${params.toString()}`);
       setSelectedLeadIds(result.ids);
       if (result.truncated) {
@@ -971,21 +996,39 @@ export default function CampaignsPage() {
                 <h3 className="text-[11px] font-black uppercase tracking-wide text-text-muted">Select leads</h3>
                 <span className="text-xs text-text-muted">{selectedLeadIds.length.toLocaleString()} selected · {availableLeadCount.toLocaleString()} eligible</span>
               </div>
+              <label className={`${LABEL} mt-3`}>
+                Lead Explorer search
+                <select value={selectedSearchTaskId} onChange={(event) => {
+                  setSelectedSearchTaskId(event.target.value);
+                  setSelectedLeadIds([]);
+                  setLeadSelectionNotice("");
+                }} className={INPUT}>
+                  <option value="">All searches (may combine lead pools)</option>
+                  {leadSearches.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name || [item.keyword, item.cityState].filter(Boolean).join(" — ")} · {item.totalLeads} leads
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-1 text-[10px] text-text-faint">Choose one named search to keep campaign recipients isolated to that exact Lead Explorer run.</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLeadsScopedToDomain((v) => !v);
-                    setSelectedLeadIds([]);
-                    setLeadSelectionNotice("");
-                  }}
-                  className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1.5 ${leadsScopedToDomain ? "border-brand/30 bg-brand-soft text-brand" : "border-border text-text-muted"}`}
-                  title="Show only email-ready leads scraped for this domain"
-                >
-                  {leadsScopedToDomain ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                  {leadsScopedToDomain ? `Scraped for ${form.geoDomain || "this domain"}` : "All my leads"}
-                </button>
-                <button type="button" onClick={() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain)} className="h-8 w-8 rounded-lg border border-border text-text-muted hover:text-text inline-flex items-center justify-center" title="Refresh leads">
+                {!selectedSearchTaskId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLeadsScopedToDomain((v) => !v);
+                      setSelectedLeadIds([]);
+                      setLeadSelectionNotice("");
+                    }}
+                    className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1.5 ${leadsScopedToDomain ? "border-brand/30 bg-brand-soft text-brand" : "border-border text-text-muted"}`}
+                    title="Show only email-ready leads scraped for this domain"
+                  >
+                    {leadsScopedToDomain ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                    {leadsScopedToDomain ? `Scraped for ${form.geoDomain || "this domain"}` : "All my leads"}
+                  </button>
+                )}
+                <button type="button" onClick={() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain, selectedSearchTaskId)} className="h-8 w-8 rounded-lg border border-border text-text-muted hover:text-text inline-flex items-center justify-center" title="Refresh leads">
                   {leadsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
                 </button>
                 <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -1012,8 +1055,8 @@ export default function CampaignsPage() {
                   <div className="py-8 flex items-center justify-center gap-2 text-xs text-text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading leads…</div>
                 ) : leads.length === 0 ? (
                   <EmptyState
-                    title={leadsScopedToDomain ? `No valid leads for ${form.geoDomain || "this domain"}` : "No verified leads loaded"}
-                    body={leadsScopedToDomain ? "Run the Lead Explorer for this domain first, or switch to All my leads." : "Run the lead explorer first, or create the campaign without assigned leads."}
+                    title={selectedSearchTaskId ? "No email-ready leads in this named search" : leadsScopedToDomain ? `No valid leads for ${form.geoDomain || "this domain"}` : "No verified leads loaded"}
+                    body={selectedSearchTaskId ? "Choose another Lead Explorer search or verify emails in this run first." : leadsScopedToDomain ? "Run the Lead Explorer for this domain first, or switch to All my leads." : "Run the lead explorer first, or create the campaign without assigned leads."}
                   />
                 ) : (
                   <>

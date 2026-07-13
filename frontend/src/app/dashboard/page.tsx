@@ -56,6 +56,7 @@ interface LeadEmail {
 
 interface SearchTask {
   id: string;
+  name?: string;
   keyword: string;
   domainIdea: string;
   country?: string;
@@ -127,6 +128,7 @@ type ExportRow = Record<string, ExportCellValue>;
 export default function DashboardPage() {
   // Input Form States
   const { activeDomain } = useDomainContext();
+  const [searchName, setSearchName] = useState("");
   const [keyword, setKeyword] = useState("");
   const [domainIdea, setDomainIdea] = useState("");
   const [cityState, setCityState] = useState("");
@@ -747,12 +749,13 @@ export default function DashboardPage() {
   // Handle Search Form Submission
   const handleTriggerSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!keyword || !domainIdea) return;
+    if (!searchName.trim() || !keyword || !domainIdea) return;
 
     if (isDemoMode) {
       const newDemoId = `demo-task-${Date.now()}`;
       const newDemoTask: SearchTask = {
         id: newDemoId,
+        name: searchName.trim(),
         keyword,
         domainIdea,
         country: "United States",
@@ -841,6 +844,7 @@ export default function DashboardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: searchName.trim(),
           keyword,
           domainIdea,
           cityState,
@@ -855,6 +859,7 @@ export default function DashboardPage() {
       handleSelectTask(newTask);
 
       setKeyword("");
+      setSearchName("");
       setDomainIdea("");
       setCityState("");
     } catch {
@@ -1337,6 +1342,11 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Search Name</label>
+                <input type="text" required maxLength={80} value={searchName} onChange={(e) => setSearchName(e.target.value)} placeholder="e.g. Dallas dentists — July"
+                  className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
+              </div>
+              <div>
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Domain Idea</label>
                 <input type="text" required value={domainIdea} onChange={(e) => setDomainIdea(e.target.value)} placeholder="e.g. TexasCarVendor.com"
                   className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
@@ -1356,17 +1366,20 @@ export default function DashboardPage() {
                 <span className="text-[11px] text-text-muted font-mono">{searchDepth}</span>
               </div>
               <input type="range" min={1} max={200} value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className="w-full accent-brand" />
-              <button type="button" onClick={() => { handleTriggerSearch(new Event('submit') as any); setRailOpen(false); }}
+              <button type="button" onClick={() => {
+                handleTriggerSearch(new Event('submit') as any);
+                if (searchName.trim() && keyword && domainIdea) setRailOpen(false);
+              }}
                 className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
               {tasks.length > 0 && <div className="pt-3 border-t border-border"><h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Recent Searches</h4>
                 {tasks.slice(0, 5).map((task) => (
                   <div key={task.id} className="flex items-center gap-1 rounded-lg hover:bg-surface-2 transition-colors">
                     <button type="button" onClick={() => { handleSelectTask(task); setRailOpen(false); }}
                       className="min-w-0 flex-1 text-left px-3 py-2 text-xs text-text-muted flex items-center justify-between gap-2">
-                      <span className="truncate">{task.domainIdea}</span>
+                      <span className="truncate">{task.name || task.domainIdea}</span>
                       <span className={`text-[9px] font-bold uppercase ${task.status === 'COMPLETED' ? 'text-success' : task.status === 'FAILED' ? 'text-danger' : 'text-copper'}`}>{task.status}</span>
                     </button>
-                    <button type="button" aria-label={`Delete ${task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-2 mr-1 rounded-md text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
+                    <button type="button" aria-label={`Delete ${task.name || task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-2 mr-1 rounded-md text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -1386,6 +1399,10 @@ export default function DashboardPage() {
               ) : null}
             </div>
             <form onSubmit={handleTriggerSearch} className="space-y-4">
+              <div>
+                <label className={LABEL}>Search Name</label>
+                <input type="text" required maxLength={80} value={searchName} onChange={(e) => setSearchName(e.target.value)} placeholder="e.g. Dallas dentists — July" className={INPUT} />
+              </div>
               <div>
                 <label className={LABEL}>Domain Idea</label>
                 <input type="text" required value={domainIdea} onChange={(e) => setDomainIdea(e.target.value)} placeholder="e.g. TexasCarVendor.com" className={INPUT} />
@@ -1449,7 +1466,7 @@ export default function DashboardPage() {
                       <div className="absolute top-0 left-0 h-[2px] bg-brand animate-pulse" style={{ width: `${task.progress}%` }} />
                     )}
                     <div className="flex justify-between items-start w-full">
-                      <span className="text-xs font-bold text-text truncate max-w-[150px]">{task.domainIdea}</span>
+                      <span className="text-xs font-bold text-text truncate max-w-[150px]">{task.name || task.domainIdea}</span>
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
                           task.status === "COMPLETED" ? "bg-success/10 text-success"
@@ -1460,7 +1477,7 @@ export default function DashboardPage() {
                         }`}>
                           {task.status}
                         </span>
-                        <button type="button" aria-label={`Delete ${task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-1 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
+                        <button type="button" aria-label={`Delete ${task.name || task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-1 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1497,7 +1514,7 @@ export default function DashboardPage() {
                 </div>
                 <h3 id="delete-search-title" className="text-base font-bold text-text">Delete this search?</h3>
                 <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                  <strong className="text-text">{taskPendingDelete.domainIdea}</strong> and all leads discovered by this search will be removed. {taskPendingDelete.status === "PENDING" || taskPendingDelete.status === "PROCESSING" ? "The active search will also be stopped. " : ""}This cannot be undone.
+                  <strong className="text-text">{taskPendingDelete.name || taskPendingDelete.domainIdea}</strong> and all leads discovered by this search will be removed. {taskPendingDelete.status === "PENDING" || taskPendingDelete.status === "PROCESSING" ? "The active search will also be stopped. " : ""}This cannot be undone.
                 </p>
                 {deleteTaskError && <p className="mt-3 text-xs text-danger">{deleteTaskError}</p>}
                 <div className="flex justify-end gap-2 mt-6">
@@ -2093,47 +2110,47 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
   });
 
   const confColor = (conf: string | null | undefined) =>
-    conf === 'HIGH' ? 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30' :
+    conf === 'HIGH' ? 'bg-[#128C7E]/10 text-[#128C7E] border-[#128C7E]/30 dark:bg-[#25D366]/10 dark:text-[#25D366] dark:border-[#25D366]/30' :
     conf === 'MEDIUM' ? 'bg-copper/10 text-copper border-copper/30' :
-      'bg-surface-2 text-text-muted border-border';
+      'bg-bg-elevated text-text-muted border-border-strong';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-10 mb-10 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+    <div className="fixed inset-0 z-50 bg-stone-950/45 dark:bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-10 mb-10 rounded-2xl border border-border-strong bg-bg-elevated text-text shadow-[0_24px_64px_rgba(28,25,23,.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,.6)] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-bg">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-[#25D366]" />
+            <div className="h-9 w-9 rounded-xl bg-[#128C7E]/10 border border-[#128C7E]/25 dark:bg-[#25D366]/15 dark:border-[#25D366]/30 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-[#128C7E] dark:text-[#25D366]" />
             </div>
             <div>
               <h3 className="text-sm font-black text-text">WhatsApp Validation</h3>
               <p className="text-[11px] text-text-muted">{withPhone.length} leads with phone numbers</p>
             </div>
           </div>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg text-text-muted hover:text-text flex items-center justify-center"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg border border-transparent text-text-muted hover:text-text hover:bg-surface-2 hover:border-border flex items-center justify-center"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           {[
-            { label: 'HIGH likelihood', count: high, color: 'text-[#25D366]', filter: 'high' as const },
+            { label: 'HIGH likelihood', count: high, color: 'text-[#128C7E] dark:text-[#25D366]', filter: 'high' as const },
             { label: 'MEDIUM likelihood', count: medium, color: 'text-copper', filter: 'medium' as const },
             { label: 'LOW likelihood', count: low, color: 'text-text-muted', filter: 'low' as const },
           ].map(item => (
-            <button key={item.filter} onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)} className={`py-3 text-center transition-colors ${filter === item.filter ? 'bg-surface-2/60' : 'hover:bg-surface-2/40'}`}>
+            <button key={item.filter} onClick={() => setFilter(filter === item.filter ? 'all' : item.filter)} className={`py-3 text-center transition-colors ${filter === item.filter ? 'bg-surface-2 ring-1 ring-inset ring-border-strong' : 'bg-bg hover:bg-surface-2/70'}`}>
               <div className={`text-xl font-black ${item.color}`}>{item.count}</div>
               <div className="text-[10px] text-text-muted uppercase tracking-wide mt-0.5">{item.label}</div>
             </button>
           ))}
         </div>
 
-        <div className="px-6 py-3 bg-surface-2/30 border-b border-border text-[11px] text-text-muted">
-          Click <strong className="text-[#25D366]">Open in WhatsApp</strong> to test each number directly. Scores are AI probability estimates based on phone format, industry, and location signals.
+        <div className="px-6 py-3 bg-surface-2 border-b border-border text-[11px] text-text-muted">
+          Click <strong className="text-[#128C7E] dark:text-[#25D366]">Open in WhatsApp</strong> to test each number directly. Scores are AI probability estimates based on phone format, industry, and location signals.
         </div>
 
         <div className="divide-y divide-border max-h-[480px] overflow-y-auto">
           {visible.length === 0 && (<div className="py-12 text-center text-sm text-text-muted">No leads in this category.</div>)}
           {visible.map(lead => (
-            <div key={lead.id} className="px-6 py-4 flex items-start gap-4">
+            <div key={lead.id} className="px-6 py-4 flex items-start gap-4 bg-bg hover:bg-surface-2/60 transition-colors">
               <div className={`shrink-0 h-10 w-10 rounded-xl border flex flex-col items-center justify-center ${confColor(lead.whatsappConfidence)}`}>
                 <span className="text-[13px] font-black leading-none">{lead.whatsappScore ?? '?'}</span>
                 <span className="text-[8px] font-bold leading-none mt-0.5 opacity-70">{lead.whatsappConfidence ?? 'N/A'}</span>
@@ -2143,7 +2160,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
                 {lead.location && (<div className="text-[11px] text-text-muted mt-0.5">{lead.location}</div>)}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {lead.phoneNumbers.map((phone, i) => (
-                    <a key={i} href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#25D366]/30 bg-[#25D366]/10 text-[11px] font-semibold text-[#25D366] hover:bg-[#25D366]/20 transition-colors">
+                    <a key={i} href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-[#128C7E]/30 bg-[#128C7E]/10 text-[11px] font-semibold text-[#128C7E] hover:bg-[#128C7E]/15 dark:border-[#25D366]/30 dark:bg-[#25D366]/10 dark:text-[#25D366] dark:hover:bg-[#25D366]/20 transition-colors">
                       <MessageSquare className="w-3 h-3" />{phone}
                     </a>
                   ))}
@@ -2151,7 +2168,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
               </div>
               {lead.bestContactChannel && (
                 <div className="shrink-0 text-[10px] text-text-muted text-right">
-                  <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#25D366]' : 'text-text-muted'}`}>{lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}</div>
+                  <div className={`font-bold ${lead.bestContactChannel === 'WHATSAPP' ? 'text-[#128C7E] dark:text-[#25D366]' : 'text-text-muted'}`}>{lead.bestContactChannel === 'WHATSAPP' ? '🔥 WA First' : lead.bestContactChannel}</div>
                   {lead.contactChannelScores && (
                     <div className="mt-0.5 space-y-0.5"><div>Email {lead.contactChannelScores.email}</div><div>Phone {lead.contactChannelScores.phone}</div></div>
                   )}
@@ -2161,9 +2178,9 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
           ))}
         </div>
 
-        <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border bg-bg flex items-center justify-between">
           <span className="text-[11px] text-text-muted">Showing {visible.length} of {withPhone.length} leads with phones</span>
-          <button onClick={onClose} className="h-8 px-4 rounded-lg border border-border text-xs text-text-muted hover:text-text">Close</button>
+          <button onClick={onClose} className="h-8 px-4 rounded-lg border border-border-strong bg-bg-elevated text-xs text-text-muted hover:text-text hover:bg-surface-2">Close</button>
         </div>
       </div>
     </div>
