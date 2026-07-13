@@ -66,15 +66,15 @@ function getPlatformKeys(): string[] {
   return keys;
 }
 
-function keyPrefix(key: string): string {
-  return key.slice(0, 8);
+function keyId(key: string): string {
+  return createHash('sha256').update(key).digest('hex').slice(0, 16);
 }
 
 async function getKeyUsage(key: string): Promise<number> {
-  const prefix = keyPrefix(key);
+  const id = keyId(key);
   const today = new Date().toISOString().split('T')[0];
-  const dateRedisKey = `serper:date:${prefix}`;
-  const usageRedisKey = `serper:usage:${prefix}`;
+  const dateRedisKey = `serper:date:${id}`;
+  const usageRedisKey = `serper:usage:${id}`;
 
   const storedDate = await redisConnection.get(dateRedisKey);
   if (storedDate !== today) {
@@ -86,7 +86,11 @@ async function getKeyUsage(key: string): Promise<number> {
 }
 
 async function incrementKeyUsage(key: string): Promise<void> {
-  await redisConnection.incr(`serper:usage:${keyPrefix(key)}`).catch(() => undefined);
+  await redisConnection.incr(`serper:usage:${keyId(key)}`).catch(() => undefined);
+}
+
+async function quarantineKey(key: string, seconds: number): Promise<void> {
+  await redisConnection.set(`serper:quarantine:${keyId(key)}`, '1', 'EX', seconds).catch(() => undefined);
 }
 
 // Orders keys by ascending usage today, favoring keys with quota remaining.
@@ -94,9 +98,15 @@ async function incrementKeyUsage(key: string): Promise<void> {
 // Redis-side usage is an optimization, not a hard cap; the real API 429/403
 // response is the source of truth for "actually exhausted."
 async function orderByUsage(keys: string[]): Promise<string[]> {
-  const withUsage = await Promise.all(keys.map(async (key) => ({ key, usage: await getKeyUsage(key) })));
-  const underQuota = withUsage.filter((k) => k.usage < MAX_PER_KEY_PER_DAY);
-  const ordered = (underQuota.length > 0 ? underQuota : withUsage).sort((a, b) => a.usage - b.usage);
+  const withUsage = await Promise.all(keys.map(async (key) => ({
+    key,
+    usage: await getKeyUsage(key).catch(() => 0),
+    quarantined: Boolean(await redisConnection.get(`serper:quarantine:${keyId(key)}`).catch(() => null)),
+  })));
+  const available = withUsage.filter((item) => !item.quarantined);
+  if (available.length === 0) return [];
+  const underQuota = available.filter((k) => k.usage < MAX_PER_KEY_PER_DAY);
+  const ordered = (underQuota.length > 0 ? underQuota : available).sort((a, b) => a.usage - b.usage);
   return ordered.map((k) => k.key);
 }
 
@@ -139,7 +149,8 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 429 || status === 403 || status === 401) {
-        console.warn(`[Serper.dev] Key ${keyPrefix(key)}... rejected (${status}) on ${path} — rotating to next key.`);
+        await quarantineKey(key, status === 429 ? 60 : 24 * 60 * 60);
+        console.warn(`[Serper.dev] Platform key rejected (${status}) on ${path}; rotating to the next key.`);
         continue;
       }
       console.error(`[Serper.dev] ${path} error: ${error.message}`);
