@@ -283,10 +283,7 @@ export default function Landing() {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   return (
-    // `dark` is pinned here so the marketing page always renders on its dark
-    // palette (it's designed dark-only and mixes theme tokens with hardcoded
-    // dark colors) regardless of the user's app theme.
-    <div className="dark min-h-screen bg-bg text-text overflow-x-hidden">
+    <div className="min-h-screen bg-bg text-text overflow-x-hidden">
 
       {/* ticker keyframe */}
       <style>{`
@@ -314,7 +311,7 @@ export default function Landing() {
       </div>
 
       {/* ════════ NAV ════════ */}
-      <nav className="sticky top-0 z-50 border-b border-border" style={{ background: "rgba(12,10,9,0.85)", backdropFilter: "blur(20px) saturate(150%)" }}>
+      <nav className="sticky top-0 z-50 border-b border-border bg-bg/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 h-[60px] flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-3 flex-shrink-0">
             <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />

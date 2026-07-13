@@ -34,17 +34,15 @@ export default function ContactPage() {
     try {
       await fetchOutbound("/api/contact", { method: "POST", body: JSON.stringify({ ...form, hp }) });
       setSent(true);
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSending(false);
     }
   }
 
   return (
-    // `dark` is pinned so this marketing page always renders dark (same dark-only
-    // design as the Landing), regardless of the user's app theme.
-    <div className="dark min-h-screen bg-bg text-text overflow-x-hidden">
+    <div className="min-h-screen bg-bg text-text overflow-x-hidden">
       {/* aurora */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <GlowOrb className="top-[-10%] left-[-5%] w-[50%] h-[50%] bg-brand/8 opacity-60" />
@@ -58,7 +56,7 @@ export default function ContactPage() {
       </div>
 
       {/* nav */}
-      <nav className="relative z-40 border-b border-border" style={{ background: "rgba(12,10,9,0.8)", backdropFilter: "blur(16px)" }}>
+      <nav className="relative z-40 border-b border-border bg-bg/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <ArrowLeft className="w-4 h-4 text-text-muted group-hover:text-text transition-colors" />

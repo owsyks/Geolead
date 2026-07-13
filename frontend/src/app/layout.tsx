@@ -5,6 +5,7 @@ import { DomainContextProvider } from "@/lib/domainContext";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import SupportBubble from "@/components/SupportBubble";
+import { PublicThemeToggle } from "@/components/PublicThemeToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,6 +31,11 @@ export const metadata: Metadata = {
 // element we rely on `suppressHydrationWarning` to silence React's check.
 const STRIP_EXTENSION_ATTRS = `
 (function(){
+  try {
+    var savedTheme = localStorage.getItem('theme');
+    var darkTheme = savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', darkTheme);
+  } catch(e){}
   var attrPrefixes = ['bis_','data-bis-','__processed_','data-dynamic-id'];
   function shouldStrip(name){
     if(!name) return false;
@@ -97,6 +103,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             <DomainContextProvider>{children}</DomainContextProvider>
+            <PublicThemeToggle />
           </ThemeProvider>
           <SupportBubble />
         </AuthProvider>

@@ -1,7 +1,11 @@
 // First-party browser deployments. Environment values remain the primary
 // configuration, while the production Vercel app is explicitly trusted so the
 // API and CSRF/origin guard cannot drift apart.
-const FIRST_PARTY_ORIGINS = ['https://geoai-ashen.vercel.app'];
+const FIRST_PARTY_ORIGINS = [
+  'https://geoai-ashen.vercel.app',
+  'https://geolead.tech',
+  'https://www.geolead.tech',
+];
 
 export function browserOrigins(): string[] {
   return [...new Set([
