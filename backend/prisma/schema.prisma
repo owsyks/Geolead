@@ -22,11 +22,13 @@ model SearchTask {
   validEmails   Int      @default(0)
   failedBusinesses Int   @default(0)
   metadata      Json?
+  deletedAt     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   leads         Lead[]
 
   @@index([userId])
+  @@index([userId, deletedAt])
 }
 
 model Lead {

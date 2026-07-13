@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Send,
   Zap,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -151,6 +152,9 @@ export default function DashboardPage() {
   const [selectedTask, setSelectedTask] = useState<SearchTask | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
+  const [taskPendingDelete, setTaskPendingDelete] = useState<SearchTask | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [deleteTaskError, setDeleteTaskError] = useState("");
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
@@ -159,6 +163,15 @@ export default function DashboardPage() {
   const [exportEmailsOnly, setExportEmailsOnly] = useState(false);
   const [exportIncludeRisky, setExportIncludeRisky] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!taskPendingDelete) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !deletingTaskId) setTaskPendingDelete(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [taskPendingDelete, deletingTaskId]);
 
   // Pagination & Filtering & Sorting States
   const [searchFilterInput, setSearchFilterInput] = useState("");
@@ -233,6 +246,48 @@ export default function DashboardPage() {
       });
       fetchHistory();
     } catch { /* ignore */ }
+  };
+
+  const requestDeleteTask = (task: SearchTask, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteTaskError("");
+    setTaskPendingDelete(task);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskPendingDelete || deletingTaskId) return;
+    const task = taskPendingDelete;
+    setDeletingTaskId(task.id);
+    setDeleteTaskError("");
+
+    try {
+      if (!isDemoMode) {
+        const response = await authFetch(`${BACKEND_URL}/api/tasks/${task.id}`, { method: "DELETE" });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to delete search.");
+        }
+      }
+
+      const remaining = tasks.filter((item) => item.id !== task.id);
+      setTasks(remaining);
+      writeCache(HISTORY_CACHE_KEY, remaining);
+      setTaskPendingDelete(null);
+
+      if (selectedTask?.id === task.id) {
+        stopPolling();
+        setLeads([]);
+        setTotalLeadsCount(0);
+        setTotalPages(1);
+        setSelectedLeadIds(new Set());
+        if (remaining.length > 0) handleSelectTask(remaining[0]);
+        else setSelectedTask(null);
+      }
+    } catch (error) {
+      setDeleteTaskError(error instanceof Error ? error.message : "Failed to delete search.");
+    } finally {
+      setDeletingTaskId(null);
+    }
   };
 
   // Campaign creation modal state
@@ -1305,11 +1360,16 @@ export default function DashboardPage() {
                 className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
               {tasks.length > 0 && <div className="pt-3 border-t border-border"><h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Recent Searches</h4>
                 {tasks.slice(0, 5).map((task) => (
-                  <button key={task.id} onClick={() => { handleSelectTask(task); setRailOpen(false); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-2 transition-colors flex items-center justify-between">
-                    <span className="truncate">{task.domainIdea}</span>
-                    <span className={`text-[9px] font-bold uppercase ${task.status === 'COMPLETED' ? 'text-success' : task.status === 'FAILED' ? 'text-danger' : 'text-copper'}`}>{task.status}</span>
-                  </button>
+                  <div key={task.id} className="flex items-center gap-1 rounded-lg hover:bg-surface-2 transition-colors">
+                    <button type="button" onClick={() => { handleSelectTask(task); setRailOpen(false); }}
+                      className="min-w-0 flex-1 text-left px-3 py-2 text-xs text-text-muted flex items-center justify-between gap-2">
+                      <span className="truncate">{task.domainIdea}</span>
+                      <span className={`text-[9px] font-bold uppercase ${task.status === 'COMPLETED' ? 'text-success' : task.status === 'FAILED' ? 'text-danger' : 'text-copper'}`}>{task.status}</span>
+                    </button>
+                    <button type="button" aria-label={`Delete ${task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-2 mr-1 rounded-md text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}</div>}
             </div>
           </div>
@@ -1368,9 +1428,17 @@ export default function DashboardPage() {
                 <p className="text-xs text-text-muted text-center py-6">No previous queries found.</p>
               ) : (
                 tasks.map((task) => (
-                  <button
+                  <div
                     key={task.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleSelectTask(task)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleSelectTask(task);
+                      }
+                    }}
                     className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 relative overflow-hidden ${
                       selectedTask?.id === task.id
                         ? "bg-brand/5 border-brand/40"
@@ -1382,15 +1450,20 @@ export default function DashboardPage() {
                     )}
                     <div className="flex justify-between items-start w-full">
                       <span className="text-xs font-bold text-text truncate max-w-[150px]">{task.domainIdea}</span>
-                      <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                        task.status === "COMPLETED" ? "bg-success/10 text-success"
-                          : task.status === "FAILED" ? "bg-danger/10 text-danger"
-                          : task.status === "PAUSED" ? "bg-copper/10 text-copper"
-                          : task.status === "CANCELLED" ? "bg-surface-2 text-text-muted"
-                          : "bg-copper/10 text-copper animate-pulse"
-                      }`}>
-                        {task.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                          task.status === "COMPLETED" ? "bg-success/10 text-success"
+                            : task.status === "FAILED" ? "bg-danger/10 text-danger"
+                            : task.status === "PAUSED" ? "bg-copper/10 text-copper"
+                            : task.status === "CANCELLED" ? "bg-surface-2 text-text-muted"
+                            : "bg-copper/10 text-copper animate-pulse"
+                        }`}>
+                          {task.status}
+                        </span>
+                        <button type="button" aria-label={`Delete ${task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-1 rounded text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="text-[10px] text-text-muted">Query: {task.keyword}</div>
                     {(task.status === "PENDING" || task.status === "PROCESSING") && (
@@ -1405,7 +1478,7 @@ export default function DashboardPage() {
                         <span onClick={(e) => handleStopTask(task.id, e as any)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</span>
                       </div>
                     )}
-                  </button>
+                  </div>
                 ))
               )}
             </div>
@@ -1414,6 +1487,28 @@ export default function DashboardPage() {
 
         {/* Main pane */}
         <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
+          {taskPendingDelete && (
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="presentation" onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !deletingTaskId) setTaskPendingDelete(null);
+            }}>
+              <div role="dialog" aria-modal="true" aria-labelledby="delete-search-title" className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl p-6">
+                <div className="w-10 h-10 rounded-xl bg-danger/10 text-danger flex items-center justify-center mb-4">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <h3 id="delete-search-title" className="text-base font-bold text-text">Delete this search?</h3>
+                <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                  <strong className="text-text">{taskPendingDelete.domainIdea}</strong> and all leads discovered by this search will be removed. {taskPendingDelete.status === "PENDING" || taskPendingDelete.status === "PROCESSING" ? "The active search will also be stopped. " : ""}This cannot be undone.
+                </p>
+                {deleteTaskError && <p className="mt-3 text-xs text-danger">{deleteTaskError}</p>}
+                <div className="flex justify-end gap-2 mt-6">
+                  <button type="button" autoFocus disabled={Boolean(deletingTaskId)} onClick={() => setTaskPendingDelete(null)} className="h-9 px-4 rounded-lg border border-border text-xs font-bold text-text-muted hover:text-text hover:bg-surface-2 disabled:opacity-50">Cancel</button>
+                  <button type="button" disabled={Boolean(deletingTaskId)} onClick={confirmDeleteTask} className="h-9 px-4 rounded-lg bg-danger text-white text-xs font-bold hover:opacity-90 disabled:opacity-50">
+                    {deletingTaskId ? "Deleting…" : "Delete search"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <VerificationModal
             open={verifying || verifyProgress.results.length > 0}
             results={verifyProgress.results}

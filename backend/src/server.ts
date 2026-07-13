@@ -136,7 +136,7 @@ app.get('/api/tasks/:id', requireAuth, async (req, res) => {
 
   try {
     const task = await prisma.searchTask.findFirst({
-      where: { id, userId: req.userId! },
+      where: { id, userId: req.userId!, deletedAt: null },
       include: {
         leads: {
           orderBy: { domainMatchScore: 'desc' },
@@ -175,7 +175,7 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
 
   try {
     const task = await prisma.searchTask.findFirst({
-      where: { id, userId: req.userId! },
+      where: { id, userId: req.userId!, deletedAt: null },
     });
     if (!task) return res.status(404).json({ error: 'Search task not found.' });
 
@@ -211,6 +211,49 @@ app.patch('/api/tasks/:id/status', requireAuth, async (req, res) => {
 });
 
 /**
+ * DELETE /api/tasks/:id
+ * Removes a search from the owner's Lead Explorer and deletes its generated
+ * leads. The task row is retained as a soft-deleted usage record so deleting
+ * history cannot bypass monthly search limits.
+ */
+app.delete('/api/tasks/:id', requireAuth, rateLimit('delete-search', 30, 10 * 60 * 1000), async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const task = await prisma.searchTask.findFirst({
+      where: { id, userId: req.userId!, deletedAt: null },
+      select: { id: true },
+    });
+    if (!task) return res.status(404).json({ error: 'Search task not found.' });
+
+    const deletedAt = new Date();
+    await prisma.$transaction([
+      prisma.lead.deleteMany({ where: { taskId: id, ownerId: req.userId! } }),
+      prisma.searchTask.update({
+        where: { id },
+        data: {
+          status: 'CANCELLED',
+          progress: 100,
+          keyword: '[deleted]',
+          domainIdea: '[deleted]',
+          country: null,
+          cityState: null,
+          deletedAt,
+          metadata: {
+            deletedByUserAt: deletedAt.toISOString(),
+          },
+        },
+      }),
+    ]);
+
+    return res.json({ ok: true, id });
+  } catch (error) {
+    console.error('[Server] Delete search task error:', error);
+    return res.status(500).json({ error: 'Failed to delete search task.' });
+  }
+});
+
+/**
  * POST /api/search/cleanup
  * Force-cancel all stuck PENDING/PROCESSING tasks for this user.
  */
@@ -240,7 +283,7 @@ app.post('/api/search/cleanup', requireAuth, async (req, res) => {
 app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), async (req, res) => {
   try {
     const tasks = await prisma.searchTask.findMany({
-      where: { userId: req.userId! },
+      where: { userId: req.userId!, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
@@ -256,7 +299,7 @@ app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), a
 function buildLeadsWhereClause(userId: string, query: any): any {
   const { taskId, search, minScore, hasEmails, domain, role, minBuyerIntent, minPriority, minDecisionMaker, notContacted } = query;
 
-  const whereClause: any = { ownerId: userId };
+  const whereClause: any = { ownerId: userId, task: { is: { deletedAt: null } } };
 
   if (taskId) {
     whereClause.taskId = taskId as string;
@@ -267,6 +310,7 @@ function buildLeadsWhereClause(userId: string, query: any): any {
     const sld = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
     whereClause.task = {
       is: {
+        deletedAt: null,
         OR: [
           { domainIdea: { contains: raw, mode: 'insensitive' } },
           ...(sld && sld !== raw ? [{ domainIdea: { contains: sld, mode: 'insensitive' } }] : []),

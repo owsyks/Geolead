@@ -44,8 +44,9 @@ const worker = new Worker<ScrapingJobData>(
       where: { id: taskId },
     });
 
-    if (!task) {
-      throw new Error(`SearchTask ${taskId} not found in database`);
+    if (!task || task.deletedAt) {
+      console.log(`[Worker] SearchTask ${taskId} no longer exists in Lead Explorer; skipping queued work.`);
+      return;
     }
 
     try {
@@ -82,8 +83,8 @@ const worker = new Worker<ScrapingJobData>(
       const skipDomains = ['yelp.com', 'yellowpages.com', 'facebook.com', 'linkedin.com', 'tripadvisor.com', 'instagram.com'];
 
       const shouldCancel = async (): Promise<boolean> => {
-        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
-        return current?.status === 'CANCELLED' || current?.status === 'PAUSED';
+        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true, deletedAt: true } });
+        return !current || Boolean(current.deletedAt) || current.status === 'CANCELLED' || current.status === 'PAUSED';
       };
 
       const requestedDepth = Math.max(1, task.searchDepth);
@@ -378,8 +379,8 @@ const worker = new Worker<ScrapingJobData>(
       let totalEmailsCount = 0;
 
       const checkTaskStatus = async () => {
-        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
-        return current?.status;
+        const current = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true, deletedAt: true } });
+        return current?.deletedAt ? 'CANCELLED' : current?.status;
       };
 
       for (const biz of businessList) {
@@ -427,6 +428,11 @@ const worker = new Worker<ScrapingJobData>(
           );
 
           const finalPhones = uniquePhones;
+
+          // A user may delete an active search while this website is crawling.
+          // Re-check immediately before persistence so deleted searches cannot
+          // repopulate leads after the deletion transaction has completed.
+          if (await checkTaskStatus() === 'CANCELLED') break;
           
           // Save Lead to DB
           const createdLead = await prisma.lead.create({
@@ -651,7 +657,7 @@ Write a concise insight explaining why this lead matters and how to approach the
       }
 
       // 5. Finalize Task (don't overwrite PAUSED/CANCELLED)
-      const finalStatus = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true } });
+      const finalStatus = await prisma.searchTask.findUnique({ where: { id: taskId }, select: { status: true, deletedAt: true } });
       if (finalStatus?.status !== 'PAUSED' && finalStatus?.status !== 'CANCELLED') {
         await prisma.searchTask.update({
           where: { id: taskId },
@@ -665,6 +671,11 @@ Write a concise insight explaining why this lead matters and how to approach the
         console.log(`[Worker] Successfully finished SearchTask ${taskId}. Found ${totalLeadsCount} leads, with ${totalEmailsCount} valid emails.`);
       } else {
         console.log(`[Worker] SearchTask ${taskId} is ${finalStatus.status} — saving ${totalLeadsCount} leads collected so far.`);
+        if (finalStatus.deletedAt) {
+          await prisma.lead.deleteMany({ where: { taskId } });
+          totalLeadsCount = 0;
+          totalEmailsCount = 0;
+        }
         // Still update progress/counts so the frontend shows what was collected
         await prisma.searchTask.update({
           where: { id: taskId },

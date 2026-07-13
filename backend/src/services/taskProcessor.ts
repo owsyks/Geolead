@@ -333,7 +333,7 @@ export async function resumePendingSearchTasks() {
 
     // Re-enqueue PENDING tasks via BullMQ
     const pending = await prisma.searchTask.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', deletedAt: null },
       select: { id: true },
     });
     for (const t of pending) {
@@ -355,8 +355,9 @@ export async function processSearchTask(taskId: string) {
     where: { id: taskId },
   });
 
-  if (!task) {
-    throw new Error(`SearchTask ${taskId} not found in database`);
+  if (!task || task.deletedAt) {
+    console.log(`[Processor] SearchTask ${taskId} is unavailable or deleted; skipping processing.`);
+    return;
   }
 
   try {
