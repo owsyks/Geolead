@@ -52,6 +52,7 @@ const EMPTY_FORM = {
   status: "Available" as PortfolioStatus,
   purchaseDate: "",
   purchasePrice: "",
+  askingPrice: "",
   registrar: "",
   expirationDate: "",
   tags: "",
@@ -161,6 +162,7 @@ export default function PortfolioPage() {
       status: (DOMAIN_STATUSES.includes(domain.status as PortfolioStatus) ? domain.status : "Available") as PortfolioStatus,
       purchaseDate: domain.purchaseDate ? domain.purchaseDate.slice(0, 10) : "",
       purchasePrice: domain.purchasePrice != null ? String(domain.purchasePrice) : "",
+      askingPrice: domain.askingPrice != null ? String(domain.askingPrice) : "",
       registrar: domain.registrar || "",
       expirationDate: domain.expirationDate ? domain.expirationDate.slice(0, 10) : "",
       tags: domain.tags.join(", "),
@@ -181,6 +183,7 @@ export default function PortfolioPage() {
       status: form.status,
       purchaseDate: form.purchaseDate || null,
       purchasePrice: form.purchasePrice ? Number(form.purchasePrice) : null,
+      askingPrice: form.askingPrice ? Number(form.askingPrice) : null,
       registrar: form.registrar || null,
       expirationDate: form.expirationDate || null,
       tags: form.tags.split(",").map((value) => value.trim()).filter(Boolean),
@@ -357,7 +360,7 @@ export default function PortfolioPage() {
                   <th className="px-4 py-3 text-left font-bold">Category</th>
                   <th className="px-4 py-3 text-left font-bold">Status</th>
                   <th className="px-4 py-3 text-center font-bold">Brand</th>
-                  <th className="px-4 py-3 text-right font-bold">Est. value</th>
+                  <th className="px-4 py-3 text-right font-bold">Value / your price</th>
                   <th className="px-4 py-3 text-left font-bold">Tags</th>
                   <th className="px-4 py-3 text-right font-bold">Actions</th>
                 </tr>
@@ -394,6 +397,7 @@ export default function PortfolioPage() {
                     </td>
                     <td className="px-4 py-3 align-top text-right">
                       <div className="font-mono font-bold text-brand">${(domain.estimatedValue || 0).toLocaleString()}</div>
+                      <div className="text-[11px] font-mono font-bold text-text">Your price: {domain.askingPrice != null ? `$${domain.askingPrice.toLocaleString()}` : "Not set"}</div>
                       <div className="text-[11px] text-text-muted">Sale {domain.saleProbability}% · Demand {domain.buyerDemandScore}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
@@ -533,6 +537,9 @@ function DomainFormModal({
         <Field label="Purchase price (USD)">
           <input type="number" min={0} value={form.purchasePrice} onChange={(e) => setForm((c) => ({ ...c, purchasePrice: e.target.value }))} className={INPUT} />
         </Field>
+        <Field label="Your asking price (USD)">
+          <input type="number" min={0} step="0.01" value={form.askingPrice} onChange={(e) => setForm((c) => ({ ...c, askingPrice: e.target.value }))} placeholder="Your public sale price" className={INPUT} />
+        </Field>
         <Field label="Registrar">
           <input value={form.registrar} onChange={(e) => setForm((c) => ({ ...c, registrar: e.target.value }))} placeholder="Namecheap, GoDaddy, …" className={INPUT} />
         </Field>
@@ -641,7 +648,7 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
   const [form, setForm] = useState({
     buyerName: "",
     buyerEmail: "",
-    salePrice: domain.recommendedPrice ? String(domain.recommendedPrice) : "",
+    salePrice: domain.askingPrice != null ? String(domain.askingPrice) : domain.recommendedPrice ? String(domain.recommendedPrice) : "",
     saleDate: new Date().toISOString().slice(0, 10),
     marketplace: "",
     fees: "",
@@ -711,15 +718,15 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-12 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-2 sm:mt-12 glass rounded-2xl border border-border shadow-[0_24px_64px_rgba(0,0,0,.5)]">
+        <div className="flex items-center justify-between border-b border-border px-3 sm:px-5 py-3">
           <h3 className="text-base font-black text-text">{title}</h3>
           <button onClick={onClose} className="h-8 w-8 rounded-md text-text-muted hover:text-text inline-flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-3 sm:p-5">{children}</div>
       </div>
     </div>
   );

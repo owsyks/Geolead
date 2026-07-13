@@ -303,6 +303,13 @@ export function OutboundShell({
         {/* Subtitle bar (mobile) */}
         {subtitle && <div className="lg:hidden px-3 py-1.5 text-[11px] text-text-muted border-b border-border bg-surface-2/30">{subtitle}</div>}
 
+        {/* Page actions remain reachable on phones without crowding the title bar. */}
+        {actions && (
+          <div className="sm:hidden border-b border-border bg-bg px-3 py-2 overflow-x-auto">
+            <div className="flex items-center gap-2 min-w-max">{actions}</div>
+          </div>
+        )}
+
         {/* Content */}
         {fullBleed ? (
           <div className={cn("flex-1 min-h-0 overflow-hidden", contentClassName)}>{children}</div>

@@ -788,6 +788,7 @@ model Domain {
   notes               String?       @db.Text
   brandingScore       Int           @default(0)
   estimatedValue      Float?
+  askingPrice         Float?
   buyerDemandScore    Int           @default(0)
   leadOpportunityScore Int          @default(0)
   saleProbability     Int           @default(0)

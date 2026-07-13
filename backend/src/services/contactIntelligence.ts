@@ -41,6 +41,35 @@ export interface CIInput {
   hasAnyEmail: boolean;
 }
 
+export interface PhoneSignalValidation {
+  original: string;
+  normalized: string | null;
+  structurallyValid: boolean;
+  reason: string;
+}
+
+/**
+ * Self-hosted, deterministic phone analysis. It intentionally does not probe
+ * WhatsApp accounts or imply account existence; it validates only safe signals
+ * the platform already owns.
+ */
+export function validatePhoneSignals(phone: string): PhoneSignalValidation {
+  const original = String(phone || '').trim();
+  const hadPlus = original.startsWith('+');
+  const digits = original.replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) {
+    return { original, normalized: null, structurallyValid: false, reason: 'Phone length is outside E.164 limits.' };
+  }
+  if (/^(\d)\1+$/.test(digits) || /^0+$/.test(digits)) {
+    return { original, normalized: null, structurallyValid: false, reason: 'Phone contains a repeated placeholder pattern.' };
+  }
+  const normalizedDigits = !hadPlus && digits.length === 10 ? `1${digits}` : digits;
+  if (normalizedDigits.length > 15 || normalizedDigits.startsWith('0')) {
+    return { original, normalized: null, structurallyValid: false, reason: 'Phone cannot be normalized to E.164.' };
+  }
+  return { original, normalized: `+${normalizedDigits}`, structurallyValid: true, reason: 'Structurally valid phone signal.' };
+}
+
 // ─── Country WhatsApp adoption map ───────────────────────────────────────────
 
 const HIGH_WA_KEYWORDS = [
@@ -105,14 +134,9 @@ function industryMobileScore(category: string | null | undefined): number {
 
 function phoneValidityScore(phones: string[]): number {
   if (phones.length === 0) return 0;
-  const phone = phones[0].replace(/[^\d+]/g, '');
-  if (phone.length < 7) return 3;
-  if (phone.length >= 10) {
-    if (phone.startsWith('+')) return 20;
-    if (phone.length === 10) return 17; // US format without country code
-    return 14;
-  }
-  return 8;
+  const validation = validatePhoneSignals(phones[0]);
+  if (!validation.structurallyValid) return 0;
+  return phones[0].trim().startsWith('+') ? 20 : 17;
 }
 
 // ─── Main scorer ──────────────────────────────────────────────────────────────

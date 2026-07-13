@@ -29,6 +29,7 @@ import { attachOutboundWebSocket } from './services/outboundRealtime.js';
 import { ensureOutboundSeedData, startOutboundScheduler } from './services/outboundPlatform.js';
 import { startWatchlistScheduler } from './services/watchlistService.js';
 import { browserOrigins } from './config/origins.js';
+import { scoreContactIntelligence, validatePhoneSignals } from './services/contactIntelligence.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -462,6 +463,82 @@ app.get('/api/leads/ids', requireAuth, rateLimit('leads', 300, 10 * 60 * 1000), 
   } catch (error) {
     console.error('[Server] Fetch lead ids error:', error);
     return res.status(500).json({ error: 'Failed to retrieve lead ids.' });
+  }
+});
+
+/**
+ * Recompute WhatsApp likelihood using self-hosted phone, business, industry,
+ * and location signals. This does not probe or enumerate WhatsApp accounts.
+ */
+app.post('/api/leads/whatsapp/validate', requireAuth, rateLimit('wa-signals', 10, 10 * 60 * 1000), async (req, res) => {
+  const taskId = typeof req.body?.taskId === 'string' ? req.body.taskId.trim() : '';
+  if (taskId.length > 100) return res.status(400).json({ error: 'Invalid taskId.' });
+
+  try {
+    if (taskId) {
+      const ownedTask = await prisma.searchTask.findFirst({
+        where: { id: taskId, userId: req.userId!, deletedAt: null },
+        select: { id: true },
+      });
+      if (!ownedTask) return res.status(404).json({ error: 'Search not found.' });
+    }
+
+    const leads = await prisma.lead.findMany({
+      where: {
+        ownerId: req.userId!,
+        phoneNumbers: { isEmpty: false },
+        task: { is: { deletedAt: null } },
+        ...(taskId ? { taskId } : {}),
+      },
+      include: { emails: { select: { status: true } } },
+      take: 501,
+      orderBy: { createdAt: 'desc' },
+    });
+    const selected = leads.slice(0, 500);
+    const results = selected.map((lead) => {
+      const signals = lead.phoneNumbers.map(validatePhoneSignals);
+      const score = scoreContactIntelligence({
+        businessName: lead.businessName,
+        website: lead.website,
+        location: lead.location,
+        googleMapsLink: lead.googleMapsLink,
+        category: lead.category,
+        phoneNumbers: signals.filter((item) => item.structurallyValid).map((item) => item.normalized!),
+        socialLinks: lead.socialLinks,
+        hasValidEmail: lead.emails.some((email) => email.status === 'VALID'),
+        hasAnyEmail: lead.emails.length > 0,
+      });
+      return { lead, signals, score };
+    });
+
+    await prisma.$transaction(results.map(({ lead, score }) => prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        whatsappScore: score.whatsappScore,
+        whatsappConfidence: score.whatsappConfidence,
+        bestContactChannel: score.bestContactChannel,
+        contactChannelScores: { ...score.channelScores },
+        contactStrategy: score.recommendation,
+      },
+    })));
+
+    return res.json({
+      processed: results.length,
+      truncated: leads.length > 500,
+      method: 'SELF_HOSTED_SIGNAL_ANALYSIS',
+      validatedAt: new Date().toISOString(),
+      leads: results.map(({ lead, signals, score }) => ({
+        id: lead.id,
+        whatsappScore: score.whatsappScore,
+        whatsappConfidence: score.whatsappConfidence,
+        bestContactChannel: score.bestContactChannel,
+        contactChannelScores: score.channelScores,
+        phoneSignals: signals,
+      })),
+    });
+  } catch (error) {
+    console.error('[Server] WhatsApp signal validation error:', error);
+    return res.status(500).json({ error: 'Failed to validate phone signals.' });
   }
 });
 

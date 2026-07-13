@@ -5,7 +5,7 @@ import axios from 'axios';
 import type { Prisma } from '@prisma/client';
 import prisma from '../config/db.js';
 import { outboundQueue } from '../queues/queues.js';
-import { generateOutboundEmail, generateFollowUpBody, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
+import { cleanGeneratedCopy, generateOutboundEmail, generateFollowUpBody, rewriteEmail, scoreSpamRisk, type EmailGenerationInput } from './outboundAi.js';
 import { generateCampaignVariants, localVariants, VARIANT_ORDER, type GeneratedVariant, type VariantBundle } from './campaignVariants.js';
 import { broadcastOutboundEvent } from './outboundRealtime.js';
 import { recordCampaignOutcome } from './campaignFeedback.js';
@@ -1276,9 +1276,20 @@ async function queueNextSequenceStep(emailLogId: string) {
   let stepSubject = nextStep.subject;
   let fuVariant: string | null = null;
   if (nextStep.useAI && nextStep.stepType !== 'INITIAL') {
-    // If the initial email used a variant, pass its style to the follow-up AI
-    const prevVariant = (log.metadata as any)?.variant;
-    const aiResult = await generateFollowUpBody({
+    // Reuse the matching, pre-reviewed sequence copy. This keeps each variant
+    // coherent and avoids one provider request per recipient. Older campaigns
+    // without stored follow-ups retain the per-lead AI/local fallback below.
+    const prevVariant = String((log.metadata as any)?.variant || log.variant || '');
+    const storedVariants = ((log.campaign.metadata as any)?.variants?.variants || []) as GeneratedVariant[];
+    const storedFollowUp = storedVariants
+      .find((variant) => variant.key === prevVariant)
+      ?.followUps?.find((followUp) => followUp.step === nextStep.stepOrder && followUp.approved);
+    if (storedFollowUp) {
+      stepBody = storedFollowUp.body;
+      stepSubject = storedFollowUp.subject;
+      fuVariant = prevVariant;
+    } else {
+      const aiResult = await generateFollowUpBody({
       businessName: campaignLead.lead.businessName,
       senderName: sender.fromName,
       geoDomain: log.campaign?.geoDomain || '',
@@ -1290,11 +1301,12 @@ async function queueNextSequenceStep(emailLogId: string) {
       userId: log.campaign?.userId,
       decisionMakerName: campaignLead.lead.decisionMakerName ?? undefined,
       decisionMakerRole: campaignLead.lead.decisionMakerRole ?? undefined,
-    }).catch(() => null);
-    if (aiResult) {
-      stepBody = aiResult.body;
-      stepSubject = aiResult.subject;
-      fuVariant = prevVariant || null;
+      }).catch(() => null);
+      if (aiResult) {
+        stepBody = aiResult.body;
+        stepSubject = aiResult.subject;
+        fuVariant = prevVariant || null;
+      }
     }
   }
 
@@ -2143,9 +2155,10 @@ export async function generateEmail(input: EmailGenerationInput) {
 }
 
 export function rewriteGeneratedEmail(body: string, action: 'shorter' | 'professional' | 'persuasive' | 'friendly') {
+  const rewritten = cleanGeneratedCopy(rewriteEmail(body, action));
   return {
-    body: rewriteEmail(body, action),
-    spamScore: scoreSpamRisk(body),
+    body: rewritten,
+    spamScore: scoreSpamRisk(rewritten),
   };
 }
 

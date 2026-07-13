@@ -110,11 +110,15 @@ router.get('/', wrap(async (req, res) => {
 router.post('/', wrap(async (req, res) => {
   const name = asString(req.body.name);
   if (!name) return res.status(400).json({ error: 'name is required.' });
+  if (req.body.askingPrice !== undefined && req.body.askingPrice !== null && req.body.askingPrice !== '' && asNonNegativeNumber(req.body.askingPrice) === null) {
+    return res.status(400).json({ error: 'askingPrice must be a non-negative number.' });
+  }
   const domain = await createDomain({
     name,
     status: nonEmpty(req.body.status),
     purchaseDate: nonEmpty(req.body.purchaseDate) || null,
     purchasePrice: asNumber(req.body.purchasePrice),
+    askingPrice: asNonNegativeNumber(req.body.askingPrice),
     registrar: nonEmpty(req.body.registrar),
     expirationDate: nonEmpty(req.body.expirationDate) || null,
     category: nonEmpty(req.body.category),
@@ -147,11 +151,15 @@ router.get('/:id', wrap(async (req, res) => {
 }));
 
 router.patch('/:id', wrap(async (req, res) => {
+  if (req.body.askingPrice !== undefined && req.body.askingPrice !== null && req.body.askingPrice !== '' && asNonNegativeNumber(req.body.askingPrice) === null) {
+    return res.status(400).json({ error: 'askingPrice must be a non-negative number.' });
+  }
   const domain = await updateDomain(req.params.id, {
     name: asString(req.body.name) || undefined,
     status: asString(req.body.status) || undefined,
     purchaseDate: req.body.purchaseDate === undefined ? undefined : (req.body.purchaseDate || null),
     purchasePrice: req.body.purchasePrice === undefined ? undefined : (asNumber(req.body.purchasePrice) ?? null),
+    askingPrice: req.body.askingPrice === undefined ? undefined : (asNonNegativeNumber(req.body.askingPrice) ?? null),
     registrar: req.body.registrar === undefined ? undefined : (asString(req.body.registrar) || null),
     expirationDate: req.body.expirationDate === undefined ? undefined : (req.body.expirationDate || null),
     category: req.body.category === undefined ? undefined : (asString(req.body.category) || null),
@@ -359,6 +367,11 @@ function asNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function asNonNegativeNumber(value: unknown): number | null {
+  const valueAsNumber = asNumber(value);
+  return valueAsNumber !== null && valueAsNumber >= 0 ? valueAsNumber : null;
 }
 
 function asStringArray(value: unknown): string[] {

@@ -73,6 +73,26 @@ export default function AiEmailGeneratorPage() {
       setResult(data);
     } catch {
       const signOff = form.senderName.trim() || "{{senderName}}";
+      const niche = form.niche || form.category || "your market";
+      const location = form.cityState || "your area";
+      const fallbackVariants: GeneratedOutboundEmail["variants"] = ([
+        ["A", "Direct", `A domain idea for ${location}`, `I own ${form.geoDomain} and thought it could be a practical fit for a ${niche} business in ${location}. It could work as a focused landing page or a simple redirect to an existing site.`],
+        ["B", "Question-led", `Question about ${form.geoDomain}`, `Would a domain that clearly describes ${niche} in ${location} be useful to your team? I own ${form.geoDomain} and am considering the right business for it.`],
+        ["C", "Brand fit", `${form.geoDomain} and your local presence`, `I am reaching out because I own ${form.geoDomain}. The name is easy to understand and closely matches ${niche} in ${location}.`],
+      ] as const).map(([key, label, subjectLine, opening]) => ({
+        key,
+        label,
+        subjectLine,
+        previewText: `A brief domain idea for ${location}.`,
+        body: `Hi there,\n\n${opening}\n\nWould it be useful if I sent the price and transfer details?\n\nBest,\n${signOff}`,
+        followUps: [
+          { step: 2, subjectLine: `Re: ${form.geoDomain}`, body: `Hi there,\n\nI wanted to follow up once about ${form.geoDomain}. Would it be useful if I sent the price and transfer outline?\n\nBest,\n${signOff}`, spamScore: 0, approved: true },
+          { step: 3, subjectLine: `Closing the loop on ${form.geoDomain}`, body: `Hi there,\n\nI have not heard back, so I will close the loop. If the domain becomes relevant later, you are welcome to reach out.\n\nBest,\n${signOff}`, spamScore: 0, approved: true },
+        ],
+        spamScore: 0,
+        deliverabilityScore: 100,
+        approved: true,
+      }));
       setResult({
         subjectLine: `${form.geoDomain} — available for acquisition`,
         previewText: `A practical domain idea for ${form.niche || form.category || "your market"}.`,
@@ -102,6 +122,7 @@ export default function AiEmailGeneratorPage() {
           "Include truthful sender identity, physical address, and an unsubscribe link.",
           "Stop the sequence after replies, bounces, complaints, or opt-outs.",
         ],
+        variants: fallbackVariants,
       });
       setMessage("Backend offline. Showing local fallback copy.");
     } finally {
@@ -116,7 +137,7 @@ export default function AiEmailGeneratorPage() {
         method: "POST",
         body: JSON.stringify({ body: result.body, action }),
       });
-      setResult({ ...result, body: data.body, spamScore: data.spamScore });
+      setResult({ ...result, body: data.body, spamScore: data.spamScore, deliverabilityScore: Math.max(0, 100 - data.spamScore * 8) });
     } catch {
       setMessage("Rewrite failed because the backend is offline.");
     }
@@ -298,6 +319,41 @@ export default function AiEmailGeneratorPage() {
                 <MetricCard label="A/B subjects" value={result.abSubjects.length} helper="ready to test" />
                 <MetricCard label="Follow-ups" value={result.followUps.length} helper="sequence drafts" />
               </div>
+
+              {result.variants?.length ? (
+                <GlassCard className="p-4 sm:p-5">
+                  <h2 className="text-base font-black text-text">Human-style sequences</h2>
+                  <p className="mt-1 text-xs text-text-muted">Choose an initial email and its matching follow-ups. Every sequence is spam-scored before use.</p>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {result.variants.map((variant) => {
+                      const selected = result.subjectLine === variant.subjectLine;
+                      return (
+                        <button
+                          key={variant.key}
+                          type="button"
+                          onClick={() => setResult({
+                            ...result,
+                            subjectLine: variant.subjectLine,
+                            previewText: variant.previewText,
+                            body: variant.body,
+                            followUps: variant.followUps.map((followUp) => followUp.body),
+                            spamScore: variant.spamScore,
+                            deliverabilityScore: variant.deliverabilityScore,
+                          })}
+                          className={`rounded-lg border p-3 text-left transition-colors ${selected ? "border-brand bg-brand-soft" : "border-border bg-bg hover:border-brand/40"}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-black text-text">{variant.key} · {variant.label}</span>
+                            <span className={`text-[10px] font-bold ${variant.approved ? "text-success" : "text-danger"}`}>{variant.approved ? "Approved" : "Review"}</span>
+                          </div>
+                          <div className="mt-2 text-xs text-text line-clamp-2">{variant.subjectLine}</div>
+                          <div className="mt-2 text-[10px] text-text-muted">Spam {variant.spamScore}/10 · {variant.followUps.length} follow-ups</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </GlassCard>
+              ) : null}
 
               <GlassCard className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">

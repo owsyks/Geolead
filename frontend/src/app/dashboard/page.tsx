@@ -2078,6 +2078,8 @@ function waLink(phone: string): string {
 
 function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?: string; onClose: () => void }) {
   const [allLeads, setAllLeads] = useState<Lead[]>(leads);
+  const [validating, setValidating] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
 
   useEffect(() => {
     if (!taskId) return;
@@ -2091,6 +2093,27 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
       } catch { /* keep current leads */ }
     })();
   }, [taskId]);
+
+  const revalidateSignals = async () => {
+    setValidating(true);
+    setValidationMessage("");
+    try {
+      const response = await authFetch(`${BACKEND_URL}/api/leads/whatsapp/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: taskId || undefined }),
+      });
+      if (!response.ok) throw new Error("Validation failed");
+      const data = await response.json() as { processed: number; truncated: boolean; leads: Array<Partial<Lead> & { id: string }> };
+      const updated = new Map(data.leads.map((lead) => [lead.id, lead]));
+      setAllLeads((current) => current.map((lead) => ({ ...lead, ...(updated.get(lead.id) || {}) })));
+      setValidationMessage(`${data.processed} leads analyzed${data.truncated ? " (500-lead limit reached)" : ""}.`);
+    } catch {
+      setValidationMessage("Could not analyze phone signals. Please try again.");
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const withPhone = allLeads
     .filter(l => l.phoneNumbers.length > 0)
@@ -2115,9 +2138,9 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
       'bg-bg-elevated text-text-muted border-border-strong';
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-950/45 dark:bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl mt-10 mb-10 rounded-2xl border border-border-strong bg-bg-elevated text-text shadow-[0_24px_64px_rgba(28,25,23,.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,.6)] overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-bg">
+    <div className="fixed inset-0 z-50 bg-stone-950/45 dark:bg-black/70 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl mt-2 sm:mt-10 mb-10 rounded-2xl border border-border-strong bg-bg-elevated text-text shadow-[0_24px_64px_rgba(28,25,23,.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,.6)] overflow-hidden">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-4 border-b border-border bg-bg">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-[#128C7E]/10 border border-[#128C7E]/25 dark:bg-[#25D366]/15 dark:border-[#25D366]/30 flex items-center justify-center">
               <MessageSquare className="w-4 h-4 text-[#128C7E] dark:text-[#25D366]" />
@@ -2143,14 +2166,18 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
           ))}
         </div>
 
-        <div className="px-6 py-3 bg-surface-2 border-b border-border text-[11px] text-text-muted">
-          Click <strong className="text-[#128C7E] dark:text-[#25D366]">Open in WhatsApp</strong> to test each number directly. Scores are AI probability estimates based on phone format, industry, and location signals.
+        <div className="px-3 sm:px-6 py-3 bg-surface-2 border-b border-border text-[11px] text-text-muted flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+          <div>Self-hosted analysis checks phone structure and business, industry, and location signals. It does not confirm that a WhatsApp account exists.</div>
+          <button onClick={() => void revalidateSignals()} disabled={validating} className="h-8 px-3 shrink-0 rounded-lg border border-[#128C7E]/30 bg-[#128C7E]/10 font-bold text-[#128C7E] dark:text-[#25D366] disabled:opacity-60">
+            {validating ? "Analyzing…" : "Revalidate numbers"}
+          </button>
         </div>
+        {validationMessage ? <div className="px-3 sm:px-6 py-2 border-b border-border bg-bg text-[11px] text-text-muted">{validationMessage}</div> : null}
 
         <div className="divide-y divide-border max-h-[480px] overflow-y-auto">
           {visible.length === 0 && (<div className="py-12 text-center text-sm text-text-muted">No leads in this category.</div>)}
           {visible.map(lead => (
-            <div key={lead.id} className="px-6 py-4 flex items-start gap-4 bg-bg hover:bg-surface-2/60 transition-colors">
+            <div key={lead.id} className="px-3 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 bg-bg hover:bg-surface-2/60 transition-colors">
               <div className={`shrink-0 h-10 w-10 rounded-xl border flex flex-col items-center justify-center ${confColor(lead.whatsappConfidence)}`}>
                 <span className="text-[13px] font-black leading-none">{lead.whatsappScore ?? '?'}</span>
                 <span className="text-[8px] font-bold leading-none mt-0.5 opacity-70">{lead.whatsappConfidence ?? 'N/A'}</span>
@@ -2178,7 +2205,7 @@ function WaValidationPanel({ leads, taskId, onClose }: { leads: Lead[]; taskId?:
           ))}
         </div>
 
-        <div className="px-6 py-4 border-t border-border bg-bg flex items-center justify-between">
+        <div className="px-3 sm:px-6 py-4 border-t border-border bg-bg flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <span className="text-[11px] text-text-muted">Showing {visible.length} of {withPhone.length} leads with phones</span>
           <button onClick={onClose} className="h-8 px-4 rounded-lg border border-border-strong bg-bg-elevated text-xs text-text-muted hover:text-text hover:bg-surface-2">Close</button>
         </div>

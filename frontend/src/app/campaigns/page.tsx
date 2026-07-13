@@ -1113,6 +1113,7 @@ interface CampaignVariant {
   spamScore: number;
   approved: boolean;
   flags: string[];
+  followUps: Array<{ step: number; subject: string; body: string; spamScore: number; approved: boolean }>;
   performance: VariantPerf;
 }
 interface VariantsResponse {
@@ -1160,7 +1161,7 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
       await fetchOutbound(`/api/outbound/campaigns/${campaign.id}/variants/generate`, { method: "POST" });
       await load();
     } catch {
-      setError("Generation failed — check your NVIDIA key in Settings.");
+      setError("Generation failed. AI providers were unavailable; please try again.");
     } finally {
       setGenerating(false);
     }
@@ -1170,7 +1171,7 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
 
   return (
     <Modal title={`AI Variants · ${campaign.name}`} onClose={onClose}>
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <p className="text-xs text-text-muted">5 distinct, professional variants. Each lead gets a rotated variant; high performers get sent more often.</p>
         <button onClick={() => void generate()} disabled={generating} className="h-9 px-3 shrink-0 rounded-lg border border-copper/30 bg-copper/15 text-xs font-bold text-copper inline-flex items-center gap-1.5 disabled:opacity-60">
           {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -1200,7 +1201,7 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
 
           {data!.variants.map((v) => (
             <div key={v.key} className={`rounded-lg border p-4 ${VARIANT_COLORS[v.key] || "border-border"}`}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="h-7 w-7 rounded-lg bg-surface-2 flex items-center justify-center text-sm font-black text-text">{v.key}</span>
                   <div>
@@ -1219,6 +1220,21 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
               </div>
 
               <pre className="mt-3 whitespace-pre-wrap font-sans text-xs text-text-muted bg-bg border border-border rounded-md p-3 max-h-44 overflow-y-auto">{v.body}</pre>
+
+              {v.followUps?.length ? (
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {v.followUps.map((followUp) => (
+                    <div key={followUp.step} className="rounded-md border border-border bg-bg p-3">
+                      <div className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span>Follow-up {followUp.step - 1}</span>
+                        <span className={followUp.approved ? "text-success" : "text-danger"}>Spam {followUp.spamScore}</span>
+                      </div>
+                      <div className="mt-1 text-xs font-bold text-text">{followUp.subject}</div>
+                      <pre className="mt-2 whitespace-pre-wrap font-sans text-[11px] leading-5 text-text-muted max-h-32 overflow-y-auto">{followUp.body}</pre>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               {v.flags.length > 0 && (<div className="mt-2 text-[11px] text-danger">{v.flags.join(" · ")}</div>)}
 

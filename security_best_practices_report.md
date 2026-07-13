@@ -165,6 +165,14 @@ The previous crypto handler trusted provider metadata for the user/tier, claimed
 
 All new billing now uses Paymento. The backend creates a price-bound `PaymentAttempt` before redirect, accepts only the official Paymento gateway origin, verifies the exact raw IPN bytes with timing-safe HMAC-SHA256, independently calls Paymento's Verify API, binds token and order ID to the stored attempt, and grants only Paid/Approve statuses. Entitlement, subscription snapshot, and `processedAt` are committed in one serializable transaction; transient failures return non-2xx for retry. Same-tier payments add 30 days, Starter-to-Pro upgrades immediately while preserving remaining time, and active Pro cannot be downgraded. A racing Starter payment can only extend Pro, never weaken it. Historical provider rows remain readable but no old provider route or secret is active.
 
+### SEC-020 — Cross-tenant AI provider availability check
+
+**Severity:** Medium — **CWE-668/CWE-862** — **OWASP A01/A05** — **CVSS 5.3**
+
+The standalone email generator checked provider availability without passing the authenticated user ID. Although the actual generation call was tenant-scoped, the global preflight could reveal that another tenant or the platform had a configured provider and unnecessarily enter the remote-provider path. `backend/src/services/outboundAi.ts` now passes `input.userId` to both provider discovery and generation. The local fallback uses the same sequence contract and does not read shared state.
+
+Model output is also treated as untrusted: HTML, URLs, control characters, and high-risk phrases are removed; initial messages and both follow-ups are rescored before approval. Campaign follow-ups reuse their tenant-owned, pre-reviewed stored variant and only invoke the scoped provider/local fallback for legacy campaigns.
+
 ## Explanation
 
 The changes preserve GeoLead?s web-only UX: login still yields an immediately usable session, reloads silently refresh through the cookie, WebSocket events reconnect through a short-lived ticket, email tracking and unsubscribe links remain public, campaign sending retains all providers, and CSV/XLSX workflows remain available. Security-sensitive interfaces changed only where retaining the old behavior would preserve the vulnerability.
@@ -184,7 +192,7 @@ The installed security skill drove the use of evidence-based findings, complete 
 - Backend TypeScript build: passed.
 - Next.js production build and type checking: passed.
 - Prisma schema validation: passed.
-- Security regression tests: 6 passed (SSRF ranges, password bounds, signed/tampered Resend webhook, signed/tampered Paymento IPN, fail-closed tenant predicates, and reply-thread integrity).
+- Security regression tests: 8 passed (including AI-output cleaning/spam gating and self-hosted phone-signal validation).
 - Backend `npm audit --omit=dev`: 0 vulnerabilities.
 - Frontend `npm audit --omit=dev`: 0 vulnerabilities.
 - Production tenant-consistency audit: passed; all orphan and cross-tenant relation counts are zero after the targeted repair migration.

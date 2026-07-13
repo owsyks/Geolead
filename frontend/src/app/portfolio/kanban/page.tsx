@@ -134,8 +134,8 @@ export default function PortfolioKanbanPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted">Est. value</span>
-                      <span className="font-mono font-bold text-brand text-sm">${(domain.estimatedValue || 0).toLocaleString()}</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted">Est / your price</span>
+                      <span className="text-right font-mono font-bold text-sm"><span className="text-brand">${(domain.estimatedValue || 0).toLocaleString()}</span><span className="block text-[10px] text-text">{domain.askingPrice != null ? `$${domain.askingPrice.toLocaleString()}` : "Not set"}</span></span>
                     </div>
                   </GlassCard>
                 ))}

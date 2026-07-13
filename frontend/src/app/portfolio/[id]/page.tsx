@@ -175,7 +175,7 @@ export default function DomainDetailPage() {
 
       {/* Score summary row */}
       <section className="grid grid-cols-2 xl:grid-cols-6 gap-3">
-        <MetricCard label="Estimated value" value={`$${(domain.estimatedValue || 0).toLocaleString()}`} helper={`Rec $${(domain.recommendedPrice || 0).toLocaleString()}`} />
+        <MetricCard label="Estimated value" value={`$${(domain.estimatedValue || 0).toLocaleString()}`} helper={domain.askingPrice != null ? `Your price $${domain.askingPrice.toLocaleString()}` : `Rec $${(domain.recommendedPrice || 0).toLocaleString()}`} />
         <MetricCard label="Branding" value={`${domain.brandingScore}/100`} helper="memorability" />
         <MetricCard label="Buyer demand" value={`${domain.buyerDemandScore}/100`} helper="intent fit" />
         <MetricCard label="Lead opportunity" value={`${domain.leadOpportunityScore}/100`} helper="SMB density" />
@@ -215,7 +215,7 @@ export default function DomainDetailPage() {
       {showSale ? (
         <SaleModal
           domainId={id}
-          defaultPrice={domain.recommendedPrice || domain.estimatedValue}
+          defaultPrice={domain.askingPrice ?? domain.recommendedPrice ?? domain.estimatedValue}
           onClose={() => setShowSale(false)}
           onSaved={async () => { setShowSale(false); setMessage("Sale recorded."); await load(); await refresh(); }}
         />
@@ -279,6 +279,7 @@ function OverviewTab({
             <Block label="Best industries">{(domain.bestIndustries || []).join(", ") || "—"}</Block>
             <Block label="Best cities">{(domain.bestCities || []).join(", ") || "—"}</Block>
             <Block label="Recommended price">${(domain.recommendedPrice || 0).toLocaleString()}</Block>
+            <Block label="Your asking price">{domain.askingPrice != null ? `$${domain.askingPrice.toLocaleString()}` : "Not set"}</Block>
           </div>
           <div className="mt-4 rounded-lg border border-border bg-bg p-3 text-xs text-text-muted">
             <div className="text-[10px] uppercase tracking-wide text-text-muted">Outreach strategy</div>

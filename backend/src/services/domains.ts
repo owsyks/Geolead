@@ -21,6 +21,7 @@ export interface DomainInput {
   status?: string;
   purchaseDate?: string | Date | null;
   purchasePrice?: number | null;
+  askingPrice?: number | null;
   registrar?: string | null;
   expirationDate?: string | Date | null;
   category?: string | null;
@@ -399,6 +400,7 @@ export async function createDomain(input: DomainInput, userId: string) {
       status: input.status || 'Available',
       purchaseDate: input.purchaseDate ? new Date(input.purchaseDate) : null,
       purchasePrice: input.purchasePrice ?? null,
+      askingPrice: input.askingPrice ?? null,
       registrar: input.registrar ?? null,
       expirationDate: input.expirationDate ? new Date(input.expirationDate) : null,
       tags: input.tags || [],
@@ -422,6 +424,7 @@ export async function updateDomain(id: string, input: Partial<DomainInput> & { s
   if (input.status !== undefined) data.status = input.status;
   if (input.purchaseDate !== undefined) data.purchaseDate = input.purchaseDate ? new Date(input.purchaseDate) : null;
   if (input.purchasePrice !== undefined) data.purchasePrice = input.purchasePrice ?? null;
+  if (input.askingPrice !== undefined) data.askingPrice = input.askingPrice ?? null;
   if (input.registrar !== undefined) data.registrar = input.registrar ?? null;
   if (input.expirationDate !== undefined) data.expirationDate = input.expirationDate ? new Date(input.expirationDate) : null;
   if (input.category !== undefined) data.category = input.category ?? null;

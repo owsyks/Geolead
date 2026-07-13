@@ -358,6 +358,17 @@ export interface GeneratedOutboundEmail {
     painPointSignals: string[];
   };
   complianceNotes: string[];
+  variants: Array<{
+    key: "A" | "B" | "C";
+    label: string;
+    subjectLine: string;
+    previewText: string;
+    body: string;
+    followUps: Array<{ step: number; subjectLine: string; body: string; spamScore: number; approved: boolean }>;
+    spamScore: number;
+    deliverabilityScore: number;
+    approved: boolean;
+  }>;
 }
 
 export interface OutboundTemplate {
@@ -482,6 +493,7 @@ export interface PortfolioDomain {
   notes?: string | null;
   brandingScore: number;
   estimatedValue?: number | null;
+  askingPrice?: number | null;
   buyerDemandScore: number;
   leadOpportunityScore: number;
   saleProbability: number;

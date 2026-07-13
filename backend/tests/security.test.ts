@@ -5,6 +5,8 @@ import { assertSafeUrl, isBlockedAddress } from '../src/services/ssrfGuard.js';
 import { validatePasswordStrength } from '../src/services/auth.js';
 import { verifyResendWebhook } from '../src/services/webhookSecurity.js';
 import { verifyIpnSignature } from '../src/services/paymento.js';
+import { cleanGeneratedCopy, scoreSpamRisk } from '../src/services/outboundAi.js';
+import { validatePhoneSignals } from '../src/services/contactIntelligence.js';
 import {
   campaignEmailLogTenantWhere,
   isConsistentReplyThread,
@@ -86,4 +88,24 @@ test('reply ingestion rejects references from different threads', () => {
   assert.equal(isConsistentReplyThread(campaignLead, {
     campaignId: 'campaign-a', leadId: 'lead-b', campaignLeadId: 'cl-a',
   }), false);
+});
+
+test('AI email output is cleaned and spam-scored before use', () => {
+  const cleaned = cleanGeneratedCopy('<b>ACT NOW</b> https://attacker.example/path\u0000 Limited time!!!');
+  assert.equal(cleaned.includes('<b>'), false);
+  assert.equal(cleaned.includes('http'), false);
+  assert.equal(cleaned.includes('\u0000'), false);
+  assert.equal(/act now|limited time/i.test(cleaned), false);
+  assert.ok(scoreSpamRisk('GUARANTEED ACT NOW BUY NOW') >= 6);
+});
+
+test('self-hosted phone validation rejects placeholders and normalizes E.164 signals', () => {
+  assert.equal(validatePhoneSignals('0000000000').structurallyValid, false);
+  assert.equal(validatePhoneSignals('1111111111').structurallyValid, false);
+  assert.deepEqual(validatePhoneSignals('(415) 555-2671'), {
+    original: '(415) 555-2671',
+    normalized: '+14155552671',
+    structurallyValid: true,
+    reason: 'Structurally valid phone signal.',
+  });
 });
