@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { createHash } from 'node:crypto';
 import { getSetting } from './settings.js';
 import { redisConnection } from '../queues/queues.js';
 
@@ -26,6 +27,7 @@ interface SerperSearchOptions {
   page?: number;
   num?: number;
   userId?: string | null; // resolve the calling user's Serper key
+  allowMockFallback?: boolean;
 }
 
 // Multiple Serper keys can be configured as a shared rotation pool
@@ -33,6 +35,20 @@ interface SerperSearchOptions {
 // every search. A per-user DB key (Settings page) is used exclusively
 // instead — it's that user's own quota, not part of the shared pool.
 const MAX_PER_KEY_PER_DAY = 2500;
+const DEFAULT_CACHE_TTL_SECONDS = 24 * 60 * 60;
+
+function getCacheTtlSeconds(): number {
+  const configured = Number.parseInt(process.env.SERPER_CACHE_TTL_SECONDS || '', 10);
+  if (!Number.isFinite(configured)) return DEFAULT_CACHE_TTL_SECONDS;
+  return Math.min(Math.max(configured, 300), 7 * 24 * 60 * 60);
+}
+
+function responseCacheKey(path: string, query: string, options: SerperSearchOptions): string {
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify({ path, query: query.trim().toLowerCase(), page: options.page || 1, num: options.num || 10 }))
+    .digest('hex');
+  return `serper:response:${fingerprint}`;
+}
 
 function getPlatformKeys(): string[] {
   const keys: string[] = [];
@@ -90,6 +106,17 @@ async function orderByUsage(keys: string[]): Promise<string[]> {
 // auth/quota errors. Returns null (triggering the mock-data fallback) only
 // once every key in the pool has failed.
 async function serperRequest(path: string, query: string, options: SerperSearchOptions): Promise<any[] | null> {
+  const cacheKey = responseCacheKey(path, query, options);
+  try {
+    const cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      const parsed: unknown = JSON.parse(cached);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // Cache availability must never prevent live discovery.
+  }
+
   const pool = await getKeyPool(options.userId);
   if (pool.length === 0) return null;
 
@@ -107,8 +134,10 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
         body,
         { headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' }, timeout: 10000 }
       );
-      incrementKeyUsage(key);
-      return path === '/places' ? response.data.places || [] : response.data.organic || [];
+      const results = path === '/places' ? response.data.places || [] : response.data.organic || [];
+      await incrementKeyUsage(key);
+      await redisConnection.set(cacheKey, JSON.stringify(results), 'EX', getCacheTtlSeconds()).catch(() => undefined);
+      return results;
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 429 || status === 403 || status === 401) {
@@ -129,6 +158,7 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
 export async function searchGoogle(query: string, options: SerperSearchOptions = {}): Promise<SerperResult[]> {
   const organic = await serperRequest('/search', query, options);
   if (organic === null) {
+    if (options.allowMockFallback === false) return [];
     console.log(`[Serper.dev] No usable key. Generating mock search results for: "${query}"`);
     return getMockSearchResults(query);
   }
@@ -147,6 +177,7 @@ export async function searchGoogle(query: string, options: SerperSearchOptions =
 export async function searchGooglePlaces(query: string, options: SerperSearchOptions = {}): Promise<SerperPlace[]> {
   const places = await serperRequest('/places', query, options);
   if (places === null) {
+    if (options.allowMockFallback === false) return [];
     console.log(`[Serper.dev] No usable key. Generating mock places results for: "${query}"`);
     return getMockPlacesResults(query);
   }

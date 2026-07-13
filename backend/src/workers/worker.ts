@@ -5,7 +5,7 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
 import { isWrongCountry } from '../services/crawlerClient.js';
-import { searchGoogle, searchGooglePlaces } from '../services/serper.js';
+import { searchGoogle, searchGooglePlaces, type SerperPlace, type SerperResult } from '../services/serper.js';
 import { generateQueryVariations } from '../services/queryGenerator.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
@@ -86,89 +86,165 @@ const worker = new Worker<ScrapingJobData>(
         return current?.status === 'CANCELLED' || current?.status === 'PAUSED';
       };
 
-      const queries = generateQueryVariations(task.keyword, task.country || undefined, task.cityState || undefined, task.searchDepth);
-      const pagesPerQuery = task.searchDepth <= 20 ? 1 : task.searchDepth <= 50 ? 2 : 3;
-      const totalFetches = queries.length * pagesPerQuery;
-      const searchCap = task.searchDepth * 2;
-      console.log(`[Worker] Serper discovery: ${queries.length} queries x ${pagesPerQuery} page(s), cap ${searchCap} businesses.`);
+      const requestedDepth = Math.max(1, task.searchDepth);
+      const candidateTarget = Math.min(400, Math.ceil(requestedDepth * 1.25));
+      const requestBudget = Math.min(50, Math.max(6, Math.ceil(requestedDepth / 5)));
+      const queryCount = Math.min(16, Math.max(4, Math.ceil(requestedDepth / 15)));
+      const generatedQueries = generateQueryVariations(
+        task.keyword,
+        task.country || undefined,
+        task.cityState || undefined,
+        requestedDepth,
+      );
+      // Sample across the complete variation set instead of taking the first
+      // N near-identical phrasings. This improves unique-domain yield per credit.
+      const queries = generatedQueries.length <= queryCount
+        ? generatedQueries
+        : Array.from({ length: queryCount }, (_, index) =>
+            generatedQueries[Math.floor(index * generatedQueries.length / queryCount)]
+          );
+      console.log(
+        `[Worker] Adaptive Serper discovery: target ${candidateTarget} candidates, ` +
+        `${queries.length} diverse queries, budget ${requestBudget} requests.`,
+      );
 
-      let fetchesDone = 0;
+      type SearchSource = 'places' | 'organic';
+      type QueryYield = { query: string; places: number; organic: number };
+      const queryYields: QueryYield[] = queries.map((query) => ({ query, places: 0, organic: 0 }));
+      let requestsUsed = 0;
       let cancelled = false;
 
-      outer: for (const query of queries) {
-        if (await shouldCancel()) { cancelled = true; break; }
+      const addPlaces = (places: SerperPlace[]): number => {
+        const before = discoveredBusinesses.size;
+        for (const place of places) {
+          if (!place.website) continue;
+          if (isWrongCountry(place.address, task.country || '')) continue;
+          const domainKey = extractDomainKey(place.website);
+          if (!domainKey || skipDomains.some(skip => domainKey.includes(skip))) continue;
 
-        for (let page = 1; page <= pagesPerQuery; page++) {
-          if (await shouldCancel()) { cancelled = true; break outer; }
-
-          try {
-            const [places, organic] = await Promise.all([
-              searchGooglePlaces(query, { page, num: 20, userId: task.userId }),
-              searchGoogle(query, { page, num: 20, userId: task.userId }),
-            ]);
-
-            for (const place of places) {
-              if (!place.website) continue;
-              if (isWrongCountry(place.address, task.country || '')) continue;
-              const domainKey = extractDomainKey(place.website);
-              if (!domainKey || skipDomains.some(skip => domainKey.includes(skip))) continue;
-
-              const existing = discoveredBusinesses.get(domainKey);
-              if (!existing) {
-                discoveredBusinesses.set(domainKey, {
-                  name: place.title,
-                  website: place.website,
-                  location: place.address || undefined,
-                  googleMapsLink: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined,
-                  category: place.category || undefined,
-                  rating: place.rating,
-                  reviewsCount: place.ratingCount,
-                  phoneNumbers: place.phoneNumber ? [place.phoneNumber] : [],
-                  snippetEmails: [],
-                  source: 'Google Maps',
-                });
-              } else {
-                existing.location = existing.location || place.address || undefined;
-                existing.googleMapsLink = existing.googleMapsLink || (place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined);
-                existing.category = existing.category || place.category || undefined;
-                existing.rating = existing.rating ?? place.rating;
-                existing.reviewsCount = existing.reviewsCount ?? place.ratingCount;
-                if (place.phoneNumber && !existing.phoneNumbers.includes(place.phoneNumber)) {
-                  existing.phoneNumbers.push(place.phoneNumber);
-                }
-              }
+          const existing = discoveredBusinesses.get(domainKey);
+          if (!existing) {
+            discoveredBusinesses.set(domainKey, {
+              name: place.title,
+              website: place.website,
+              location: place.address || undefined,
+              googleMapsLink: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined,
+              category: place.category || undefined,
+              rating: place.rating,
+              reviewsCount: place.ratingCount,
+              phoneNumbers: place.phoneNumber ? [place.phoneNumber] : [],
+              snippetEmails: [],
+              source: 'Google Maps',
+            });
+          } else {
+            existing.location = existing.location || place.address || undefined;
+            existing.googleMapsLink = existing.googleMapsLink || (place.cid ? `https://www.google.com/maps?cid=${place.cid}` : undefined);
+            existing.category = existing.category || place.category || undefined;
+            existing.rating = existing.rating ?? place.rating;
+            existing.reviewsCount = existing.reviewsCount ?? place.ratingCount;
+            if (place.phoneNumber && !existing.phoneNumbers.includes(place.phoneNumber)) {
+              existing.phoneNumbers.push(place.phoneNumber);
             }
-
-            for (const result of organic) {
-              const domainKey = extractDomainKey(result.link);
-              if (!domainKey || skipDomains.some(skip => domainKey.includes(skip))) continue;
-              if (discoveredBusinesses.has(domainKey)) continue;
-
-              discoveredBusinesses.set(domainKey, {
-                name: (result.title || domainKey).split(/[-|]/)[0].trim(),
-                website: result.link,
-                location: undefined,
-                category: undefined,
-                rating: undefined,
-                reviewsCount: undefined,
-                phoneNumbers: [],
-                snippetEmails: [],
-                source: 'Google Search',
-              });
-            }
-          } catch (error: any) {
-            console.error(`[Worker] Serper fetch failed for "${query}" page ${page}: ${error.message}`);
           }
-
-          fetchesDone++;
-          const pct = Math.floor(10 + (20 * (fetchesDone / Math.max(totalFetches, 1))));
-          await prisma.searchTask.update({
-            where: { id: taskId },
-            data: { progress: Math.min(pct, 30) },
-          }).catch(() => undefined);
-
-          if (discoveredBusinesses.size >= searchCap) { break outer; }
         }
+        return discoveredBusinesses.size - before;
+      };
+
+      const addOrganic = (results: SerperResult[]): number => {
+        const before = discoveredBusinesses.size;
+        for (const result of results) {
+          const domainKey = extractDomainKey(result.link);
+          if (!domainKey || skipDomains.some(skip => domainKey.includes(skip))) continue;
+          if (discoveredBusinesses.has(domainKey)) continue;
+
+          discoveredBusinesses.set(domainKey, {
+            name: (result.title || domainKey).split(/[-|]/)[0].trim(),
+            website: result.link,
+            location: undefined,
+            category: undefined,
+            rating: undefined,
+            reviewsCount: undefined,
+            phoneNumbers: [],
+            snippetEmails: [],
+            source: 'Google Search',
+          });
+        }
+        return discoveredBusinesses.size - before;
+      };
+
+      const runDiscoveryRequest = async (source: SearchSource, query: string, page: number): Promise<number> => {
+        if (requestsUsed >= requestBudget || discoveredBusinesses.size >= candidateTarget) return 0;
+        if (await shouldCancel()) {
+          cancelled = true;
+          return 0;
+        }
+
+        let added = 0;
+        try {
+          if (source === 'places') {
+            const places = await searchGooglePlaces(query, {
+              page,
+              num: 20,
+              userId: task.userId,
+              allowMockFallback: false,
+            });
+            added = addPlaces(places);
+          } else {
+            const organic = await searchGoogle(query, {
+              page,
+              num: 100,
+              userId: task.userId,
+              allowMockFallback: false,
+            });
+            added = addOrganic(organic);
+          }
+        } catch (error: any) {
+          console.error(`[Worker] Serper ${source} failed for "${query}" page ${page}: ${error.message}`);
+        } finally {
+          requestsUsed++;
+        }
+
+        const pct = Math.floor(10 + (20 * (requestsUsed / Math.max(requestBudget, 1))));
+        await prisma.searchTask.update({
+          where: { id: taskId },
+          data: { progress: Math.min(pct, 30) },
+        }).catch(() => undefined);
+        console.log(
+          `[Worker] Serper ${source} page ${page}: +${added} unique domains ` +
+          `(${discoveredBusinesses.size}/${candidateTarget}, ${requestsUsed}/${requestBudget} requests).`,
+        );
+        return added;
+      };
+
+      // Phase 1: Places is normally the highest-quality source for local businesses.
+      for (const item of queryYields) {
+        if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+        item.places = await runDiscoveryRequest('places', item.query, 1);
+      }
+
+      // Phase 2: Organic search fills businesses that do not rank in the Maps pack.
+      for (const item of queryYields) {
+        if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+        item.organic = await runDiscoveryRequest('organic', item.query, 1);
+      }
+
+      // Phase 3: spend remaining credits only on queries that proved they add
+      // unique domains. Low-yield duplicate queries never receive extra pages.
+      for (let page = 2; page <= 3; page++) {
+        const opportunities = queryYields
+          .flatMap((item) => [
+            { item, query: item.query, source: 'places' as const, yield: item.places },
+            { item, query: item.query, source: 'organic' as const, yield: item.organic },
+          ])
+          .filter((item) => item.yield >= 2)
+          .sort((a, b) => b.yield - a.yield);
+
+        for (const opportunity of opportunities) {
+          if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+          const marginalYield = await runDiscoveryRequest(opportunity.source, opportunity.query, page);
+          opportunity.item[opportunity.source] = marginalYield;
+        }
+        if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
       }
 
       if (cancelled) {
@@ -185,7 +261,14 @@ const worker = new Worker<ScrapingJobData>(
         data: { progress: 30 },
       });
 
-      const businessList = Array.from(discoveredBusinesses.values()).slice(0, task.searchDepth);
+      const qualityScore = (biz: DiscoveredBiz): number =>
+        (biz.source === 'Google Maps' ? 4 : 0) +
+        (biz.phoneNumbers.length > 0 ? 3 : 0) +
+        (biz.category ? 1 : 0) +
+        (typeof biz.rating === 'number' && biz.rating >= 4 ? 1 : 0);
+      const businessList = Array.from(discoveredBusinesses.values())
+        .sort((a, b) => qualityScore(b) - qualityScore(a))
+        .slice(0, requestedDepth);
       console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length}.`);
 
       if (businessList.length === 0) {

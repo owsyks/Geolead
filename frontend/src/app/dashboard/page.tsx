@@ -124,7 +124,6 @@ export default function DashboardPage() {
   const { activeDomain } = useDomainContext();
   const [keyword, setKeyword] = useState("");
   const [domainIdea, setDomainIdea] = useState("");
-  const country = "United States";
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(50);
   const [railOpen, setRailOpen] = useState(false);
@@ -697,7 +696,7 @@ export default function DashboardPage() {
         id: newDemoId,
         keyword,
         domainIdea,
-        country,
+        country: "United States",
         cityState,
         searchDepth,
         status: "PROCESSING",
@@ -785,7 +784,6 @@ export default function DashboardPage() {
         body: JSON.stringify({
           keyword,
           domainIdea,
-          country,
           cityState,
           searchDepth,
         })
