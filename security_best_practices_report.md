@@ -196,7 +196,7 @@ The installed security skill drove the use of evidence-based findings, complete 
 - Backend `npm audit --omit=dev`: 0 vulnerabilities.
 - Frontend `npm audit --omit=dev`: 0 vulnerabilities.
 - Production tenant-consistency audit: passed; all orphan and cross-tenant relation counts are zero after the targeted repair migration.
-- GitHub CI and VPS deployment: passed for commit `7d1622d`; live API and frontend both return HTTP 200.
+- GitHub CI, Vercel production deployment, and VPS deployment passed for the current release; the live API health check and frontend both return HTTP 200.
 - Final scans found no browser authentication tokens in Web Storage, body-based refresh flow, JWT WebSocket subprotocol, permissive CORS fallback, database-derived encryption key, or production TLS-disable switch.
 
 ## Remaining Risks
