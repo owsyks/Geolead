@@ -13,6 +13,12 @@ on:
         type: boolean
         default: false
 
+# The feature and production branches can be updated seconds apart. Both deploy
+# to the same Compose project, so VPS mutations must never run concurrently.
+concurrency:
+  group: geolead-vps-production
+  cancel-in-progress: false
+
 # Deploys by SSHing into the VPS, pulling the latest code, and rebuilding the
 # Docker Compose stack. The backend container runs `prisma migrate deploy` on
 # boot, so migrations apply automatically. Requires repo secrets:
