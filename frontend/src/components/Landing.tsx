@@ -849,7 +849,7 @@ export default function Landing() {
               <Link href="/login" className="hover:text-text transition-colors">Sign In</Link>
             )}
           </div>
-          <div className="text-[11px] text-text-faint font-mono">© 2025 GeoLead AI</div>
+          <div className="text-[11px] text-text-faint font-mono">© 2026 GeoLead AI</div>
         </div>
       </footer>
 
