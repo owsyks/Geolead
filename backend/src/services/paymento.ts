@@ -69,7 +69,6 @@ export async function requestPayment(input: {
     returnUrl: input.returnUrl,
     orderId: input.orderId,
     riskSpeed: 1,
-    language: 'en',
     emailAddress: input.email,
   });
   if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) throw new Error('PAYMENTO_INVALID_TOKEN');
