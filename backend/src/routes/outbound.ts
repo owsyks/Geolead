@@ -253,12 +253,21 @@ router.post(
   requireVerifiedEmail,
   requirePlanCapacity('senders'),
   wrap(async (req, res) => {
+    const provider = (asString(req.body.provider) || '').toUpperCase();
+    const fromEmail = (asString(req.body.fromEmail) || '').trim().toLowerCase();
+    const allowedProviders = new Set(['RESEND', 'SENDGRID', 'MAILGUN', 'SES', 'SMTP']);
+    if (!allowedProviders.has(provider)) {
+      return res.status(400).json({ error: 'Choose a supported email provider.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail) || fromEmail.endsWith('.local')) {
+      return res.status(400).json({ error: 'A real sender email address is required.' });
+    }
     const sender = await saveSenderAccount(
       {
         label: asString(req.body.label) || 'Sender account',
-        provider: asString(req.body.provider) || 'DRY_RUN',
+        provider,
         fromName: asString(req.body.fromName) || 'GeoLead AI',
-        fromEmail: asString(req.body.fromEmail) || 'outreach@geoleadai.local',
+        fromEmail,
         replyTo: asString(req.body.replyTo),
         status: asString(req.body.status),
         dailyLimit: asNumber(req.body.dailyLimit),

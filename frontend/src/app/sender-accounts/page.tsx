@@ -11,41 +11,16 @@ const INPUT =
   "mt-2 h-10 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text outline-none focus:border-brand transition-colors";
 const LABEL = "block text-[11px] font-bold uppercase tracking-wider text-text-muted";
 
-const demoSenders: OutboundSenderSummary[] = [
-  {
-    id: "demo-sender",
-    label: "Warm Texas sender",
-    provider: "DRY_RUN",
-    fromName: "GeoLead AI",
-    fromEmail: "outreach@geoleadai.local",
-    replyTo: "admin@geoleadai.local",
-    status: "active",
-    dailyLimit: 35,
-    hourlyLimit: 8,
-    warmupEnabled: true,
-    warmupTarget: 20,
-    dkimStatus: "pending",
-    spfStatus: "pending",
-    dmarcStatus: "pending",
-    deliverabilityScore: 76,
-    bounceRate: 0.014,
-    spamComplaintRate: 0,
-    hasEncryptedConfig: false,
-    createdAt: "2026-05-22T10:00:00.000Z",
-    updatedAt: "2026-05-23T10:00:00.000Z",
-  },
-];
-
 export default function SenderAccountsPage() {
-  const [senders, setSenders] = useState<OutboundSenderSummary[]>(demoSenders);
+  const [senders, setSenders] = useState<OutboundSenderSummary[]>([]);
   const [message, setMessage] = useState("");
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     label: "New sender account",
-    provider: "DRY_RUN",
+    provider: "SMTP",
     fromName: "GeoLead AI",
-    fromEmail: "outreach@geoleadai.local",
-    replyTo: "admin@geoleadai.local",
+    fromEmail: "",
+    replyTo: "",
     dailyLimit: "100",
     hourlyLimit: "20",
     timezone: "UTC",
@@ -56,9 +31,9 @@ export default function SenderAccountsPage() {
     try {
       const data = await fetchOutbound<OutboundSenderSummary[]>("/api/outbound/senders");
       setSenders(data);
-    } catch {
-      setSenders(demoSenders);
-      setMessage("Backend offline. Showing demo sender data.");
+    } catch (error) {
+      setSenders([]);
+      setMessage(error instanceof Error ? error.message : "Could not load sender accounts.");
     }
   }, []);
 
@@ -70,10 +45,10 @@ export default function SenderAccountsPage() {
         const data = await fetchOutbound<OutboundSenderSummary[]>("/api/outbound/senders");
         if (!active) return;
         setSenders(data);
-      } catch {
+      } catch (error) {
         if (!active) return;
-        setSenders(demoSenders);
-        setMessage("Backend offline. Showing demo sender data.");
+        setSenders([]);
+        setMessage(error instanceof Error ? error.message : "Could not load sender accounts.");
       }
     };
 
@@ -98,8 +73,8 @@ export default function SenderAccountsPage() {
       });
       setMessage("Sender account saved.");
       await load();
-    } catch {
-      setMessage("Save failed because the backend is offline.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save the sender account.");
     }
   };
 
@@ -186,7 +161,6 @@ export default function SenderAccountsPage() {
                   onChange={(event) => setForm((current) => ({ ...current, provider: event.target.value }))}
                   className={INPUT}
                 >
-                  <option value="DRY_RUN">Dry run</option>
                   <option value="RESEND">Resend</option>
                   <option value="SENDGRID">SendGrid</option>
                   <option value="MAILGUN">Mailgun</option>

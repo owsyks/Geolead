@@ -104,37 +104,10 @@ export async function ensureOutboundSeedData(requestedUserId?: string) {
     });
   }
 
-  if ((await prisma.senderAccount.count({ where: { userId: user.id } })) === 0) {
-    await prisma.senderAccount.create({
-      data: {
-        userId: user.id,
-        label: 'Dry-run sender',
-        provider: 'DRY_RUN',
-        fromName: 'GeoLead AI',
-        fromEmail: 'outreach@geoleadai.local',
-        replyTo: DEFAULT_ADMIN_EMAIL,
-        status: 'active',
-        timezone: 'America/Chicago',
-        dailyLimit: 30,
-        hourlyLimit: 8,
-        warmupEnabled: true,
-        warmupTarget: 20,
-        sendWindowStart: '09:00',
-        sendWindowEnd: '16:30',
-        dkimStatus: 'pending',
-        spfStatus: 'pending',
-        dmarcStatus: 'pending',
-        deliverabilityScore: 72,
-        providerConfig: { dryRun: true },
-      },
-    });
-  }
-
-  // Auto-create a tenant-owned Resend sender when explicitly configured for
-  // that tenant. Only the startup admin may inherit platform env defaults.
-  const resolveProvisioningSetting = (key: string) => requestedUserId
-    ? getUserSettingOverride(key, user.id)
-    : getSetting(key, user.id);
+  // Auto-create a tenant-owned sender only from that tenant's explicit DB
+  // settings. Platform transactional-email credentials are never campaign
+  // sender credentials, including for the seeded administrator.
+  const resolveProvisioningSetting = (key: string) => getUserSettingOverride(key, user.id);
   const [resendKey, resendFromEmail, resendFromName, resendReplyTo] = await Promise.all([
     resolveProvisioningSetting('resendApiKey'),
     resolveProvisioningSetting('resendFromEmail'),

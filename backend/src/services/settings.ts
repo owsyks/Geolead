@@ -76,6 +76,14 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
 
 const DEF_BY_KEY = new Map(SETTING_DEFINITIONS.map((def) => [def.key, def]));
 
+// These credentials belong to individual tenants. Platform env values are used
+// by system services (for example signup verification) and must never appear as
+// or fall back to a customer's outbound sender configuration.
+const TENANT_EMAIL_SETTING_KEYS = new Set([
+  'resendApiKey', 'resendFromEmail', 'resendFromName', 'resendReplyTo',
+  'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPassword', 'smtpFromEmail', 'smtpFromName',
+]);
+
 // Per-user, in-memory cache so hot paths (every email send / lead search) don't
 // hit the DB. Keyed by `${userId}::${key}`. Invalidated on write.
 let cache: Map<string, string | null> | null = null;
@@ -111,7 +119,7 @@ export async function getSetting(key: string, userId?: string | null): Promise<s
   if (stored != null && stored !== '') {
     return isEncrypted(stored) ? decryptSecret(stored) : stored;
   }
-  if (def?.envKey && process.env[def.envKey]) return process.env[def.envKey];
+  if (!(userId && TENANT_EMAIL_SETTING_KEYS.has(key)) && def?.envKey && process.env[def.envKey]) return process.env[def.envKey];
   return undefined;
 }
 
@@ -159,7 +167,7 @@ export async function getSettingsForDisplay(userId: string) {
   return SETTING_DEFINITIONS.filter((def) => !def.hidden).map((def) => {
     const stored = store.get(ck(userId, def.key));
     const hasDbValue = stored != null && stored !== '';
-    const fromEnv = !hasDbValue && !!(def.envKey && process.env[def.envKey]);
+    const fromEnv = !hasDbValue && !TENANT_EMAIL_SETTING_KEYS.has(def.key) && !!(def.envKey && process.env[def.envKey]);
     let value = '';
     let masked = '';
     if (def.secret) {
