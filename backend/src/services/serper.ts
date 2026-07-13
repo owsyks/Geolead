@@ -32,8 +32,8 @@ interface SerperSearchOptions {
 
 // Multiple Serper keys can be configured as a shared rotation pool
 // (SERPER_API_KEY_1, _2, _3, ...) so one account's daily quota doesn't cap
-// every search. A per-user DB key (Settings page) is used exclusively
-// instead — it's that user's own quota, not part of the shared pool.
+// every search. A per-user DB key (Settings page) is tried first; platform
+// keys remain a failover pool if that dedicated key is rejected or exhausted.
 const MAX_PER_KEY_PER_DAY = 2500;
 const DEFAULT_CACHE_TTL_SECONDS = 24 * 60 * 60;
 
@@ -87,7 +87,7 @@ async function incrementKeyUsage(key: string): Promise<void> {
 async function getKeyPool(userId?: string | null): Promise<string[]> {
   const userKey = await getSetting('serperApiKey', userId);
   const platformKeys = getPlatformKeys();
-  if (userKey) return [userKey]; // dedicated key — don't share its quota with the pool
+  if (userKey) return [userKey, ...platformKeys.filter((key) => key !== userKey)];
   return platformKeys;
 }
 

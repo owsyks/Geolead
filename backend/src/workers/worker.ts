@@ -4,7 +4,7 @@ dotenv.config();
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
-import { isWrongCountry } from '../services/crawlerClient.js';
+import { isWrongCountry, searchAndCrawl, type CrawlerBusiness } from '../services/crawlerClient.js';
 import { searchGoogle, searchGooglePlaces, type SerperPlace, type SerperResult } from '../services/serper.js';
 import { generateQueryVariations } from '../services/queryGenerator.js';
 import { crawlWebsite } from '../services/crawler.js';
@@ -172,6 +172,49 @@ const worker = new Worker<ScrapingJobData>(
         return discoveredBusinesses.size - before;
       };
 
+      const addFallbackBusinesses = (results: CrawlerBusiness[]): number => {
+        const before = discoveredBusinesses.size;
+        for (const result of results) {
+          const website = result.url || (result.domain ? `https://${result.domain}` : '');
+          const domainKey = extractDomainKey(website);
+          if (!domainKey || skipDomains.some((skip) => domainKey.includes(skip))) continue;
+
+          const crawlerEmails = result.emails.map((email) => ({
+            email: email.value,
+            sourcePage: email.sourceUrl,
+          }));
+          const crawlerPhones = result.phones.map((phone) => phone.value);
+          const existing = discoveredBusinesses.get(domainKey);
+          if (existing) {
+            const knownEmails = new Set(existing.snippetEmails.map((email) => email.email.toLowerCase()));
+            for (const email of crawlerEmails) {
+              if (!knownEmails.has(email.email.toLowerCase())) existing.snippetEmails.push(email);
+            }
+            for (const phone of crawlerPhones) {
+              if (!existing.phoneNumbers.includes(phone)) existing.phoneNumbers.push(phone);
+            }
+            existing.location = existing.location || result.address || undefined;
+            existing.category = existing.category || result.category || undefined;
+            existing.rating = existing.rating ?? result.rating ?? undefined;
+            existing.reviewsCount = existing.reviewsCount ?? result.reviewsCount ?? undefined;
+            continue;
+          }
+
+          discoveredBusinesses.set(domainKey, {
+            name: result.companyName || result.title || domainKey,
+            website,
+            location: result.address || undefined,
+            category: result.category || undefined,
+            rating: result.rating ?? undefined,
+            reviewsCount: result.reviewsCount ?? undefined,
+            phoneNumbers: crawlerPhones,
+            snippetEmails: crawlerEmails,
+            source: 'Crawler API fallback',
+          });
+        }
+        return discoveredBusinesses.size - before;
+      };
+
       const runDiscoveryRequest = async (source: SearchSource, query: string, page: number): Promise<number> => {
         if (requestsUsed >= requestBudget || discoveredBusinesses.size >= candidateTarget) return 0;
         if (await shouldCancel()) {
@@ -245,6 +288,34 @@ const worker = new Worker<ScrapingJobData>(
           opportunity.item[opportunity.source] = marginalYield;
         }
         if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+      }
+
+      // A real configured crawler API is the final discovery fallback when all
+      // Serper keys are absent, exhausted, or rejected. Never manufacture leads.
+      if (!cancelled && discoveredBusinesses.size === 0) {
+        console.warn('[Worker] Serper returned zero candidates; trying configured crawler API fallback.');
+        try {
+          const fallback = await searchAndCrawl({
+            keyword: [task.keyword, task.cityState].filter(Boolean).join(' ').trim(),
+            maxResults: candidateTarget,
+            source: 'combined',
+            userId: task.userId,
+            shouldCancel: async () => {
+              const stop = await shouldCancel();
+              if (stop) cancelled = true;
+              return stop;
+            },
+            onProgress: (processed, total) => {
+              if (total <= 0) return;
+              const progress = Math.min(30, Math.floor(10 + (20 * processed / total)));
+              void prisma.searchTask.update({ where: { id: taskId }, data: { progress } }).catch(() => undefined);
+            },
+          });
+          const added = addFallbackBusinesses(fallback.results);
+          console.log(`[Worker] Crawler API fallback added ${added} unique domains.`);
+        } catch (error: any) {
+          console.error(`[Worker] Crawler API fallback failed: ${error.message}`);
+        }
       }
 
       if (cancelled) {
