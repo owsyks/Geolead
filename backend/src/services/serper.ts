@@ -28,6 +28,13 @@ interface SerperSearchOptions {
   allowMockFallback?: boolean;
 }
 
+export class SerperUnavailableError extends Error {
+  constructor() {
+    super('No platform Serper credential is currently usable.');
+    this.name = 'SerperUnavailableError';
+  }
+}
+
 // Multiple Serper keys can be configured as a shared rotation pool
 // (SERPER_API_KEY_1, _2, _3, ...) so one account's daily quota doesn't cap
 // every search. These are platform-managed server credentials; tenant settings
@@ -149,7 +156,7 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
 export async function searchGoogle(query: string, options: SerperSearchOptions = {}): Promise<SerperResult[]> {
   const organic = await serperRequest('/search', query, options);
   if (organic === null) {
-    if (options.allowMockFallback === false) return [];
+    if (options.allowMockFallback === false) throw new SerperUnavailableError();
     console.log(`[Serper.dev] No usable key. Generating mock search results for: "${query}"`);
     return getMockSearchResults(query);
   }
@@ -168,7 +175,7 @@ export async function searchGoogle(query: string, options: SerperSearchOptions =
 export async function searchGooglePlaces(query: string, options: SerperSearchOptions = {}): Promise<SerperPlace[]> {
   const places = await serperRequest('/places', query, options);
   if (places === null) {
-    if (options.allowMockFallback === false) return [];
+    if (options.allowMockFallback === false) throw new SerperUnavailableError();
     console.log(`[Serper.dev] No usable key. Generating mock places results for: "${query}"`);
     return getMockPlacesResults(query);
   }

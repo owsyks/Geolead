@@ -119,7 +119,7 @@ export interface Usage {
 // Derive live usage from the source tables. Cheap counts, no separate ledger.
 export async function getUsage(userId: string): Promise<Usage> {
   const [searches, leads, sends, senders] = await Promise.all([
-    prisma.searchTask.count({ where: { userId, createdAt: { gte: monthStart() } } }),
+    prisma.searchTask.count({ where: { userId, status: { not: 'FAILED' }, createdAt: { gte: monthStart() } } }),
     prisma.lead.count({ where: { ownerId: userId } }),
     prisma.emailLog.count({ where: { sentAt: { gte: dayStart() }, senderAccount: { userId } } }),
     prisma.senderAccount.count({ where: { userId, status: { in: ['active', 'warming'] } } }),
@@ -139,7 +139,7 @@ function limitFor(metric: QuotaMetric, limits: PlanLimits): number {
 // Count only the metric we need, so assertQuota stays a single cheap query.
 async function usedFor(userId: string, metric: QuotaMetric): Promise<number> {
   switch (metric) {
-    case 'searches': return prisma.searchTask.count({ where: { userId, createdAt: { gte: monthStart() } } });
+    case 'searches': return prisma.searchTask.count({ where: { userId, status: { not: 'FAILED' }, createdAt: { gte: monthStart() } } });
     case 'senders': return prisma.senderAccount.count({ where: { userId, status: { in: ['active', 'warming'] } } });
     case 'sends': return prisma.emailLog.count({ where: { sentAt: { gte: dayStart() }, senderAccount: { userId } } });
     case 'leads': return prisma.lead.count({ where: { ownerId: userId } });

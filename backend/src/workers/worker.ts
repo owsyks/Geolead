@@ -5,7 +5,7 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import prisma from '../config/db.js';
 import { isWrongCountry, searchAndCrawl, type CrawlerBusiness } from '../services/crawlerClient.js';
-import { searchGoogle, searchGooglePlaces, type SerperPlace, type SerperResult } from '../services/serper.js';
+import { SerperUnavailableError, searchGoogle, searchGooglePlaces, type SerperPlace, type SerperResult } from '../services/serper.js';
 import { generateQueryVariations } from '../services/queryGenerator.js';
 import { crawlWebsite } from '../services/crawler.js';
 import { validateAndCleanEmails } from '../services/extractor.js';
@@ -113,6 +113,8 @@ const worker = new Worker<ScrapingJobData>(
       const queryYields: QueryYield[] = queries.map((query) => ({ query, places: 0, organic: 0 }));
       let requestsUsed = 0;
       let cancelled = false;
+      let serperUnavailable = false;
+      let crawlerFallbackUnavailable = false;
 
       const addPlaces = (places: SerperPlace[]): number => {
         const before = discoveredBusinesses.size;
@@ -240,6 +242,7 @@ const worker = new Worker<ScrapingJobData>(
             added = addOrganic(organic);
           }
         } catch (error: any) {
+          if (error instanceof SerperUnavailableError) serperUnavailable = true;
           console.error(`[Worker] Serper ${source} failed for "${query}" page ${page}: ${error.message}`);
         } finally {
           requestsUsed++;
@@ -259,19 +262,20 @@ const worker = new Worker<ScrapingJobData>(
 
       // Phase 1: Places is normally the highest-quality source for local businesses.
       for (const item of queryYields) {
-        if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+        if (cancelled || serperUnavailable || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
         item.places = await runDiscoveryRequest('places', item.query, 1);
       }
 
       // Phase 2: Organic search fills businesses that do not rank in the Maps pack.
       for (const item of queryYields) {
-        if (cancelled || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
+        if (cancelled || serperUnavailable || discoveredBusinesses.size >= candidateTarget || requestsUsed >= requestBudget) break;
         item.organic = await runDiscoveryRequest('organic', item.query, 1);
       }
 
       // Phase 3: spend remaining credits only on queries that proved they add
       // unique domains. Low-yield duplicate queries never receive extra pages.
       for (let page = 2; page <= 3; page++) {
+        if (serperUnavailable) break;
         const opportunities = queryYields
           .flatMap((item) => [
             { item, query: item.query, source: 'places' as const, yield: item.places },
@@ -312,6 +316,7 @@ const worker = new Worker<ScrapingJobData>(
           const added = addFallbackBusinesses(fallback.results);
           console.log(`[Worker] Crawler API fallback added ${added} unique domains.`);
         } catch (error: any) {
+          crawlerFallbackUnavailable = true;
           console.error(`[Worker] Crawler API fallback failed: ${error.message}`);
         }
       }
@@ -341,6 +346,24 @@ const worker = new Worker<ScrapingJobData>(
       console.log(`[Worker] Discovered ${discoveredBusinesses.size} unique businesses. Crawling top ${businessList.length}.`);
 
       if (businessList.length === 0) {
+        if (serperUnavailable && crawlerFallbackUnavailable) {
+          console.error('[Worker] All configured discovery providers are unavailable; failing the task without charging search quota.');
+          await prisma.searchTask.update({
+            where: { id: taskId },
+            data: {
+              status: 'FAILED',
+              progress: 100,
+              totalLeads: 0,
+              validEmails: 0,
+              metadata: {
+                ...((task.metadata as Record<string, unknown> | null) || {}),
+                errorCode: 'DISCOVERY_PROVIDERS_UNAVAILABLE',
+                errorMessage: 'Lead discovery is temporarily unavailable because the platform search provider rejected its credentials.',
+              },
+            },
+          });
+          return;
+        }
         console.log('[Worker] No businesses discovered — crawler returned empty results.');
         await prisma.searchTask.update({
           where: { id: taskId },

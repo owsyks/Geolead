@@ -64,6 +64,10 @@ interface SearchTask {
   progress: number;
   totalLeads: number;
   validEmails: number;
+  metadata?: {
+    errorCode?: string;
+    errorMessage?: string;
+  };
   createdAt: string;
 }
 
@@ -1482,6 +1486,16 @@ export default function DashboardPage() {
                 </div>
               )}
 
+              {selectedTask.status === "FAILED" && selectedTask.metadata?.errorMessage && (
+                <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">Lead discovery could not start</p>
+                    <p className="text-xs mt-1 opacity-90">{selectedTask.metadata.errorMessage} This failed search was not counted against your plan.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Leads table */}
               <GlassCard className="p-0 overflow-hidden flex flex-col">
                 {/* Filter bar */}
@@ -1578,8 +1592,8 @@ export default function DashboardPage() {
                 ) : leads.length === 0 ? (
                   <div className="text-center py-20">
                     <Database className="w-10 h-10 text-text-faint mx-auto mb-4" />
-                    <h4 className="text-sm font-bold text-text-muted">No matching leads found</h4>
-                    <p className="text-xs text-text-faint mt-1">Try expanding your keyword variations or removing filters.</p>
+                    <h4 className="text-sm font-bold text-text-muted">{selectedTask.status === "FAILED" ? "Lead discovery unavailable" : "No matching leads found"}</h4>
+                    <p className="text-xs text-text-faint mt-1">{selectedTask.status === "FAILED" ? "The platform search provider must be restored before retrying." : "Try expanding your keyword variations or removing filters."}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
