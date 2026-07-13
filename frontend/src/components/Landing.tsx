@@ -69,22 +69,22 @@ const plans = [
     badge: null as string | null,
     label: "FREE TRIAL",
     price: "$0",
-    priceNote: "forever",
-    tagline: "See the quality before you commit. No card. No clock.",
-    quota: { searches: 5, leads: "~125", campaigns: 1 },
+    priceNote: "7 days",
+    tagline: "Try the complete workflow for seven days. No card required.",
+    quota: { searches: 15, leads: "500", senders: 1 },
     accent: "#a8a29e",
     cta: "Start Free",
     ctaTo: "/register",
     features: [
-      { text: "5 searches (lifetime)", included: true },
-      { text: "~125 verified leads (25 per search)", included: true },
-      { text: "1 active campaign", included: true },
-      { text: "1 AI email variant per campaign", included: true },
-      { text: "Basic email verification", included: true },
+      { text: "15 searches during the trial", included: true },
+      { text: "Up to 500 stored leads", included: true },
+      { text: "Search depth up to 25", included: true },
+      { text: "25 email sends per day", included: true },
+      { text: "1 sender account", included: true },
       { text: "AI lead scoring & prioritization", included: true },
       { text: "Inbox (read & triage)", included: true },
       { text: "CSV export", included: true },
-      { text: "Monthly search quota", included: false },
+      { text: "Paid access after day 7", included: false },
       { text: "AI inbox response drafts", included: false },
       { text: "Follow-up sequences", included: false },
     ],
@@ -93,24 +93,26 @@ const plans = [
     id: "starter",
     badge: null as string | null,
     label: "STARTER",
-    price: "$15",
-    priceNote: "/month",
+    price: "$49",
+    priceNote: "30 days",
     tagline: "For solo operators closing their first deals every week.",
-    quota: { searches: 25, leads: "~1,000", campaigns: 5 },
+    quota: { searches: 100, leads: "5,000", senders: 2 },
     accent: "#14b8a6",
     cta: "Get Starter",
     ctaTo: "/register",
     features: [
-      { text: "25 searches / month", included: true },
-      { text: "~1,000 verified leads / month", included: true },
-      { text: "5 active campaigns", included: true },
+      { text: "100 searches / month", included: true },
+      { text: "Up to 5,000 stored leads", included: true },
+      { text: "Search depth up to 50", included: true },
+      { text: "200 email sends per day", included: true },
+      { text: "2 sender accounts", included: true },
       { text: "2 AI email variants per campaign", included: true },
       { text: "Multi-source email verification", included: true },
       { text: "AI lead scoring & prioritization", included: true },
       { text: "AI inbox triage + response drafts", included: true },
       { text: "1-click follow-up sequences", included: true },
       { text: "CSV export + basic analytics", included: true },
-      { text: "100 searches / month (Pro only)", included: false },
+      { text: "500 searches / month (Pro only)", included: false },
       { text: "White-label reporting", included: false },
     ],
   },
@@ -118,17 +120,19 @@ const plans = [
     id: "pro",
     badge: "MOST POPULAR" as string | null,
     label: "PRO",
-    price: "$29",
-    priceNote: "/month",
+    price: "$149",
+    priceNote: "30 days",
     tagline: "For power users running multiple markets at full throttle.",
-    quota: { searches: 100, leads: "~4,000", campaigns: -1 },
+    quota: { searches: 500, leads: "50,000", senders: 10 },
     accent: "#14b8a6",
     cta: "Get Pro",
     ctaTo: "/register",
     features: [
-      { text: "100 searches / month", included: true },
-      { text: "~4,000 verified leads / month", included: true },
-      { text: "Unlimited campaigns", included: true },
+      { text: "500 searches / month", included: true },
+      { text: "Up to 50,000 stored leads", included: true },
+      { text: "Full search depth up to 200", included: true },
+      { text: "1,000 email sends per day", included: true },
+      { text: "10 sender accounts", included: true },
       { text: "A/B/C AI variants + personalization", included: true },
       { text: "Multi-source + real-time verification", included: true },
       { text: "Advanced intent & DM scoring", included: true },
@@ -142,11 +146,11 @@ const plans = [
 ];
 
 const faqs = [
-  { q: "What counts as a 'search'?", a: "One search = one geo-discovery run: a domain idea, niche keyword, and city. GeoLead scrapes and scores that full market (~25 verified leads per run). Free Trial gives you 5 searches for life. Starter gives you 25/month (~1,000 leads). Pro gives you 100/month (~4,000 leads)." },
+  { q: "What counts as a 'search'?", a: "One search is one geo-discovery run for a domain idea, niche keyword, and location. The 7-day trial includes 15 searches. Starter includes 100 searches per month and Pro includes 500 searches per month." },
   { q: "How does GeoLead find leads?", a: "GeoLead AI uses a proprietary geo-scraping engine that maps every local business in a given niche and city. It cross-references company websites, LinkedIn, Google Business, and domain registries to surface verified, high-intent prospects." },
   { q: "Is outreach CAN-SPAM and GDPR compliant?", a: "Yes. Every campaign enforces opt-out suppression, unsubscribe handling, and daily throttle limits automatically. We also flag risky emails before they're sent." },
   { q: "Can I use my own sending domain?", a: "Absolutely. Connect any SMTP account — Google Workspace, Microsoft 365, or custom SMTP — and GeoLead manages the sending schedule to protect your domain reputation." },
-  { q: "Can I upgrade or cancel anytime?", a: "Yes. Upgrade from Free to Starter or Pro at any time. Cancel anytime — no contracts, no penalties. Your leads and campaign data stay exportable until the end of your billing period." },
+  { q: "Can I upgrade or extend access anytime?", a: "Yes. Paymento purchases are one-time crypto payments that add 30 days with no automatic renewal. Starter can upgrade to Pro immediately while preserving remaining time. Active Pro access cannot be downgraded until it expires." },
 ];
 
 /* ─── small components ─── */
@@ -644,7 +648,7 @@ export default function Landing() {
                 Start free.<br />Scale when ready.
               </h2>
               <p className="text-text-muted text-[14px] max-w-xs leading-relaxed lg:pb-2">
-                No card for the free tier. Upgrade when you see the quality. Cancel anytime.
+                No card for the free trial. Paid plans use one-time crypto payments with no automatic renewal.
               </p>
             </div>
           </div>
@@ -713,9 +717,9 @@ export default function Landing() {
                     {/* quota chips */}
                     <div className="flex flex-wrap gap-2">
                       {[
-                        `${plan.quota.searches} search${plan.quota.searches !== 1 ? "es" : ""}${isFree ? " (lifetime)" : "/mo"}`,
-                        `${plan.quota.leads} leads${isFree ? "" : "/mo"}`,
-                        plan.quota.campaigns === -1 ? "unlimited campaigns" : `${plan.quota.campaigns} campaign${plan.quota.campaigns !== 1 ? "s" : ""}`,
+                        `${plan.quota.searches} search${plan.quota.searches !== 1 ? "es" : ""}${isFree ? " / trial" : " / month"}`,
+                        `up to ${plan.quota.leads} stored leads`,
+                        `${plan.quota.senders} sender account${plan.quota.senders === 1 ? "" : "s"}`,
                       ].map((q, j) => (
                         <span key={j} className="font-mono text-[10px] font-bold px-2 py-1 rounded-sm border" style={{
                           color: isPro ? "#14b8a6" : "var(--text-faint)",
@@ -782,7 +786,7 @@ export default function Landing() {
       {/* ════════ FAQ ════════ */}
       <section id="faq" className="relative z-10 py-20 lg:py-28 border-b border-border">
         <div className="max-w-7xl mx-auto px-5 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)] gap-12 xl:gap-16">
             <div className="lg:sticky lg:top-24 self-start">
               <Eyebrow>FAQ</Eyebrow>
               <h2 className="mt-4 text-[clamp(2.5rem,5vw,4rem)] font-black uppercase leading-[0.95]" style={{ fontFamily: BC }}>
@@ -790,7 +794,7 @@ export default function Landing() {
               </h2>
               <p className="mt-4 text-[13px] text-text-muted leading-relaxed">Can&apos;t find what you&apos;re looking for? <Link href="/contact" className="text-brand hover:underline font-medium">Contact us</Link>.</p>
             </div>
-            <div className="border-t border-border">
+            <div className="min-w-0 border-t border-border">
               {faqs.map((f, i) => (
                 <FaqItem key={i} q={f.q} a={f.a} open={openFaq === i} onToggle={() => setOpenFaq(openFaq === i ? null : i)} />
               ))}
@@ -811,7 +815,7 @@ export default function Landing() {
             <span className="text-brand" style={{ textShadow: "0 0 60px rgba(20,184,166,0.4)" }}>Start closing.</span>
           </h2>
           <p className="text-[15px] text-text-muted max-w-xl mx-auto mb-10 leading-relaxed">
-            Start free — 5 searches, ~125 verified leads, no card required. See the quality, then decide.
+            Start free — 15 searches, up to 500 stored leads, no card required. See the quality, then decide.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/register" className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-brand text-bg font-bold text-[15px] rounded-md hover:bg-brand-hover transition-all" style={{ boxShadow: "0 0 40px rgba(20,184,166,0.35)" }}>
@@ -824,7 +828,7 @@ export default function Landing() {
           <div className="mt-6 flex items-center justify-center gap-6 text-[12px] text-text-faint font-mono flex-wrap">
             <span className="flex items-center gap-1.5"><Lock className="w-3 h-3" /> Secure Paymento crypto checkout</span>
             <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> CAN-SPAM compliant</span>
-            <span className="flex items-center gap-1.5"><Check className="w-3 h-3" /> Cancel anytime</span>
+            <span className="flex items-center gap-1.5"><Check className="w-3 h-3" /> No automatic renewal</span>
           </div>
         </div>
       </section>
