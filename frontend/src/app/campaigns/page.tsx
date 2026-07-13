@@ -148,7 +148,10 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<OutboundCampaignSummary[]>(() => readCache<OutboundCampaignSummary[]>(CAMPAIGNS_CACHE_KEY) ?? demoCampaigns);
   const [overview, setOverview] = useState<OutboundOverview | null>(() => readCache<OutboundOverview>(OVERVIEW_CACHE_KEY));
   const [leads, setLeads] = useState<AvailableLead[]>([]);
+  const [availableLeadCount, setAvailableLeadCount] = useState(0);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [selectingLeadMode, setSelectingLeadMode] = useState<"all" | "valid" | null>(null);
+  const [leadSelectionNotice, setLeadSelectionNotice] = useState("");
   const [templates, setTemplates] = useState<Array<{ id: string; name: string; subject: string }>>([]);
   const [uploadedEmails, setUploadedEmails] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,8 +223,9 @@ export default function CampaignsPage() {
     try {
       const params = new URLSearchParams({ hasEmails: "true", limit: "50", page: "1" });
       if (scoped && domain.trim()) params.set("domain", domain.trim());
-      const res = await fetchOutbound<{ leads: AvailableLead[] }>(`/api/leads?${params.toString()}`);
+      const res = await fetchOutbound<{ leads: AvailableLead[]; pagination: { total: number } }>(`/api/leads?${params.toString()}`);
       setLeads(res.leads);
+      setAvailableLeadCount(res.pagination.total);
     } catch {
       /* keep existing list on failure */
     } finally {
@@ -242,13 +246,14 @@ export default function CampaignsPage() {
         const [campaignData, overviewData, leadData, templateData] = await Promise.all([
           fetchOutbound<OutboundCampaignSummary[]>("/api/outbound/campaigns"),
           fetchOutbound<OutboundOverview>("/api/outbound/overview"),
-          fetchOutbound<{ leads: AvailableLead[] }>("/api/leads?hasEmails=true&limit=12&page=1"),
+          fetchOutbound<{ leads: AvailableLead[]; pagination: { total: number } }>("/api/leads?hasEmails=true&limit=12&page=1"),
           fetchOutbound<Array<{ id: string; name: string; subject: string }>>("/api/outbound/templates"),
         ]);
         if (!active) return;
         setCampaigns(campaignData);
         setOverview(overviewData);
         setLeads(leadData.leads);
+        setAvailableLeadCount(leadData.pagination.total);
         setTemplates(templateData);
         writeCache(CAMPAIGNS_CACHE_KEY, campaignData);
         writeCache(OVERVIEW_CACHE_KEY, overviewData);
@@ -319,6 +324,7 @@ export default function CampaignsPage() {
           : "Campaign created with a compliant 3-step sequence."
       );
       setSelectedLeadIds([]);
+      setLeadSelectionNotice("");
       setUploadedEmails([]);
       setLoading(true);
       await load();
@@ -384,17 +390,30 @@ export default function CampaignsPage() {
     setSelectedLeadIds((current) => (current.includes(id) ? current.filter((leadId) => leadId !== id) : [...current, id]));
   };
 
-  const allLeadsSelected = leads.length > 0 && leads.every((lead) => selectedLeadIds.includes(lead.id));
-  const toggleSelectAll = () => {
-    setSelectedLeadIds((current) => {
-      if (allLeadsSelected) {
-        const ids = new Set(leads.map((l) => l.id));
-        return current.filter((id) => !ids.has(id));
+  const selectCampaignLeads = async (mode: "all" | "valid") => {
+    if (selectingLeadMode) return;
+    setSelectingLeadMode(mode);
+    setLeadSelectionNotice("");
+    try {
+      const params = new URLSearchParams({ hasEmails: "true" });
+      if (mode === "valid") params.set("emailStatus", "VALID");
+      if (leadsScopedToDomain && form.geoDomain.trim()) params.set("domain", form.geoDomain.trim());
+      const result = await fetchOutbound<{ ids: string[]; truncated: boolean }>(`/api/leads/ids?${params.toString()}`);
+      setSelectedLeadIds(result.ids);
+      if (result.truncated) {
+        setLeadSelectionNotice(`Selected the first ${result.ids.length.toLocaleString()} eligible leads. Refine the domain scope to narrow the list.`);
+      } else if (result.ids.length === 0) {
+        setLeadSelectionNotice(mode === "valid" ? "No leads with a strictly valid email were found." : "No email-ready leads were found.");
+      } else {
+        setLeadSelectionNotice(mode === "valid"
+          ? `Selected ${result.ids.length.toLocaleString()} leads with a strictly valid email.`
+          : `Selected all ${result.ids.length.toLocaleString()} email-ready leads.`);
       }
-      const merged = new Set(current);
-      leads.forEach((l) => merged.add(l.id));
-      return Array.from(merged);
-    });
+    } catch {
+      setLeadSelectionNotice("Could not select leads. Please retry.");
+    } finally {
+      setSelectingLeadMode(null);
+    }
   };
 
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -950,14 +969,18 @@ export default function CampaignsPage() {
             <div>
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-[11px] font-black uppercase tracking-wide text-text-muted">Select leads</h3>
-                <span className="text-xs text-text-muted">{selectedLeadIds.length} selected</span>
+                <span className="text-xs text-text-muted">{selectedLeadIds.length.toLocaleString()} selected · {availableLeadCount.toLocaleString()} eligible</span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setLeadsScopedToDomain((v) => !v)}
+                  onClick={() => {
+                    setLeadsScopedToDomain((v) => !v);
+                    setSelectedLeadIds([]);
+                    setLeadSelectionNotice("");
+                  }}
                   className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1.5 ${leadsScopedToDomain ? "border-brand/30 bg-brand-soft text-brand" : "border-border text-text-muted"}`}
-                  title="Show only valid leads scraped for this domain"
+                  title="Show only email-ready leads scraped for this domain"
                 >
                   {leadsScopedToDomain ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
                   {leadsScopedToDomain ? `Scraped for ${form.geoDomain || "this domain"}` : "All my leads"}
@@ -965,12 +988,24 @@ export default function CampaignsPage() {
                 <button type="button" onClick={() => void loadLeadsForDomain(form.geoDomain, leadsScopedToDomain)} className="h-8 w-8 rounded-lg border border-border text-text-muted hover:text-text inline-flex items-center justify-center" title="Refresh leads">
                   {leadsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
                 </button>
-                {leads.length > 0 && (
-                  <button type="button" onClick={toggleSelectAll} className="h-8 px-2.5 rounded-lg border border-border text-[11px] font-bold text-text-muted hover:text-text ml-auto">
-                    {allLeadsSelected ? "Clear all" : `Select all (${leads.length})`}
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  {selectedLeadIds.length > 0 && (
+                    <button type="button" onClick={() => { setSelectedLeadIds([]); setLeadSelectionNotice(""); }} className="h-8 px-2.5 rounded-lg border border-border text-[11px] font-bold text-text-muted hover:text-text">
+                      Clear
+                    </button>
+                  )}
+                  <button type="button" disabled={Boolean(selectingLeadMode) || availableLeadCount === 0} onClick={() => void selectCampaignLeads("all")} className="h-8 px-2.5 rounded-lg border border-border text-[11px] font-bold text-text-muted hover:text-text disabled:opacity-50 inline-flex items-center gap-1.5">
+                    {selectingLeadMode === "all" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    Select all ({availableLeadCount.toLocaleString()})
                   </button>
-                )}
+                  <button type="button" disabled={Boolean(selectingLeadMode) || availableLeadCount === 0} onClick={() => void selectCampaignLeads("valid")} className="h-8 px-2.5 rounded-lg border border-success/30 bg-success/10 text-[11px] font-bold text-success hover:bg-success/15 disabled:opacity-50 inline-flex items-center gap-1.5">
+                    {selectingLeadMode === "valid" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                    Select valid emails
+                  </button>
+                </div>
               </div>
+
+              {leadSelectionNotice && <p className="mt-2 text-[11px] text-text-muted">{leadSelectionNotice}</p>}
 
               <div className="mt-3">
                 {leadsLoading ? (
@@ -981,25 +1016,28 @@ export default function CampaignsPage() {
                     body={leadsScopedToDomain ? "Run the Lead Explorer for this domain first, or switch to All my leads." : "Run the lead explorer first, or create the campaign without assigned leads."}
                   />
                 ) : (
-                  <VirtualList
-                    items={leads}
-                    getKey={(lead) => lead.id}
-                    estimateSize={72}
-                    maxHeightClass="max-h-72"
-                    className="pr-1"
-                    renderItem={(lead) => (
-                      <label className="flex gap-3 rounded-lg border border-border bg-bg p-3 text-sm">
-                        <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} className="mt-1 h-4 w-4 accent-brand" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-bold text-text truncate">{lead.businessName}</span>
-                          <span className="mt-1 block text-xs text-text-muted">
-                            {lead.location || lead.category || "Verified lead"} · {lead.domainMatchScore}% match
-                            {lead.emails.length > 0 ? ` · ${lead.emails.length} email${lead.emails.length > 1 ? "s" : ""}` : ""}
+                  <>
+                    {availableLeadCount > leads.length && <p className="mb-2 text-[10px] text-text-faint">Showing the first {leads.length} leads. Selection buttons above apply to all {availableLeadCount.toLocaleString()} eligible leads.</p>}
+                    <VirtualList
+                      items={leads}
+                      getKey={(lead) => lead.id}
+                      estimateSize={72}
+                      maxHeightClass="max-h-72"
+                      className="pr-1"
+                      renderItem={(lead) => (
+                        <label className="flex gap-3 rounded-lg border border-border bg-bg p-3 text-sm">
+                          <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} className="mt-1 h-4 w-4 accent-brand" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-bold text-text truncate">{lead.businessName}</span>
+                            <span className="mt-1 block text-xs text-text-muted">
+                              {lead.location || lead.category || "Verified lead"} · {lead.domainMatchScore}% match
+                              {lead.emails.length > 0 ? ` · ${lead.emails.length} email${lead.emails.length > 1 ? "s" : ""}` : ""}
+                            </span>
                           </span>
-                        </span>
-                      </label>
-                    )}
-                  />
+                        </label>
+                      )}
+                    />
+                  </>
                 )}
               </div>
             </div>

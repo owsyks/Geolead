@@ -297,7 +297,7 @@ app.get('/api/history', requireAuth, rateLimit('history', 30, 10 * 60 * 1000), a
 // Shared by GET /api/leads and GET /api/leads/ids so "select all matching
 // leads" (across pages) filters identically to the paginated table.
 function buildLeadsWhereClause(userId: string, query: any): any {
-  const { taskId, search, minScore, hasEmails, domain, role, minBuyerIntent, minPriority, minDecisionMaker, notContacted } = query;
+  const { taskId, search, minScore, hasEmails, emailStatus, domain, role, minBuyerIntent, minPriority, minDecisionMaker, notContacted } = query;
 
   const whereClause: any = { ownerId: userId, task: { is: { deletedAt: null } } };
 
@@ -332,7 +332,9 @@ function buildLeadsWhereClause(userId: string, query: any): any {
     whereClause.domainMatchScore = { gte: parseInt(minScore as string, 10) };
   }
 
-  if (hasEmails === 'true') {
+  if (emailStatus === 'VALID' || emailStatus === 'RISKY') {
+    whereClause.emails = { some: { status: emailStatus } };
+  } else if (hasEmails === 'true') {
     whereClause.emails = { some: { status: { in: ['VALID', 'RISKY'] } } };
   }
 

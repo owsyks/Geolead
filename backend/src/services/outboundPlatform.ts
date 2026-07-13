@@ -478,21 +478,24 @@ export async function createCampaign(input: CampaignCreateInput, userId: string)
   const ownedLeadIds = (await prisma.lead.findMany({
     where: { id: { in: input.leadIds || [] }, ownerId: userId }, select: { id: true },
   })).map((lead) => lead.id);
-  for (const leadId of ownedLeadIds) {
-    await prisma.campaignLead
-      .create({
-        data: {
-          campaignId: campaign.id,
-          leadId,
-          sequenceId: sequence.id,
-          status: 'NEW',
-          stage: 'New',
-          trackingToken: randomToken(),
-          unsubscribeToken: randomToken(),
-          personalization: {},
-        },
-      })
-      .catch(() => null);
+  // Bulk selections can contain thousands of tenant-owned leads. Insert in
+  // bounded batches instead of one query per lead so "Select all" remains
+  // fast and does not hold the campaign request open unnecessarily.
+  for (let offset = 0; offset < ownedLeadIds.length; offset += 500) {
+    const batch = ownedLeadIds.slice(offset, offset + 500);
+    await prisma.campaignLead.createMany({
+      data: batch.map((leadId) => ({
+        campaignId: campaign.id,
+        leadId,
+        sequenceId: sequence.id,
+        status: 'NEW',
+        stage: 'New',
+        trackingToken: randomToken(),
+        unsubscribeToken: randomToken(),
+        personalization: {},
+      })),
+      skipDuplicates: true,
+    });
   }
 
   // Handle uploaded emails by creating synthetic leads
