@@ -6,6 +6,12 @@ on:
       - feat/auth-multi-tenancy
       - main
   workflow_dispatch:
+    inputs:
+      paymento_smoke_test:
+        description: Create one unpaid Paymento request to verify merchant checkout readiness
+        required: false
+        type: boolean
+        default: false
 
 # Deploys by SSHing into the VPS, pulling the latest code, and rebuilding the
 # Docker Compose stack. The backend container runs `prisma migrate deploy` on
@@ -25,13 +31,14 @@ jobs:
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
           PAYMENTO_API_KEY: ${{ secrets.PAYMENTO_API_KEY }}
           PAYMENTO_IPN_SECRET: ${{ secrets.PAYMENTO_IPN_SECRET }}
+          PAYMENTO_SMOKE_TEST: ${{ inputs.paymento_smoke_test || 'false' }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           command_timeout: 30m
-          envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL,PAYMENTO_API_KEY,PAYMENTO_IPN_SECRET
+          envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL,PAYMENTO_API_KEY,PAYMENTO_IPN_SECRET,PAYMENTO_SMOKE_TEST
           script: |
             set -e
             cd /opt/geolead
@@ -47,4 +54,7 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAuthBillingReadiness.js
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/configurePaymento.js
+            if [ "$PAYMENTO_SMOKE_TEST" = "true" ]; then
+              docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/smokePaymentoCheckout.js
+            fi
             docker image prune -f

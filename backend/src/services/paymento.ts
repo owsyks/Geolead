@@ -43,7 +43,10 @@ async function call<T>(path: string, body: unknown): Promise<T> {
       const detail = String(parsed.error || parsed.message || 'request_rejected').replace(/[^a-zA-Z0-9 .:_-]/g, '').slice(0, 160);
       throw new Error(`PAYMENTO_HTTP_${response.status}:${detail}`);
     }
-    if (!parsed.success || parsed.body == null) throw new Error('PAYMENTO_INVALID_RESPONSE');
+    if (!parsed.success || parsed.body == null) {
+      const detail = String(parsed.error || parsed.message || 'empty_response').replace(/[^a-zA-Z0-9 .:_-]/g, '').slice(0, 160);
+      throw new Error(`PAYMENTO_REJECTED:${detail}`);
+    }
     return parsed.body;
   } finally {
     clearTimeout(timeout);
