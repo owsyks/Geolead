@@ -50,6 +50,8 @@ jobs:
             cd /opt/geolead
             echo "Recent sanitized Paymento errors from the previous backend container:"
             docker compose -f docker-compose.prod.yml logs --tail=200 backend 2>&1 | grep -E 'Paymento checkout creation failed|Paymento IPN processing failed' || true
+            echo "Recent sanitized Lead Explorer discovery diagnostics from the previous worker container:"
+            docker compose -f docker-compose.prod.yml logs --tail=800 worker 2>&1 | grep -E 'Adaptive Serper discovery|Serper (places|organic) page|Crawler API fallback|Discovered [0-9]+ unique businesses|No businesses discovered' | tail -n 200 || true
             git fetch --all
             git reset --hard "origin/${GITHUB_REF_NAME:-feat/auth-multi-tenancy}"
             if ! grep -Eq '^SECRET_ENCRYPTION_KEY=.{32,}$' .env; then
@@ -57,6 +59,7 @@ jobs:
               chmod 600 .env
             fi
             docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml exec -T worker node dist/scripts/auditDiscoveryReadiness.js || true
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAuthBillingReadiness.js
             docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/configurePaymento.js
