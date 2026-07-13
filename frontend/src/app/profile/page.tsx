@@ -57,8 +57,8 @@ function ProfileBody() {
       });
       await refreshUser();
       setProfileMsg("Profile saved.");
-    } catch (err: any) {
-      setProfileMsg(err?.message || "Save failed.");
+    } catch (err: unknown) {
+      setProfileMsg(err instanceof Error ? err.message : "Save failed.");
     }
   }
 
@@ -76,8 +76,8 @@ function ProfileBody() {
       setCurrentPassword("");
       setNewPassword("");
       setPwMsg("Password updated. You may need to sign in again on other devices.");
-    } catch (err: any) {
-      setPwMsg(err?.message || "Change failed.");
+    } catch (err: unknown) {
+      setPwMsg(err instanceof Error ? err.message : "Change failed.");
     }
   }
 
@@ -86,8 +86,8 @@ function ProfileBody() {
     try {
       await fetchOutbound("/api/auth/resend-verification", { method: "POST" });
       setVerifyMsg("Verification email sent.");
-    } catch (err: any) {
-      setVerifyMsg(err?.message || "Could not send verification email.");
+    } catch (err: unknown) {
+      setVerifyMsg(err instanceof Error ? err.message : "Could not send verification email.");
     }
   }
 

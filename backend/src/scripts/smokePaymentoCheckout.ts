@@ -4,7 +4,7 @@ import { requestPayment } from '../services/paymento.js';
 async function main() {
   await requestPayment({
     orderId: `smoke-${randomUUID()}`,
-    amountUSD: 7,
+    amountUSD: 5,
     email: 'verify@geolead.tech',
     returnUrl: 'https://geoai-ashen.vercel.app/pricing',
   });

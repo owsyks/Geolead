@@ -36,7 +36,12 @@ export function VirtualList<T>({
   overscan = 8,
   className = "",
 }: VirtualListProps<T>) {
+  "use no memo";
   const parentRef = useRef<HTMLDivElement>(null);
+  // TanStack Virtual intentionally exposes mutable measurement functions. React
+  // Compiler cannot memoize this third-party hook, so keep this component out of
+  // compiler memoization while retaining virtualization for large lead lists.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,

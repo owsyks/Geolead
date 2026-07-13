@@ -5,6 +5,7 @@
 // OAuth provider wired on the backend yet (auth schema is "OAuth-ready").
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight, Mail, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -29,8 +30,8 @@ export default function LoginPage() {
       await login(form.email, form.password, true);
       const next = new URLSearchParams(window.location.search).get("next");
       router.replace(next && next.startsWith("/") ? next : "/overview");
-    } catch (err: any) {
-      setError(err?.message || "Login failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed.");
       setLoading(false);
     }
   }
@@ -52,7 +53,7 @@ export default function LoginPage() {
       {/* left panel — branding (desktop only) */}
       <div className="hidden lg:flex relative z-10 w-[480px] flex-shrink-0 border-r border-border flex-col justify-between p-10 overflow-hidden">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />
+          <Image src="/logo.png" alt="GeoLead AI" width={32} height={32} className="w-8 h-8 object-contain" priority />
           <span className="font-black text-text">GeoLead AI</span>
         </Link>
 
@@ -111,7 +112,7 @@ export default function LoginPage() {
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 py-12">
         {/* mobile logo */}
         <Link href="/" className="lg:hidden flex items-center gap-2 mb-10">
-          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 rounded-lg object-contain" />
+          <Image src="/logo.png" alt="GeoLead AI" width={32} height={32} className="w-8 h-8 rounded-lg object-contain" priority />
           <span className="font-black text-text">GeoLead AI</span>
         </Link>
 

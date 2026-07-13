@@ -66,8 +66,8 @@ export default function QuickSendPage() {
           setBody("");
         }
       }
-    } catch (err: any) {
-      setError(err?.message || "Network error");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setSending(false);
     }

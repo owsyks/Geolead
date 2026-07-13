@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowUpRight,
   Bell,
-  BellOff,
   CheckCheck,
   ChevronDown,
   Clock,
@@ -22,7 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { EmptyState, OutboundShell  } from "@/components/OutboundShell"
-import { GlassCard, PillButton, StatusBadge } from "@/components/ui"
+import { PillButton } from "@/components/ui"
 ;
 import {
   fetchOutbound,
@@ -31,7 +30,6 @@ import {
   type WatchStatus,
   type WatchedDomain,
   type WatchlistNotification,
-  type WatchlistReminder,
 } from "@/lib/outbound";
 import { readCache, writeCache } from "@/lib/cache";
 
@@ -96,7 +94,10 @@ export default function WatchlistPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const available = domains.filter(d => d.registrationStatus === "dns_available");
   const highPriority = domains.filter(d => d.priority === "CRITICAL" || d.priority === "HIGH");
@@ -658,8 +659,8 @@ function AddDomainModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
     try {
       await fetchOutbound("/api/watchlist", { method: "POST", body: JSON.stringify({ ...form, addedFrom: "manual" }) });
       await onSaved();
-    } catch (err: any) {
-      setError(err?.message || "Save failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
       setSaving(false);
     }

@@ -201,7 +201,7 @@ The installed security skill drove the use of evidence-based findings, complete 
 
 ## Remaining Risks
 
-- Full frontend ESLint is not clean because the existing application has 71 errors and 28 warnings outside this security change; targeted lint for every modified frontend file has zero errors, and the production build and TypeScript checks pass.
-- Paymento checkout remains intentionally unavailable until the exposed API key is rotated and the replacement `PAYMENTO_API_KEY` plus dashboard `PAYMENTO_IPN_SECRET` are placed in the VPS secret environment. The Paymento store IPN URL must be set to `/api/billing/webhook/paymento`.
+- Frontend ESLint is clean. The earlier 71 errors and 28 warnings were removed through explicit typing, stable effects, immutable demo state, optimized image loading, and dependency-safe hooks. TanStack Virtual remains deliberately isolated from React Compiler memoization because its measurement API is mutable by design; list virtualization and runtime behavior remain enabled.
+- The local database tenant audit still requires a production-shaped `DATABASE_URL`, so it is not treated as authoritative on a developer machine. Every GitHub deployment runs the tenant-isolation and auth/billing readiness audits against the VPS database after migrations and fails the deployment if either audit reports a violation.
 - The local SSH alias reports that the VPS host key changed. Direct local SSH administration must remain blocked until the new ED25519 fingerprint is independently verified and the stale known-host entry is replaced. The GitHub deployment path completed successfully, but its SSH action should also be configured with a pinned fingerprint secret for defense in depth.
 - The certificate-intelligence probe deliberately connects with Node certificate rejection disabled so it can measure invalid/self-signed certificates; it sends no credentials or application data and is protected by the SSRF network-target guard.

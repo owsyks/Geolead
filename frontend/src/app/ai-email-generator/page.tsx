@@ -49,13 +49,16 @@ export default function AiEmailGeneratorPage() {
   // types these by hand.
   useEffect(() => {
     if (!activeDomain) return;
-    setForm((current) => ({
-      ...current,
-      geoDomain: activeDomain.name,
-      category: activeDomain.category || activeDomain.industry || current.category,
-      niche: activeDomain.niche || activeDomain.industry || current.niche,
-      cityState: [activeDomain.city, activeDomain.state].filter(Boolean).join(", ") || current.cityState,
-    }));
+    const timer = window.setTimeout(() => {
+      setForm((current) => ({
+        ...current,
+        geoDomain: activeDomain.name,
+        category: activeDomain.category || activeDomain.industry || current.category,
+        niche: activeDomain.niche || activeDomain.industry || current.niche,
+        cityState: [activeDomain.city, activeDomain.state].filter(Boolean).join(", ") || current.cityState,
+      }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [activeDomain]);
 
   const generate = async () => {

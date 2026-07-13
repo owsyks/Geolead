@@ -140,7 +140,14 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
 
   if (!response.ok) {
     let message = `Outbound API request failed: ${response.status}`;
-    let body: any = null;
+    let body: {
+      error?: string;
+      code?: string;
+      metric?: string;
+      limit?: number;
+      used?: number;
+      tier?: string;
+    } | null = null;
     try {
       body = await response.json();
       if (body?.error) message = body.error;
@@ -369,6 +376,10 @@ export interface GeneratedOutboundEmail {
     deliverabilityScore: number;
     approved: boolean;
   }>;
+}
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim() ? error.message : fallback;
 }
 
 export interface OutboundTemplate {

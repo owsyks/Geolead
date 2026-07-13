@@ -104,7 +104,8 @@ export default function PortfolioPage() {
   }, [showArchived]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const allTags = useMemo(() => {
@@ -204,8 +205,8 @@ export default function PortfolioPage() {
       resetForm();
       await load();
       await refresh();
-    } catch (err: any) {
-      setMessage(err?.message || "Save failed.");
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : "Save failed.");
     }
   };
 
@@ -352,7 +353,60 @@ export default function PortfolioPage() {
             <EmptyState title="No domains match your filters" body="Add a domain manually or bulk import a list to start running campaigns from your portfolio." />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="md:hidden divide-y divide-border">
+            {filtered.map((domain) => (
+              <article key={domain.id} className="p-4 bg-bg">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/portfolio/${domain.id}`} className="block truncate text-base font-black text-text hover:text-brand">
+                      {domain.name}
+                    </Link>
+                    <div className="mt-1 text-xs text-text-muted truncate">
+                      {[domain.niche || domain.industry, [domain.city, domain.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || "Uncategorized"}
+                    </div>
+                  </div>
+                  <StatusBadge status={domain.status} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-[auto_1fr] gap-4 rounded-xl border border-border bg-surface-2/40 p-3">
+                  <ScoreRing score={domain.brandingScore} size="sm" />
+                  <div className="grid grid-cols-2 gap-3 min-w-0">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-text-muted">AI estimate</div>
+                      <div className="font-mono text-sm font-black text-brand">${(domain.estimatedValue || 0).toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-text-muted">Your price</div>
+                      <div className="font-mono text-sm font-black text-text">{domain.askingPrice != null ? `$${domain.askingPrice.toLocaleString()}` : "Not set"}</div>
+                    </div>
+                    <div className="col-span-2 text-[11px] text-text-muted">Sale {domain.saleProbability}% · Demand {domain.buyerDemandScore}{domain.metadata?.buyerPool?.total ? ` · ~${domain.metadata.buyerPool.total.toLocaleString()} buyers` : ""}</div>
+                  </div>
+                </div>
+
+                {domain.tags.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">{domain.tags.map((tag) => <span key={tag} className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-text-muted">#{tag}</span>)}</div>
+                ) : null}
+
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <button onClick={() => { setActiveDomainId(domain.id); setMessage(`Selected ${domain.name} for lead-gen, email, and campaign workflows.`); }} className="h-9 rounded-lg border border-brand/30 bg-brand-soft text-xs font-bold text-brand inline-flex items-center justify-center gap-1"><ArrowUpRight className="h-3.5 w-3.5" /> Use</button>
+                  <Link href={`/portfolio/${domain.id}`} className="h-9 rounded-lg border border-border bg-surface text-xs font-bold text-text-muted inline-flex items-center justify-center gap-1"><ExternalLink className="h-3.5 w-3.5" /> Open</Link>
+                  <button onClick={() => openEdit(domain)} className="h-9 rounded-lg border border-border bg-surface text-xs font-bold text-text-muted inline-flex items-center justify-center gap-1"><Edit3 className="h-3.5 w-3.5" /> Edit</button>
+                  {domain.status !== "Sold" ? (
+                    <button onClick={() => setShowSale(domain)} className="h-9 rounded-lg border border-success/30 bg-success/10 text-xs font-bold text-success inline-flex items-center justify-center gap-1"><Check className="h-3.5 w-3.5" /> Sold</button>
+                  ) : (
+                    <button onClick={() => void analyzeDomain(domain)} className="h-9 rounded-lg border border-border bg-surface text-xs font-bold text-text-muted inline-flex items-center justify-center gap-1"><Sparkles className="h-3.5 w-3.5" /> Analyze</button>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center justify-end gap-2">
+                  <button onClick={() => void analyzeDomain(domain)} className="h-8 px-3 rounded-lg text-[11px] text-text-muted hover:text-brand">Re-analyze</button>
+                  <button onClick={() => void (domain.archivedAt ? restoreDomain(domain) : archiveDomain(domain))} className="h-8 px-3 rounded-lg text-[11px] text-text-muted hover:text-copper">{domain.archivedAt ? "Restore" : "Archive"}</button>
+                  <button onClick={() => void deleteDomain(domain)} className="h-8 px-3 rounded-lg text-[11px] text-danger hover:bg-danger/10">Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-sm border-collapse">
               <thead className="bg-surface-2/30 text-[11px] uppercase tracking-wider text-text-muted">
                 <tr>
@@ -456,6 +510,7 @@ export default function PortfolioPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </GlassCard>
 
@@ -607,8 +662,8 @@ function BulkImportModal({ onClose, onImported }: { onClose: () => void; onImpor
         { method: "POST", body: JSON.stringify({ rows: candidates }) }
       );
       await onImported(result.imported);
-    } catch (err: any) {
-      setError(err?.message || "Import failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Import failed.");
     } finally {
       setWorking(false);
     }
@@ -675,8 +730,8 @@ function SaleModal({ domain, onClose, onSaved }: { domain: PortfolioDomain; onCl
         }),
       });
       await onSaved();
-    } catch (err: any) {
-      setError(err?.message || "Sale save failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Sale save failed.");
     }
   };
 

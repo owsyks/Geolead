@@ -25,8 +25,8 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Request failed.");
       setNotice(data?.message || "If an account exists for that email, a reset link has been sent.");
-    } catch (err: any) {
-      setError(err?.message || "Request failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Request failed.");
     } finally {
       setLoading(false);
     }

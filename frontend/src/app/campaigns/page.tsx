@@ -31,7 +31,6 @@ import { useDomainContext } from "@/lib/domainContext";
 import { readCache, writeCache } from "@/lib/cache";
 import {
   fetchOutbound,
-  type CampaignStatus,
   type OutboundCampaignSummary,
   type OutboundOverview,
 } from "@/lib/outbound";
@@ -204,14 +203,17 @@ export default function CampaignsPage() {
   useEffect(() => {
     const senders = overview?.senders || [];
     if (senders.length === 0) return;
-    setForm((current) => {
-      if (current.senderAccountId && senders.some((s) => s.id === current.senderAccountId)) return current;
-      const preferred =
-        senders.find((s) => s.provider === "RESEND" && s.status === "active") ||
-        senders.find((s) => s.provider !== "DRY_RUN" && s.status === "active") ||
-        senders[0];
-      return preferred ? { ...current, senderAccountId: preferred.id } : current;
-    });
+    const timer = window.setTimeout(() => {
+      setForm((current) => {
+        if (current.senderAccountId && senders.some((s) => s.id === current.senderAccountId)) return current;
+        const preferred =
+          senders.find((s) => s.provider === "RESEND" && s.status === "active") ||
+          senders.find((s) => s.provider !== "DRY_RUN" && s.status === "active") ||
+          senders[0];
+        return preferred ? { ...current, senderAccountId: preferred.id } : current;
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [overview]);
 
   const load = useCallback(async () => {
@@ -308,16 +310,19 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     if (!activeDomain) return;
-    setForm((current) => ({
-      ...current,
-      name: current.name === "Geo-domain buyer outreach"
-        ? `${activeDomain.name.replace(/\.[a-z]+$/i, "")} Outreach`
-        : current.name,
-      geoDomain: activeDomain.name,
-      niche: activeDomain.niche || activeDomain.industry || current.niche,
-      cityState: [activeDomain.city, activeDomain.state].filter(Boolean).join(", ") || current.cityState,
-      objective: activeDomain.outreachStrategy || current.objective,
-    }));
+    const timer = window.setTimeout(() => {
+      setForm((current) => ({
+        ...current,
+        name: current.name === "Geo-domain buyer outreach"
+          ? `${activeDomain.name.replace(/\.[a-z]+$/i, "")} Outreach`
+          : current.name,
+        geoDomain: activeDomain.name,
+        niche: activeDomain.niche || activeDomain.industry || current.niche,
+        cityState: [activeDomain.city, activeDomain.state].filter(Boolean).join(", ") || current.cityState,
+        objective: activeDomain.outreachStrategy || current.objective,
+      }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [activeDomain]);
 
   const createCampaign = async () => {
@@ -1152,7 +1157,10 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
     }
   }, [campaign.id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const generate = async () => {
     setGenerating(true);
@@ -1319,13 +1327,13 @@ function EventsModal({ campaign, onClose }: { campaign: { id: string; name: stri
       try {
         const params = new URLSearchParams({ limit: "200" });
         if (filter) params.set("filter", filter);
-        const res = await fetchOutbound<any>(`/api/outbound/campaigns/${campaign.id}/events?${params}`);
+        const res = await fetchOutbound<{ events: CampaignEvent[]; counts: Record<string, number> }>(`/api/outbound/campaigns/${campaign.id}/events?${params}`);
         if (active) { setEvents(res.events); setCounts(res.counts); setExpanded(null); }
       } catch { /* ignore */ }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [campaign?.id, filter]);
+  }, [campaign, filter]);
 
   if (!campaign) return null;
 

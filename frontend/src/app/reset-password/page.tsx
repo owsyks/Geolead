@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { OUTBOUND_API_BASE } from "@/lib/outbound";
@@ -8,17 +8,14 @@ import { AuthShell, Field, SubmitButton, AuthError, AuthNotice } from "@/compone
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [token, setToken] = useState("");
+  const [token] = useState(() => typeof window === "undefined"
+    ? ""
+    : new URLSearchParams(window.location.search).get("token") || "");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Read the token from the URL on the client (avoids useSearchParams Suspense).
-  useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get("token") || "");
-  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,8 +35,8 @@ export default function ResetPasswordPage() {
       if (!res.ok) throw new Error(data?.error || "Reset failed.");
       setNotice("Password updated. Redirecting to sign in…");
       setTimeout(() => router.replace("/login"), 1500);
-    } catch (err: any) {
-      setError(err?.message || "Reset failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Reset failed.");
     } finally {
       setLoading(false);
     }

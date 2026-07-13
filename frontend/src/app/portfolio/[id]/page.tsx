@@ -67,7 +67,10 @@ export default function DomainDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const totalOffersValue = useMemo(
     () => (domain?.offers || []).reduce((sum, offer) => sum + (offer.amount || 0), 0),
@@ -326,7 +329,7 @@ function OverviewTab({
         </GlassCard>
       </div>
 
-      <InvestorChatSection domainId={id} domainName={domain.name} metadata={domain.metadata as DomainAnalysis | null | undefined} />
+      <InvestorChatSection domainId={id} domainName={domain.name} />
 
       <GlassCard className="p-5">
         <h2 className="text-base font-black text-text">Linked campaigns</h2>
@@ -706,7 +709,7 @@ function BuyerModal({ domainId, onClose, onSaved }: { domainId: string; onClose:
     try {
       await fetchOutbound(`/api/domains/${domainId}/buyers`, { method: "POST", body: JSON.stringify({ ...form, buyerScore: Number(form.buyerScore) || 0 }) });
       await onSaved();
-    } catch (err: any) { setError(err?.message || "Save failed."); }
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : "Save failed."); }
   };
   return (
     <Modal title="Add buyer" onClose={onClose}>
@@ -742,7 +745,7 @@ function OfferModal({ domainId, buyers, onClose, onSaved }: { domainId: string; 
     try {
       await fetchOutbound(`/api/domains/${domainId}/offers`, { method: "POST", body: JSON.stringify({ amount: Number(form.amount), direction: form.direction, status: form.status, buyerId: form.buyerId || undefined, notes: form.notes || undefined, receivedAt: form.receivedAt }) });
       await onSaved();
-    } catch (err: any) { setError(err?.message || "Save failed."); }
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : "Save failed."); }
   };
   return (
     <Modal title="Record offer" onClose={onClose}>
@@ -784,7 +787,7 @@ function SaleModal({ domainId, defaultPrice, onClose, onSaved }: { domainId: str
     try {
       await fetchOutbound(`/api/domains/${domainId}/sale`, { method: "POST", body: JSON.stringify({ buyerName: form.buyerName, buyerEmail: form.buyerEmail || undefined, salePrice: Number(form.salePrice), saleDate: form.saleDate || undefined, marketplace: form.marketplace || undefined, fees: form.fees ? Number(form.fees) : 0, notes: form.notes || undefined }) });
       await onSaved();
-    } catch (err: any) { setError(err?.message || "Save failed."); }
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : "Save failed."); }
   };
   return (
     <Modal title="Record sale" onClose={onClose}>
@@ -817,11 +820,10 @@ const QUICK_QUESTIONS = [
 ];
 
 function InvestorChatSection({
-  domainId, domainName, metadata,
+  domainId, domainName,
 }: {
   domainId: string;
   domainName: string;
-  metadata?: DomainAnalysis | null;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");

@@ -30,6 +30,7 @@ export default function PortfolioKanbanPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [mobileStatus, setMobileStatus] = useState<PortfolioStatus>("Available");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,7 +45,8 @@ export default function PortfolioKanbanPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const moveTo = async (id: string, status: PortfolioStatus) => {
@@ -80,7 +82,7 @@ export default function PortfolioKanbanPage() {
     >
       <div className="flex flex-col h-full">
         {message ? (
-          <div className="shrink-0 mx-6 mt-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-muted">
+          <div className="shrink-0 mx-3 sm:mx-6 mt-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm text-text-muted">
             {message}
           </div>
         ) : null}
@@ -88,7 +90,39 @@ export default function PortfolioKanbanPage() {
         {loading ? (
           <div className="p-6 text-sm text-text-muted">Loading…</div>
         ) : (
-          <div className="flex-1 overflow-x-auto p-6 bg-bg flex gap-6">
+          <>
+          <div className="md:hidden flex-1 min-h-0 overflow-y-auto bg-bg p-3">
+            <div className="sticky top-0 z-10 pb-3 bg-bg">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">Pipeline stage</label>
+              <select value={mobileStatus} onChange={(event) => setMobileStatus(event.target.value as PortfolioStatus)} className="mt-1 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-bold text-text">
+                {DOMAIN_STATUSES.map((status) => <option key={status} value={status}>{status} ({columns[status]?.length || 0})</option>)}
+              </select>
+            </div>
+            <div className="space-y-3 pb-4">
+              {(columns[mobileStatus] || []).map((domain) => (
+                <GlassCard key={domain.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`/portfolio/${domain.id}`} className="block truncate text-base font-black text-text hover:text-brand">{domain.name}</Link>
+                      <div className="mt-1 text-xs text-text-muted truncate">{[domain.niche, [domain.city, domain.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || "Uncategorized"}</div>
+                    </div>
+                    <button onClick={() => { setActiveDomainId(domain.id); setMessage(`Active: ${domain.name}`); }} className="shrink-0 h-8 px-2.5 rounded-lg border border-brand/30 bg-brand-soft text-[11px] font-bold text-brand inline-flex items-center gap-1"><ArrowUpRight className="h-3 w-3" /> Use</button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface-2/40 p-3">
+                    <div><div className="text-[10px] uppercase text-text-muted">AI estimate</div><div className="font-mono font-black text-brand">${(domain.estimatedValue || 0).toLocaleString()}</div></div>
+                    <div><div className="text-[10px] uppercase text-text-muted">Your price</div><div className="font-mono font-black text-text">{domain.askingPrice != null ? `$${domain.askingPrice.toLocaleString()}` : "Not set"}</div></div>
+                    <div className="col-span-2 text-[11px] text-text-muted">Brand {domain.brandingScore} · Demand {domain.buyerDemandScore}</div>
+                  </div>
+                  <label className="mt-4 block text-[10px] font-bold uppercase tracking-wider text-text-muted">Move to</label>
+                  <select value={domain.status} onChange={(event) => void moveTo(domain.id, event.target.value as PortfolioStatus)} className="mt-1 h-10 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text">
+                    {DOMAIN_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </GlassCard>
+              ))}
+              {(columns[mobileStatus]?.length || 0) === 0 ? <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-text-muted">No domains in this stage.</div> : null}
+            </div>
+          </div>
+          <div className="hidden md:flex flex-1 overflow-x-auto p-6 bg-bg gap-6">
             {DOMAIN_STATUSES.map((status) => (
               <KanbanColumn
                 key={status}
@@ -130,7 +164,7 @@ export default function PortfolioKanbanPage() {
                     <div className="flex items-center justify-between pt-1">
                       <StatusBadge status={domain.status} />
                       <span className="font-mono text-[11px] text-text-faint">
-                        B{domain.brandingScore} · D{domain.buyerDemandScore}
+                        Brand {domain.brandingScore} · Demand {domain.buyerDemandScore}
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-border/50">
@@ -147,9 +181,10 @@ export default function PortfolioKanbanPage() {
               </KanbanColumn>
             ))}
           </div>
+          </>
         )}
 
-        <div className="shrink-0 px-6 pb-4 text-xs text-text-muted flex items-center gap-2">
+        <div className="hidden md:flex shrink-0 px-6 pb-4 text-xs text-text-muted items-center gap-2">
           <ArrowRight className="h-3 w-3" />
           Hover over a card and drag it to a new column to update its status.
         </div>

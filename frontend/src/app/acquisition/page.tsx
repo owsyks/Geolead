@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowUpRight,
   BarChart3,
   Bot,
   ChevronDown,
@@ -24,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { OutboundShell } from "@/components/OutboundShell"
-import { GlassCard, StatusBadge } from "@/components/ui"
+import { GlassCard } from "@/components/ui"
 ;
 import { fetchOutbound, type AcquisitionResult, type AcquisitionTier, type BulkScanResult, type ChatMessage } from "@/lib/outbound";
 
@@ -107,9 +105,9 @@ export default function AcquisitionAdvisorPage() {
         }
       }
       throw new Error("Scan timed out after 4 minutes.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearInterval(timer);
-      setErrorMsg(err?.message || "Scan failed. Check your connection and API keys.");
+      setErrorMsg(err instanceof Error ? err.message : "Scan failed. Check your connection and API keys.");
       setScanState("error");
     }
   };
@@ -463,7 +461,7 @@ function DomainCard({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Attractors */}
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-text-muted mb-2">Why it's attractive</div>
+              <div className="text-[10px] uppercase tracking-wide text-text-muted mb-2">Why it&apos;s attractive</div>
               <ul className="space-y-1">
                 {r.attractors.map((a, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-success">

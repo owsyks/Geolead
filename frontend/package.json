@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@e965/xlsx": "^0.20.3",
-    "@tanstack/react-virtual": "^3.14.3",
+    "@tanstack/react-virtual": "^3.14.6",
     "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",

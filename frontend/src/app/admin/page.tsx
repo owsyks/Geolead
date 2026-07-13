@@ -113,7 +113,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    void loadAll();
+    const timer = window.setTimeout(() => void loadAll(), 0);
+    return () => window.clearTimeout(timer);
   }, [isAdmin, loadAll]);
 
   if (user && !isAdmin) {
@@ -419,7 +420,7 @@ function PlanModal({ user, onClose, onSaved }: { user: AdminUser; onClose: () =>
   async function save() {
     setBusy(true); setErr(null);
     try { await changeUserPlan(user.id, plan, status); onSaved(); }
-    catch (e: any) { setErr(e?.message || "Failed to update plan."); }
+    catch (error: unknown) { setErr(error instanceof Error ? error.message : "Failed to update plan."); }
     finally { setBusy(false); }
   }
 
@@ -458,7 +459,7 @@ function DeleteModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: (
   async function doDelete() {
     setBusy(true); setErr(null);
     try { await deleteUser(user.id, confirm); onDeleted(); }
-    catch (e: any) { setErr(e?.message || "Failed to delete."); }
+    catch (error: unknown) { setErr(error instanceof Error ? error.message : "Failed to delete."); }
     finally { setBusy(false); }
   }
 
@@ -560,7 +561,7 @@ function TicketThreadRow({ ticket, onChanged }: { ticket: AdminTicket; onChanged
             </div>
           </div>
         ) : (
-          <div className="text-[13px] text-text-muted">Couldn't load this thread.</div>
+          <div className="text-[13px] text-text-muted">Couldn&apos;t load this thread.</div>
         )}
       </td>
     </tr>

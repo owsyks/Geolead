@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Archive,
   Bell,
@@ -106,7 +106,10 @@ export default function InboxPage() {
     }
   }, [filter, search]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   // Load active senders once so the composer can send a reply.
   useEffect(() => {
@@ -122,8 +125,9 @@ export default function InboxPage() {
 
   // Desktop notifications + realtime websocket for new replies.
   useEffect(() => {
+    let notificationTimer: number | undefined;
     if (typeof window !== "undefined" && "Notification" in window) {
-      setNotify(Notification.permission === "granted");
+      notificationTimer = window.setTimeout(() => setNotify(Notification.permission === "granted"), 0);
     }
     const base = OUTBOUND_API_BASE.replace(/^http/, "ws");
     let ws: WebSocket | null = null;
@@ -152,7 +156,11 @@ export default function InboxPage() {
       };
       } catch { /* ws unavailable */ }
     })();
-    return () => { cancelled = true; try { ws?.close(); } catch { /* ignore */ } };
+    return () => {
+      if (notificationTimer) window.clearTimeout(notificationTimer);
+      cancelled = true;
+      try { ws?.close(); } catch { /* ignore */ }
+    };
   }, [load]);
 
   const enableNotifications = async () => {
@@ -353,6 +361,7 @@ export default function InboxPage() {
                   ← Back to inbox
                 </button>
                 <ReplyDetail
+                  key={selected.id}
                   reply={selected}
                   onAction={act}
                   acting={acting}
@@ -393,10 +402,6 @@ function ReplyDetail({
 }) {
   const [draft, setDraft] = useState(reply.suggestedResponse || "");
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setDraft(reply.suggestedResponse || "");
-  }, [reply.id, reply.suggestedResponse]);
 
   const copy = async () => {
     try {

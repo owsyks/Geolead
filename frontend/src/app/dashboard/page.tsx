@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useEffectEvent, useRef, useMemo } from "react";
 import { ComposerModal } from "./ComposerModal";
 import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
@@ -118,7 +118,12 @@ interface Lead {
   domainUpgradeScore?: number | null;
   businessQualityScore?: number | null;
   priorityScore?: number | null;
-  buyerInsights?: Record<string, any> | null;
+  buyerInsights?: {
+    linkedinVerified?: boolean;
+    linkedinUrl?: string;
+    linkedinConfidence?: string;
+    [key: string]: unknown;
+  } | null;
   contactStrategy?: string | null;
 }
 
@@ -139,14 +144,17 @@ export default function DashboardPage() {
   // user never re-types keyword/domain/geo — they just pick from the portfolio.
   useEffect(() => {
     if (!activeDomain) return;
-    setDomainIdea(activeDomain.name);
-    const derivedKeyword = [activeDomain.city || activeDomain.state, activeDomain.niche || activeDomain.industry]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-    if (derivedKeyword) setKeyword(derivedKeyword);
-    const derivedCity = [activeDomain.city, activeDomain.state].filter(Boolean).join(", ");
-    if (derivedCity) setCityState(derivedCity);
+    const timer = window.setTimeout(() => {
+      setDomainIdea(activeDomain.name);
+      const derivedKeyword = [activeDomain.city || activeDomain.state, activeDomain.niche || activeDomain.industry]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      if (derivedKeyword) setKeyword(derivedKeyword);
+      const derivedCity = [activeDomain.city, activeDomain.state].filter(Boolean).join(", ");
+      if (derivedCity) setCityState(derivedCity);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [activeDomain]);
 
   // Data States
@@ -198,7 +206,6 @@ export default function DashboardPage() {
 
   // Email verification state (modal-driven)
   const [verifying, setVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ valid: number; risky: number; invalid: number; total: number } | null>(null);
   const [verifyProgress, setVerifyProgress] = useState<{ results: EmailProgress[]; total: number; done: number; complete: boolean }>({ results: [], total: 0, done: 0, complete: false });
 
   // WA validation panel state
@@ -416,6 +423,10 @@ export default function DashboardPage() {
       loadDemoData();
     }
   };
+
+  const refetchHistoryAfterRecovery = useEffectEvent(() => {
+    void fetchHistory();
+  });
 
   // Load static demo/mock data if backend is offline
   const loadDemoData = () => {
@@ -724,7 +735,7 @@ export default function DashboardPage() {
         const res = await authFetch(`${BACKEND_URL}/api/health`);
         if (res.ok && mounted.current) {
           clearInterval(id);
-          fetchHistory();
+          refetchHistoryAfterRecovery();
         }
       } catch { /* still offline */ }
     }, 15000);
@@ -747,12 +758,12 @@ export default function DashboardPage() {
   }, [exportDropdownOpen]);
 
   // Handle Search Form Submission
-  const handleTriggerSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTriggerSearch = async (event?: React.SyntheticEvent) => {
+    event?.preventDefault();
     if (!searchName.trim() || !keyword || !domainIdea) return;
 
     if (isDemoMode) {
-      const newDemoId = `demo-task-${Date.now()}`;
+      const newDemoId = `demo-task-${window.crypto.randomUUID()}`;
       const newDemoTask: SearchTask = {
         id: newDemoId,
         name: searchName.trim(),
@@ -783,13 +794,16 @@ export default function DashboardPage() {
         prog += 30;
         if (prog >= 100) {
           if (demoInterval.current) { clearInterval(demoInterval.current); demoInterval.current = null; }
-          newDemoTask.status = "COMPLETED";
-          newDemoTask.progress = 100;
-          newDemoTask.totalLeads = 3;
-          newDemoTask.validEmails = 2;
+          const completedTask: SearchTask = {
+            ...newDemoTask,
+            status: "COMPLETED",
+            progress: 100,
+            totalLeads: 3,
+            validEmails: 2,
+          };
 
-          setTasks(prev => prev.map(t => t.id === newDemoId ? { ...newDemoTask } : t));
-          setSelectedTask({ ...newDemoTask });
+          setTasks(prev => prev.map(t => t.id === newDemoId ? completedTask : t));
+          setSelectedTask(completedTask);
 
           const generatedLeads: Lead[] = [
             {
@@ -828,10 +842,13 @@ export default function DashboardPage() {
           setLeads(generatedLeads);
           setTotalLeadsCount(generatedLeads.length);
         } else {
-          newDemoTask.progress = prog;
-          newDemoTask.totalLeads = Math.floor(prog / 30);
-          setTasks(prev => prev.map(t => t.id === newDemoId ? { ...newDemoTask } : t));
-          setSelectedTask({ ...newDemoTask });
+          const progressingTask: SearchTask = {
+            ...newDemoTask,
+            progress: prog,
+            totalLeads: Math.floor(prog / 30),
+          };
+          setTasks(prev => prev.map(t => t.id === newDemoId ? progressingTask : t));
+          setSelectedTask(progressingTask);
         }
       }, 1000);
       return;
@@ -969,7 +986,7 @@ export default function DashboardPage() {
     } else if (status === "PROCESSING" && totalLeads > 0) {
       void fetchTaskLeads(id);
     }
-  }, [selectedTask?.id, selectedTask?.status, selectedTask?.totalLeads, isDemoMode, fetchTaskLeads]);
+  }, [selectedTask, isDemoMode, fetchTaskLeads]);
 
   const handleSearchFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchFilterInput(e.target.value);
@@ -1137,10 +1154,10 @@ export default function DashboardPage() {
       try {
         const res = await authFetch(`${BACKEND_URL}/api/outbound/senders`);
         if (res.ok) {
-          const list = await res.json();
-          const active = list.filter((s: any) => s.status === 'active');
+          const list = await res.json() as typeof senders;
+          const active = list.filter((sender) => sender.status === 'active');
           setSenders(active);
-          const preferred = active.find((s: any) => s.provider === 'RESEND') || active[0];
+          const preferred = active.find((sender) => sender.provider === 'RESEND') || active[0];
           if (preferred) setComposerSenderId(preferred.id);
         }
       } catch { /* ignore */ }
@@ -1178,8 +1195,8 @@ export default function DashboardPage() {
       } else {
         setComposerResult({ ok: true, message: `Sent via ${data.sender?.provider}` });
       }
-    } catch (err: any) {
-      setComposerResult({ ok: false, message: err?.message || 'Network error' });
+    } catch (err: unknown) {
+      setComposerResult({ ok: false, message: err instanceof Error ? err.message : 'Network error' });
     } finally {
       setComposerSending(false);
     }
@@ -1189,7 +1206,6 @@ export default function DashboardPage() {
     if (!selectedTask) return;
 
     setVerifying(true);
-    setVerifyResult(null);
     setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
 
     try {
@@ -1221,12 +1237,12 @@ export default function DashboardPage() {
               if (verifyPollInterval.current) clearInterval(verifyPollInterval.current);
               return;
             }
-            setVerifyProgress((prev) => ({
+            setVerifyProgress({
               results: progress.results as EmailProgress[],
               total: progress.total,
               done: progress.done,
               complete: progress.complete,
-            }));
+            });
             if (progress.complete) {
               if (verifyPollInterval.current) { clearInterval(verifyPollInterval.current); verifyPollInterval.current = null; }
               setVerifying(false);
@@ -1242,7 +1258,7 @@ export default function DashboardPage() {
 
       if (data.mode === 'inline' || data.mode === 'inline-fallback') {
         setVerifyProgress({
-          results: data.results?.map((r: any) => ({ email: r.email, status: r.status, confidenceScore: r.confidenceScore })) || [],
+          results: data.results?.map((result: EmailProgress) => ({ email: result.email, status: result.status, confidenceScore: result.confidenceScore })) || [],
           total: data.total,
           done: data.total,
           complete: true,
@@ -1367,7 +1383,7 @@ export default function DashboardPage() {
               </div>
               <input type="range" min={1} max={200} value={searchDepth} onChange={(e) => setSearchDepth(Number(e.target.value))} className="w-full accent-brand" />
               <button type="button" onClick={() => {
-                handleTriggerSearch(new Event('submit') as any);
+                void handleTriggerSearch();
                 if (searchName.trim() && keyword && domainIdea) setRailOpen(false);
               }}
                 className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
@@ -1485,14 +1501,14 @@ export default function DashboardPage() {
                     <div className="text-[10px] text-text-muted">Query: {task.keyword}</div>
                     {(task.status === "PENDING" || task.status === "PROCESSING") && (
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span onClick={(e) => handlePauseTask(task.id, e as any)} className="flex-1 py-1 bg-copper/10 hover:bg-copper/20 text-copper rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Pause</span>
-                        <span onClick={(e) => handleStopTask(task.id, e as any)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</span>
+                        <button type="button" onClick={(e) => handlePauseTask(task.id, e)} className="flex-1 py-1 bg-copper/10 hover:bg-copper/20 text-copper rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Pause</button>
+                        <button type="button" onClick={(e) => handleStopTask(task.id, e)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</button>
                       </div>
                     )}
                     {task.status === "PAUSED" && (
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span onClick={(e) => handleResumeTask(task.id, e as any)} className="flex-1 py-1 bg-success/10 hover:bg-success/20 text-success rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Resume</span>
-                        <span onClick={(e) => handleStopTask(task.id, e as any)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</span>
+                        <button type="button" onClick={(e) => handleResumeTask(task.id, e)} className="flex-1 py-1 bg-success/10 hover:bg-success/20 text-success rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Resume</button>
+                        <button type="button" onClick={(e) => handleStopTask(task.id, e)} className="flex-1 py-1 bg-danger/10 hover:bg-danger/20 text-danger rounded text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer text-center">Stop</button>
                       </div>
                     )}
                   </div>
@@ -1534,7 +1550,6 @@ export default function DashboardPage() {
             complete={verifyProgress.complete}
             onClose={() => {
               setVerifyProgress({ results: [], total: 0, done: 0, complete: false });
-              setVerifyResult(null);
             }}
           />
 
@@ -1708,7 +1723,72 @@ export default function DashboardPage() {
                     <p className="text-xs text-text-faint mt-1">{selectedTask.status === "FAILED" ? "The platform search provider must be restored before retrying." : "Try expanding your keyword variations or removing filters."}</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  <div className="lg:hidden p-3 space-y-3 bg-surface-2/20">
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-bg p-3">
+                      <label className="flex items-center gap-2 text-xs font-bold text-text">
+                        <input type="checkbox" checked={selectedLeadIds.size >= visibleLeads.length && visibleLeads.length > 0} onChange={selectAllLeads} className="h-4 w-4 accent-brand" />
+                        Select page
+                      </label>
+                      {totalLeadsCount > visibleLeads.length ? <button onClick={selectAllMatchingLeads} disabled={selectingAllMatching} className="text-[11px] font-bold text-brand disabled:opacity-50">{selectingAllMatching ? "Selecting…" : `Select all ${totalLeadsCount}`}</button> : null}
+                    </div>
+                    {visibleLeads.map((lead) => (
+                      <article key={lead.id} className="rounded-2xl border border-border bg-bg p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <input type="checkbox" checked={selectedLeadIds.has(lead.id)} onChange={() => toggleLeadSelection(lead.id)} className="mt-1 h-4 w-4 shrink-0 accent-brand" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="truncate text-sm font-black text-text">{lead.businessName}</h3>
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                  {lead.decisionMakerRole ? <span className="rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[9px] font-bold text-brand">{lead.decisionMakerRole}</span> : null}
+                                  {lead.pipelineStage ? <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[9px] font-bold text-text-muted">{lead.pipelineStage}</span> : null}
+                                  {lead.doNotContact ? <span className="rounded-full border border-danger/25 bg-danger/10 px-2 py-0.5 text-[9px] font-bold text-danger">DNC</span> : null}
+                                </div>
+                              </div>
+                              <div className="h-11 w-11 shrink-0 rounded-xl border border-brand/25 bg-brand/10 flex flex-col items-center justify-center">
+                                <span className="font-mono text-sm font-black text-brand">{lead.priorityScore ?? lead.domainMatchScore}</span>
+                                <span className="text-[7px] font-bold uppercase text-text-muted">Priority</span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 space-y-1.5 text-[11px] text-text-muted">
+                              {lead.location ? <div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>{lead.location}</span></div> : null}
+                              {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-brand"><Globe className="h-3.5 w-3.5" /><span className="truncate">{lead.website}</span></a> : null}
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-border bg-surface-2/40 p-2.5 text-center">
+                              <div><div className="font-mono text-xs font-black text-brand">{lead.domainMatchScore}</div><div className="text-[8px] uppercase text-text-muted">Match</div></div>
+                              <div><div className="font-mono text-xs font-black text-copper">{lead.buyerIntentScore ?? "—"}</div><div className="text-[8px] uppercase text-text-muted">Intent</div></div>
+                              <div><div className="font-mono text-xs font-black text-success">{lead.decisionMakerScore ?? "—"}</div><div className="text-[8px] uppercase text-text-muted">Decision</div></div>
+                            </div>
+
+                            <div className="mt-3 space-y-2">
+                              {lead.emails.slice(0, 2).map((email) => (
+                                <div key={email.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2">
+                                  <Mail className="h-3.5 w-3.5 shrink-0 text-brand" />
+                                  <a href={`mailto:${email.email}`} className="min-w-0 flex-1 truncate font-mono text-[11px] text-text">{email.email}</a>
+                                  <span className={`text-[8px] font-black ${email.status === "VALID" ? "text-success" : "text-copper"}`}>{email.status}</span>
+                                  <button onClick={() => openComposer(email.email, lead)} aria-label={`Compose email to ${email.email}`} className="h-7 w-7 rounded-md bg-brand/10 text-brand inline-flex items-center justify-center"><Send className="h-3.5 w-3.5" /></button>
+                                </div>
+                              ))}
+                              {lead.emails.length === 0 ? <div className="text-[11px] italic text-text-faint">No validated email found</div> : null}
+                              {lead.phoneNumbers.slice(0, 2).map((phone) => <a key={phone} href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="flex items-center gap-2 text-[11px] text-text-muted"><Phone className="h-3.5 w-3.5 text-copper" />{phone}</a>)}
+                            </div>
+
+                            <div className="mt-3 border-t border-border pt-3">
+                              {editingNotesLeadId === lead.id ? (
+                                <div className="space-y-2"><textarea value={notesText} onChange={(event) => setNotesText(event.target.value)} className="h-20 w-full resize-none rounded-lg border border-border bg-surface p-2 text-xs text-text" /><div className="flex gap-2"><button onClick={() => handleSaveNotes(lead.id)} className="h-8 px-3 rounded-lg bg-brand text-xs font-bold text-bg">Save</button><button onClick={() => setEditingNotesLeadId(null)} className="h-8 px-3 rounded-lg border border-border text-xs text-text-muted">Cancel</button></div></div>
+                              ) : (
+                                <button onClick={() => handleEditNotes(lead)} className="w-full text-left text-[11px] text-text-muted"><span className="font-bold text-text">Notes:</span> {lead.notes || "Add a note"}</button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse min-w-[820px]">
                       <thead>
                         <tr className="border-b border-border bg-surface-2/30 text-text-muted">
@@ -1841,15 +1921,7 @@ export default function DashboardPage() {
                                           <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider border ${lead.decisionMakerScore && lead.decisionMakerScore >= 85 ? 'bg-copper/20 text-copper border-copper/30' : 'bg-brand/10 text-brand border-brand/20'}`}>{lead.decisionMakerRole}</span>
                                         )}
                                         <button onClick={() => openComposer(e.email, lead)} title="Compose & send" className="ml-auto p-1 rounded text-success hover:text-success hover:bg-success/10 transition-colors"><Send className="w-3 h-3" /></button>
-        {/* Mobile FAB — search leads */}
-        {!railOpen && (
-          <button onClick={() => setRailOpen(true)}
-            className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-brand text-bg flex items-center justify-center shadow-[0_4px_16px_rgba(20,184,166,0.4)] hover:bg-brand-hover transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
-        )}
-
-      </div>
+                                      </div>
                                     ))}
                                   </div>
                                 )}
@@ -1936,6 +2008,7 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
+                  </>
                 )}
 
                 {/* Pagination */}
@@ -1962,6 +2035,14 @@ export default function DashboardPage() {
 
       {/* WhatsApp Validation Panel */}
       {showWaPanel && (<WaValidationPanel leads={leads} taskId={selectedTask?.id} onClose={() => setShowWaPanel(false)} />)}
+
+      {/* Mobile search control stays above the bottom navigation. */}
+      {!railOpen && (
+        <button onClick={() => setRailOpen(true)} aria-label="Open lead search"
+          className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-brand text-bg flex items-center justify-center shadow-[0_4px_16px_rgba(20,184,166,0.4)] hover:bg-brand-hover transition-colors">
+          <Search className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Solo Send Composer Modal */}
       <ComposerModal

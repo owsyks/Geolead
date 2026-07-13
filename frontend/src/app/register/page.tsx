@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, EyeOff, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -68,7 +69,7 @@ export default function RegisterPage() {
 
       <aside className="hidden lg:flex relative w-[440px] border-r border-border p-10 flex-col justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />
+          <Image src="/logo.png" alt="GeoLead AI" width={32} height={32} className="w-8 h-8 object-contain" priority />
           <span className="font-black">GeoLead AI</span>
         </Link>
         <div>
@@ -84,7 +85,7 @@ export default function RegisterPage() {
 
       <main className="relative flex-1 flex items-center justify-center px-5 py-12">
         <div className="w-full max-w-[430px]">
-          <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 font-black"><img src="/logo.png" alt="" className="w-8 h-8" />GeoLead AI</Link>
+          <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 font-black"><Image src="/logo.png" alt="" width={32} height={32} className="w-8 h-8" priority />GeoLead AI</Link>
           <div className="flex items-center gap-3 mb-7 text-xs font-bold">
             <span className={`w-7 h-7 rounded-full grid place-items-center border ${step === 1 ? "bg-brand text-bg border-brand" : "bg-brand/15 text-brand border-brand/30"}`}>{step > 1 ? <Check className="w-4 h-4" /> : 1}</span>
             <span className={step === 1 ? "text-text" : "text-text-muted"}>Account details</span>

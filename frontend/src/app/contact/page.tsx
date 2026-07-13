@@ -6,6 +6,7 @@
 // from the same Tickets tab as in-app support requests.
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   MapPin, Mail, MessageSquare, Send, CheckCircle2,
   ArrowLeft, Building2, Clock, Zap,
@@ -60,7 +61,7 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <ArrowLeft className="w-4 h-4 text-text-muted group-hover:text-text transition-colors" />
-            <img src="/logo.png" alt="GeoLead AI" className="w-7 h-7 rounded-md object-contain" />
+            <Image src="/logo.png" alt="GeoLead AI" width={28} height={28} className="w-7 h-7 rounded-md object-contain" />
             <span className="font-black text-text">GeoLead AI</span>
           </Link>
           <div className="flex items-center gap-3">

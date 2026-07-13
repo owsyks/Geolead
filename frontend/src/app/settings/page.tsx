@@ -108,7 +108,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    void loadSettings();
+    const timer = window.setTimeout(() => void loadSettings(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadSettings]);
 
   useEffect(() => {
@@ -163,8 +164,8 @@ export default function SettingsPage() {
       setSaved(true);
       setMessage("Settings saved.");
       setTimeout(() => setSaved(false), 2500);
-    } catch (err: any) {
-      setMessage(err?.message || "Save failed.");
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : "Save failed.");
     } finally {
       setSaving(false);
     }
@@ -186,8 +187,8 @@ export default function SettingsPage() {
     try {
       const result = await fetchOutbound<SettingsTestResult>(`/api/settings/test/${provider}`, { method: "POST" });
       setTestResults((current) => ({ ...current, [provider]: result }));
-    } catch (err: any) {
-      let msg = err?.message || "Test failed.";
+    } catch (err: unknown) {
+      let msg = err instanceof Error ? err.message : "Test failed.";
       try {
         const res = await authFetch(`${process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000"}/api/settings/test/${provider}`, { method: "POST" });
         const body = await res.json();
@@ -480,13 +481,25 @@ function GmailInboxCard() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const save = async () => {
     setBusy("save");
     setResult(null);
     try {
-      const body: any = {
+      const body: {
+        email: string;
+        imapHost: string;
+        imapPort: number;
+        useSsl: boolean;
+        username: string;
+        enabled: boolean;
+        syncIntervalSec: number;
+        appPassword?: string;
+      } = {
         email: form.email,
         imapHost: form.imapHost,
         imapPort: Number(form.imapPort) || 993,
@@ -500,8 +513,8 @@ function GmailInboxCard() {
       setMailbox(data.mailbox);
       setForm((c) => ({ ...c, appPassword: "" }));
       setResult({ ok: true, message: "Saved." });
-    } catch (err: any) {
-      setResult({ ok: false, message: err?.message || "Save failed." });
+    } catch (err: unknown) {
+      setResult({ ok: false, message: err instanceof Error ? err.message : "Save failed." });
     } finally {
       setBusy("");
     }
@@ -511,15 +524,22 @@ function GmailInboxCard() {
     setBusy("test");
     setResult(null);
     try {
-      const body: any = {
+      const body: {
+        email: string;
+        imapHost: string;
+        imapPort: number;
+        useSsl: boolean;
+        username: string;
+        appPassword?: string;
+      } = {
         email: form.email, imapHost: form.imapHost, imapPort: Number(form.imapPort) || 993,
         useSsl: form.useSsl, username: form.username || form.email,
       };
       if (form.appPassword.trim()) body.appPassword = form.appPassword;
       const r = await fetchOutbound<{ ok: boolean; message: string }>("/api/inbox/mailbox/test", { method: "POST", body: JSON.stringify(body) });
       setResult(r);
-    } catch (err: any) {
-      let msg = err?.message || "Test failed.";
+    } catch (err: unknown) {
+      let msg = err instanceof Error ? err.message : "Test failed.";
       try {
         const res = await authFetch(`${process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000"}/api/inbox/mailbox/test`, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -541,8 +561,8 @@ function GmailInboxCard() {
       const r = await fetchOutbound<SyncResult>("/api/inbox/sync", { method: "POST" });
       setResult({ ok: r.ok, message: r.ok ? `Sync complete — ${r.imported} new reply(ies), ${r.scanned} scanned.` : (r.error || "Sync failed.") });
       await load();
-    } catch (err: any) {
-      setResult({ ok: false, message: err?.message || "Sync failed." });
+    } catch (err: unknown) {
+      setResult({ ok: false, message: err instanceof Error ? err.message : "Sync failed." });
     } finally {
       setBusy("");
     }

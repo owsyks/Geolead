@@ -54,12 +54,13 @@ const navItems = [
 // Slim banner shown while trialing (with a countdown) or when access is blocked.
 function PlanBanner() {
   const { user } = useAuth();
+  const [now] = useState(() => Date.now());
   if (!user) return null;
   const status = user.planStatus;
   const blocked = status === "expired" || status === "canceled" || status === "past_due";
   let daysLeft: number | null = null;
   if (status === "trialing" && user.trialEndsAt) {
-    daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (24 * 3600 * 1000)));
+    daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - now) / (24 * 3600 * 1000)));
   }
   if (!blocked && daysLeft == null) return null;
 
@@ -174,9 +175,6 @@ export function OutboundShell({
     ? [...navItems, { href: "/admin", label: "Admin", icon: ShieldCheck }]
     : navItems;
 
-  // Close sidebar on route change
-  useEffect(() => { setSidebarOpen(false); }, [pathname]);
-
   return (
     <div className="flex min-h-screen bg-bg text-text">
       {/* ── Mobile Sidebar Overlay (full-screen) ── */}
@@ -197,7 +195,7 @@ export function OutboundShell({
           </div>
           {/* Nav items */}
           <nav className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-            {navItemsForUser.map((item: any) => {
+            {navItemsForUser.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href}
@@ -239,7 +237,7 @@ export function OutboundShell({
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {navItemsForUser.map((item: any) => {
+          {navItemsForUser.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}
@@ -319,7 +317,7 @@ export function OutboundShell({
 
         {/* ── Mobile Bottom Nav Bar ── */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-20 glass border-t border-border flex items-center justify-around h-14 px-1 safe-bottom">
-          {bottomNavItems.map((item: any) => {
+          {bottomNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}

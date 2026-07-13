@@ -3,6 +3,7 @@
 // Shared visual shell for the auth pages (login/register/forgot/reset/verify).
 // Centered glass card on the app's warm coffee-black background, with brand + subtitle.
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export function AuthShell({
@@ -21,7 +22,7 @@ export function AuthShell({
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2.5 text-lg font-black text-text">
-            <img src="/logo.png" alt="GeoLead AI" className="w-9 h-9 object-contain" />
+            <Image src="/logo.png" alt="GeoLead AI" width={36} height={36} className="w-9 h-9 object-contain" priority />
             GeoLead AI
           </Link>
         </div>

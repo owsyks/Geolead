@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight, Check, ChevronDown, MapPin, Search,
   Mail, ShieldCheck, Sparkles, Brain, Send,
@@ -93,7 +94,7 @@ const plans = [
     id: "starter",
     badge: null as string | null,
     label: "STARTER",
-    price: "$7",
+    price: "$5",
     priceNote: "30 days",
     tagline: "For solo operators closing their first deals every week.",
     quota: { searches: 100, leads: "5,000", senders: 2 },
@@ -120,7 +121,7 @@ const plans = [
     id: "pro",
     badge: "MOST POPULAR" as string | null,
     label: "PRO",
-    price: "$15",
+    price: "$10",
     priceNote: "30 days",
     tagline: "For power users running multiple markets at full throttle.",
     quota: { searches: 500, leads: "50,000", senders: 10 },
@@ -314,7 +315,7 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b border-border bg-bg/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 h-[60px] flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-            <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />
+            <Image src="/logo.png" alt="GeoLead AI" width={32} height={32} className="w-8 h-8 object-contain" priority />
             <span className="font-black tracking-tight text-[15px]" style={{ fontFamily: BC }}>GeoLead AI</span>
           </Link>
 
@@ -834,7 +835,7 @@ export default function Landing() {
       <footer className="relative z-10 border-t border-border py-10">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="GeoLead AI" className="w-7 h-7 rounded-md object-contain" />
+            <Image src="/logo.png" alt="GeoLead AI" width={28} height={28} className="w-7 h-7 rounded-md object-contain" />
             <span className="font-black text-[14px]" style={{ fontFamily: BC }}>GeoLead AI</span>
             <span className="text-text-faint text-[12px] font-mono">· Find. Connect. Close.</span>
           </div>

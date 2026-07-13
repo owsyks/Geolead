@@ -39,7 +39,10 @@ export function useVisiblePolling({
   immediate = false,
 }: VisiblePollingOptions) {
   const pollRef = useRef(poll);
-  pollRef.current = poll;
+
+  useEffect(() => {
+    pollRef.current = poll;
+  }, [poll]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -96,6 +99,5 @@ export function useVisiblePolling({
       clear();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, intervalMs, maxIntervalMs, backoff, immediate]);
 }

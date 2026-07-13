@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowRight, Bitcoin, Check, Clock3, HelpCircle,
+  ArrowLeft, ArrowRight, Check, Clock3, HelpCircle,
   Loader2, LockKeyhole, ShieldCheck, Sparkles, Zap,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -21,8 +22,8 @@ const FEATURES: Record<Tier, string[]> = {
 
 const FALLBACK: PlanCatalogItem[] = [
   { tier: "trial", label: "Free Trial", priceUSD: 0, purchasable: false, configured: true, limits: { searchesPerMonth: 15, maxDepth: 25, leadCap: 500, sendsPerDay: 25, senderCap: 1 } },
-  { tier: "starter", label: "Starter", priceUSD: 7, purchasable: true, configured: false, limits: { searchesPerMonth: 100, maxDepth: 50, leadCap: 5000, sendsPerDay: 200, senderCap: 2 } },
-  { tier: "pro", label: "Pro", priceUSD: 15, purchasable: true, configured: false, limits: { searchesPerMonth: 500, maxDepth: 200, leadCap: 50000, sendsPerDay: 1000, senderCap: 10 } },
+  { tier: "starter", label: "Starter", priceUSD: 5, purchasable: true, configured: false, limits: { searchesPerMonth: 100, maxDepth: 50, leadCap: 5000, sendsPerDay: 200, senderCap: 2 } },
+  { tier: "pro", label: "Pro", priceUSD: 10, purchasable: true, configured: false, limits: { searchesPerMonth: 500, maxDepth: 200, leadCap: 50000, sendsPerDay: 1000, senderCap: 10 } },
 ];
 
 export default function PricingPage() {
@@ -72,7 +73,7 @@ export default function PricingPage() {
       <nav className="relative z-20 border-b border-border bg-bg/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto h-16 px-5 lg:px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="GeoLead AI" className="w-8 h-8 object-contain" />
+            <Image src="/logo.png" alt="GeoLead AI" width={32} height={32} className="w-8 h-8 object-contain" priority />
             <span className="font-black tracking-tight">GeoLead AI</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -142,7 +143,7 @@ export default function PricingPage() {
                     </Link>
                   ) : (
                     <button onClick={() => checkout(plan.tier)} disabled={busy !== null || configured !== true || blocked} className={`h-12 w-full flex items-center justify-center gap-2 text-sm font-black transition-all disabled:opacity-50 ${featured ? "bg-brand text-bg hover:bg-brand-hover shadow-[0_0_24px_rgba(20,184,166,0.25)]" : "border border-border bg-surface hover:border-brand/40 hover:text-brand"}`}>
-                      {busy === plan.tier ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bitcoin className="w-4 h-4" />}
+                      {busy === plan.tier ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                       {blocked ? "Available after Pro expires" : current ? `Add ${cryptoDays} days` : `Choose ${plan.label}`}
                     </button>
                   )}
