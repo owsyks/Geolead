@@ -228,7 +228,6 @@ const worker = new Worker<ScrapingJobData>(
             const places = await searchGooglePlaces(query, {
               page,
               num: 20,
-              userId: task.userId,
               allowMockFallback: false,
             });
             added = addPlaces(places);
@@ -236,7 +235,6 @@ const worker = new Worker<ScrapingJobData>(
             const organic = await searchGoogle(query, {
               page,
               num: 100,
-              userId: task.userId,
               allowMockFallback: false,
             });
             added = addOrganic(organic);

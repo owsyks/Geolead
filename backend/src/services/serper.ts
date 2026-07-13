@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { createHash } from 'node:crypto';
-import { getSetting } from './settings.js';
 import { redisConnection } from '../queues/queues.js';
 
 export interface SerperResult {
@@ -26,14 +25,13 @@ export interface SerperPlace {
 interface SerperSearchOptions {
   page?: number;
   num?: number;
-  userId?: string | null; // resolve the calling user's Serper key
   allowMockFallback?: boolean;
 }
 
 // Multiple Serper keys can be configured as a shared rotation pool
 // (SERPER_API_KEY_1, _2, _3, ...) so one account's daily quota doesn't cap
-// every search. A per-user DB key (Settings page) is tried first; platform
-// keys remain a failover pool if that dedicated key is rejected or exhausted.
+// every search. These are platform-managed server credentials; tenant settings
+// are deliberately never consulted for Serper authentication.
 const MAX_PER_KEY_PER_DAY = 2500;
 const DEFAULT_CACHE_TTL_SECONDS = 24 * 60 * 60;
 
@@ -84,13 +82,6 @@ async function incrementKeyUsage(key: string): Promise<void> {
   await redisConnection.incr(`serper:usage:${keyPrefix(key)}`).catch(() => undefined);
 }
 
-async function getKeyPool(userId?: string | null): Promise<string[]> {
-  const userKey = await getSetting('serperApiKey', userId);
-  const platformKeys = getPlatformKeys();
-  if (userKey) return [userKey, ...platformKeys.filter((key) => key !== userKey)];
-  return platformKeys;
-}
-
 // Orders keys by ascending usage today, favoring keys with quota remaining.
 // If every key looks exhausted by our own tracking, return the pool as-is —
 // Redis-side usage is an optimization, not a hard cap; the real API 429/403
@@ -117,7 +108,7 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
     // Cache availability must never prevent live discovery.
   }
 
-  const pool = await getKeyPool(options.userId);
+  const pool = getPlatformKeys();
   if (pool.length === 0) return null;
 
   const candidates = await orderByUsage(pool);
