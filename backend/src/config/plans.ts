@@ -45,7 +45,7 @@ export const PLANS: Record<Tier, PlanDef> = {
   starter: {
     tier: 'starter',
     label: 'Starter',
-    priceUSD: 49,
+    priceUSD: 7,
     purchasable: true,
     searchesPerMonth: 100,
     maxDepth: 50,
@@ -56,7 +56,7 @@ export const PLANS: Record<Tier, PlanDef> = {
   pro: {
     tier: 'pro',
     label: 'Pro',
-    priceUSD: 149,
+    priceUSD: 15,
     purchasable: true,
     searchesPerMonth: 500,
     maxDepth: 200,

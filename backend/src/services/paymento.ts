@@ -32,8 +32,17 @@ async function call<T>(path: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-    if (!response.ok) throw new Error(`PAYMENTO_HTTP_${response.status}`);
-    const parsed = await response.json() as PaymentoEnvelope<T>;
+    const raw = await response.text();
+    let parsed: PaymentoEnvelope<T> & { error?: string };
+    try {
+      parsed = JSON.parse(raw) as PaymentoEnvelope<T> & { error?: string };
+    } catch {
+      throw new Error(response.ok ? 'PAYMENTO_INVALID_JSON' : `PAYMENTO_HTTP_${response.status}`);
+    }
+    if (!response.ok) {
+      const detail = String(parsed.error || parsed.message || 'request_rejected').replace(/[^a-zA-Z0-9 .:_-]/g, '').slice(0, 160);
+      throw new Error(`PAYMENTO_HTTP_${response.status}:${detail}`);
+    }
     if (!parsed.success || parsed.body == null) throw new Error('PAYMENTO_INVALID_RESPONSE');
     return parsed.body;
   } finally {

@@ -35,6 +35,8 @@ jobs:
           script: |
             set -e
             cd /opt/geolead
+            echo "Recent sanitized Paymento errors from the previous backend container:"
+            docker compose -f docker-compose.prod.yml logs --tail=200 backend 2>&1 | grep -E 'Paymento checkout creation failed|Paymento IPN processing failed' || true
             git fetch --all
             git reset --hard "origin/${GITHUB_REF_NAME:-feat/auth-multi-tenancy}"
             if ! grep -Eq '^SECRET_ENCRYPTION_KEY=.{32,}$' .env; then
