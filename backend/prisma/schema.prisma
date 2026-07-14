@@ -142,6 +142,8 @@ model User {
   supportTickets SupportTicket[]
   webhookEvents WebhookEvent[]
   paymentAttempts PaymentAttempt[]
+  acquisitionScans AcquisitionScan[]
+
 }
 
 // User-submitted support/bug/feature requests, surfaced in the admin Tickets tab.
@@ -974,4 +976,24 @@ model WatchlistNotification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+// Persisted record of every bulk acquisition scan a user runs.
+// Replaces the previous fire-and-forget in-memory Map so history
+// survives server restarts and is accessible across sessions/devices.
+model AcquisitionScan {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   @default("processing") // processing | done | error
+  domains     String[] // raw input list
+  domainCount Int      @default(0)
+  result      Json?    // BulkScanResult JSON
+  error       String?  @db.Text
+  scannedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
 }

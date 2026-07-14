@@ -142,6 +142,67 @@ const PROXIMITY_CITIES: Record<string, Record<string, string[]>> = {
   louisville: { ky: ['jeffersontown', 'st matthews', 'shepherdsville', 'new albany'] },
   milwaukee: { wi: ['wauwatosa', 'brookfield', 'greenfield', 'west allis', 'menomonee falls'] },
   columbus: { oh: ['dublin', 'upper arlington', 'westerville', 'gahanna', 'hilliard', 'grove city'] },
+
+  // International Expansion
+  london: {
+    uk: ['croydon', 'watford', 'harrow', 'wembley', 'stratford', 'bromley', 'richmond'],
+    england: ['croydon', 'watford', 'harrow', 'wembley', 'stratford', 'bromley', 'richmond'],
+    'united kingdom': ['croydon', 'watford', 'harrow', 'wembley', 'stratford', 'bromley', 'richmond']
+  },
+  manchester: {
+    uk: ['salford', 'bolton', 'stockport', 'oldham', 'rochdale', 'altrincham'],
+    england: ['salford', 'bolton', 'stockport', 'oldham', 'rochdale', 'altrincham']
+  },
+  birmingham: {
+    uk: ['solihull', 'wolverhampton', 'sutton coldfield', 'dudley', 'walsall'],
+    england: ['solihull', 'wolverhampton', 'sutton coldfield', 'dudley', 'walsall']
+  },
+  toronto: {
+    on: ['mississauga', 'brampton', 'markham', 'vaughan', 'richmond hill', 'oakville'],
+    ontario: ['mississauga', 'brampton', 'markham', 'vaughan', 'richmond hill', 'oakville'],
+    ca: ['mississauga', 'brampton', 'markham', 'vaughan', 'richmond hill', 'oakville'],
+    canada: ['mississauga', 'brampton', 'markham', 'vaughan', 'richmond hill', 'oakville']
+  },
+  vancouver: {
+    bc: ['burnaby', 'surrey', 'richmond', 'coquitlam', 'langley', 'delta'],
+    'british columbia': ['burnaby', 'surrey', 'richmond', 'coquitlam', 'langley', 'delta'],
+    ca: ['burnaby', 'surrey', 'richmond', 'coquitlam', 'langley', 'delta'],
+    canada: ['burnaby', 'surrey', 'richmond', 'coquitlam', 'langley', 'delta']
+  },
+  montreal: {
+    qc: ['laval', 'longueuil', 'brossard', 'terrebonne', 'repentigny'],
+    quebec: ['laval', 'longueuil', 'brossard', 'terrebonne', 'repentigny'],
+    ca: ['laval', 'longueuil', 'brossard', 'terrebonne', 'repentigny'],
+    canada: ['laval', 'longueuil', 'brossard', 'terrebonne', 'repentigny']
+  },
+  sydney: {
+    nsw: ['parramatta', 'manly', 'ryde', 'penrith', 'chatswood', 'hurstville'],
+    'new south wales': ['parramatta', 'manly', 'ryde', 'penrith', 'chatswood', 'hurstville'],
+    au: ['parramatta', 'manly', 'ryde', 'penrith', 'chatswood', 'hurstville'],
+    australia: ['parramatta', 'manly', 'ryde', 'penrith', 'chatswood', 'hurstville']
+  },
+  melbourne: {
+    vic: ['geelong', 'werribee', 'dandenong', 'frankston', 'melton'],
+    victoria: ['geelong', 'werribee', 'dandenong', 'frankston', 'melton'],
+    au: ['geelong', 'werribee', 'dandenong', 'frankston', 'melton'],
+    australia: ['geelong', 'werribee', 'dandenong', 'frankston', 'melton']
+  },
+  paris: {
+    fr: ['boulogne-billancourt', 'saint-denis', 'versailles', 'nanterre', 'creteil'],
+    france: ['boulogne-billancourt', 'saint-denis', 'versailles', 'nanterre', 'creteil']
+  },
+  berlin: {
+    de: ['potsdam', 'brandenburg', 'schönefeld', 'orantenburg'],
+    germany: ['potsdam', 'brandenburg', 'schönefeld', 'orantenburg']
+  },
+  dubai: {
+    uae: ['sharjah', 'ajman', 'al ain', 'abu dhabi'],
+    'united arab emirates': ['sharjah', 'ajman', 'al ain', 'abu dhabi']
+  },
+  singapore: {
+    sg: ['woodlands', 'tampines', 'jurong', 'yishun', 'bedok'],
+    singapore: ['woodlands', 'tampines', 'jurong', 'yishun', 'bedok']
+  }
 };
 
 const COMMON_EMAIL_PREFIXES = ['info', 'contact', 'hello', 'office', 'admin', 'sales', 'support', 'inquiries', 'team', 'care', 'hello', 'hiring'];
@@ -949,7 +1010,7 @@ function buildSearchQueries(keyword: string, cityState?: string, depth: number =
     const metro = PROXIMITY_CITIES[cityLower];
     if (metro) {
       for (const [metroState, nearbyCities] of Object.entries(metro)) {
-        if (metroState === stateAbbrev || stateAbbrev.includes(metroState)) {
+        if (!stateAbbrev || metroState === stateAbbrev || stateAbbrev.includes(metroState)) {
           for (const nearby of nearbyCities) {
             const q = [keyword, `${nearby}, ${metroState.toUpperCase()}`].filter(Boolean).join(' ').trim();
             if (q !== primary && !queries.has(q)) queries.add(q);

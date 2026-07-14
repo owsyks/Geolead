@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useRef } from "react";
 import {
   AlertTriangle,
@@ -18,6 +17,7 @@ import {
   Send,
   Sparkles,
   Star,
+  Trash2,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -51,10 +51,23 @@ LasVegasMover.com`;
 
 type ScanState = "idle" | "scanning" | "done" | "error";
 
+interface ScanHistoryEntry {
+  id: string;
+  status: "processing" | "done" | "error";
+  domains: string[];
+  domainCount: number;
+  result?: BulkScanResult | null;
+  error?: string | null;
+  scannedAt?: string | null;
+  createdAt: string;
+}
+
 export default function AcquisitionAdvisorPage() {
   const [input, setInput] = useState("");
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [result, setResult] = useState<BulkScanResult | null>(null);
+  const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [tierFilter, setTierFilter] = useState<AcquisitionTier | "all">("all");
@@ -64,31 +77,64 @@ export default function AcquisitionAdvisorPage() {
   const [watchingDomain, setWatchingDomain] = useState<string | null>(null);
   const [archiveDomain, setArchiveDomain] = useState<string | null>(null);
 
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const data = await fetchOutbound<ScanHistoryEntry[]>("/api/domains/acquisition-scan/history");
+      setHistory(Array.isArray(data) ? data : []);
+    } catch {
+      // silent fail
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadHistory();
+  }, []);
+
+  const deleteHistoryEntry = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetchOutbound(`/api/domains/acquisition-scan/${id}`, { method: "DELETE" });
+      setHistory(prev => prev.filter(h => h.id !== id));
+    } catch {
+      // silent fail
+    }
+  };
+
+  const selectHistoryEntry = (entry: ScanHistoryEntry) => {
+    if (entry.status === "done" && entry.result) {
+      setResult(entry.result);
+      setScanState("done");
+      setErrorMsg("");
+    } else if (entry.status === "error") {
+      setErrorMsg(entry.error || "Scan failed.");
+      setScanState("error");
+      setResult(null);
+    } else {
+      setResult(null);
+      setErrorMsg("");
+      setScanState("scanning");
+      void pollJob(entry.id);
+    }
+  };
+
   const domainList = input
     .split(/[\n,]+/)
     .map(d => d.trim())
     .filter(Boolean);
 
-  const scan = async () => {
-    if (domainList.length === 0) return;
-    if (domainList.length > 100) { setErrorMsg("Maximum 100 domains per scan."); return; }
+  const pollJob = async (jobId: string) => {
     setScanState("scanning");
     setErrorMsg("");
     setResult(null);
     setElapsed(0);
 
-    // Tick the elapsed counter every second
     const startTime = Date.now();
     const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
 
     try {
-      // Start background job — returns immediately with jobId
-      const { jobId } = await fetchOutbound<{ jobId: string }>("/api/domains/acquisition-scan", {
-        method: "POST",
-        body: JSON.stringify({ domains: domainList }),
-      });
-
-      // Poll every 3 seconds until done (max 4 minutes)
       for (let attempt = 0; attempt < 80; attempt++) {
         await new Promise(r => setTimeout(r, 3000));
         const poll = await fetchOutbound<{ status: string; result?: BulkScanResult; error?: string }>(
@@ -98,6 +144,7 @@ export default function AcquisitionAdvisorPage() {
           clearInterval(timer);
           setResult(poll.result);
           setScanState("done");
+          void loadHistory();
           return;
         }
         if (poll.status === "error") {
@@ -108,6 +155,29 @@ export default function AcquisitionAdvisorPage() {
     } catch (err: unknown) {
       clearInterval(timer);
       setErrorMsg(err instanceof Error ? err.message : "Scan failed. Check your connection and API keys.");
+      setScanState("error");
+      void loadHistory();
+    }
+  };
+
+  const scan = async () => {
+    if (domainList.length === 0) return;
+    if (domainList.length > 100) { setErrorMsg("Maximum 100 domains per scan."); return; }
+    setScanState("scanning");
+    setErrorMsg("");
+    setResult(null);
+    setElapsed(0);
+
+    try {
+      const { jobId } = await fetchOutbound<{ jobId: string }>("/api/domains/acquisition-scan", {
+        method: "POST",
+        body: JSON.stringify({ domains: domainList }),
+      });
+
+      void loadHistory();
+      void pollJob(jobId);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to start scan.");
       setScanState("error");
     }
   };
@@ -191,54 +261,117 @@ export default function AcquisitionAdvisorPage() {
     >
       {/* Input section */}
       {scanState !== "done" && (
-        <div className="max-w-3xl">
-          <GlassCard className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-bold text-text">Domain list</label>
-              <button
-                onClick={() => setInput(EXAMPLE_DOMAINS)}
-                className="text-xs text-brand hover:text-brand-hover underline"
-              >
-                Load examples
-              </button>
-            </div>
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder={"Paste domains — one per line:\nTexasCarVendor.com\nMiamiRoofing.com\nChicagoDentist.com"}
-              rows={10}
-              className="w-full rounded-lg border border-border bg-bg px-4 py-3 text-sm text-text font-mono placeholder-text-faint outline-none focus:border-brand resize-y transition-colors"
-            />
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs text-text-muted">
-                {domainList.length > 0
-                  ? `${domainList.length} domain${domainList.length !== 1 ? "s" : ""} ready · max 100`
-                  : "Paste domain names above (with or without TLD)"}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2 space-y-6">
+            <GlassCard className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-bold text-text">Domain list</label>
+                <button
+                  onClick={() => setInput(EXAMPLE_DOMAINS)}
+                  className="text-xs text-brand hover:text-brand-hover underline"
+                >
+                  Load examples
+                </button>
               </div>
-              <button
-                onClick={() => void scan()}
-                disabled={domainList.length === 0 || scanState === "scanning"}
-                className="h-10 px-5 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover inline-flex items-center gap-2 disabled:opacity-50 shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors"
-              >
-                <Sparkles className="h-4 w-4" />
-                Analyze {domainList.length > 0 ? `${domainList.length} domains` : ""}
-              </button>
-            </div>
-          </GlassCard>
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={"Paste domains — one per line:\nTexasCarVendor.com\nMiamiRoofing.com\nChicagoDentist.com"}
+                rows={10}
+                className="w-full rounded-lg border border-border bg-bg px-4 py-3 text-sm text-text font-mono placeholder-text-faint outline-none focus:border-brand resize-y transition-colors"
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-xs text-text-muted">
+                  {domainList.length > 0
+                    ? `${domainList.length} domain${domainList.length !== 1 ? "s" : ""} ready · max 100`
+                    : "Paste domain names above (with or without TLD)"}
+                </div>
+                <button
+                  onClick={() => void scan()}
+                  disabled={domainList.length === 0 || scanState === "scanning"}
+                  className="h-10 px-5 rounded-lg bg-brand text-sm font-bold text-bg hover:bg-brand-hover inline-flex items-center gap-2 disabled:opacity-50 shadow-[0_0_12px_rgba(20,184,166,0.3)] transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Analyze {domainList.length > 0 ? `${domainList.length} domains` : ""}
+                </button>
+              </div>
+            </GlassCard>
 
-          {/* How it works */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { icon: <BarChart3 className="h-5 w-5 text-brand" />, title: "Market Intelligence", body: "DNS TLD checks, buyer pool estimation, brand scoring, geo market analysis" },
-              { icon: <Bot className="h-5 w-5 text-copper" />, title: "AI Dossier Review", body: "NVIDIA AI evaluates each domain like a professional domain investor + broker" },
-              { icon: <TrendingUp className="h-5 w-5 text-success" />, title: "Ranked Results", body: "Strong Buy → Avoid rankings with confidence scores, ROI estimates, and reasoning" },
-            ].map(item => (
-              <GlassCard key={item.title} className="p-4">
-                <div className="flex items-center gap-2 mb-2">{item.icon}<span className="text-sm font-bold text-text">{item.title}</span></div>
-                <p className="text-xs text-text-muted">{item.body}</p>
-              </GlassCard>
-            ))}
+            {/* How it works */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { icon: <BarChart3 className="h-5 w-5 text-brand" />, title: "Market Intelligence", body: "DNS TLD checks, buyer pool estimation, brand scoring, geo market analysis" },
+                { icon: <Bot className="h-5 w-5 text-copper" />, title: "AI Dossier Review", body: "NVIDIA AI evaluates each domain like a professional domain investor + broker" },
+                { icon: <TrendingUp className="h-5 w-5 text-success" />, title: "Ranked Results", body: "Strong Buy → Avoid rankings with confidence scores, ROI estimates, and reasoning" },
+              ].map(item => (
+                <GlassCard key={item.title} className="p-4">
+                  <div className="flex items-center gap-2 mb-2">{item.icon}<span className="text-sm font-bold text-text">{item.title}</span></div>
+                  <p className="text-xs text-text-muted">{item.body}</p>
+                </GlassCard>
+              ))}
+            </div>
           </div>
+
+          {/* History Sidebar */}
+          <GlassCard className="p-5">
+            <h3 className="text-sm font-bold text-text mb-4 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-brand" /> Scan History
+            </h3>
+            {loadingHistory && history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-text-muted text-xs gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-brand animate-duration-500" />
+                Loading history...
+              </div>
+            ) : history.length === 0 ? (
+              <div className="py-12 text-center text-text-muted text-xs">
+                No past scans found. Run your first analysis above!
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                {history.map((entry) => {
+                  const dateStr = entry.createdAt
+                    ? new Date(entry.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "";
+                  return (
+                    <div
+                      key={entry.id}
+                      onClick={() => selectHistoryEntry(entry)}
+                      className="group p-3 rounded-lg border border-border bg-surface hover:bg-surface-2 cursor-pointer transition-all flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs text-text font-bold truncate">
+                          {entry.domains.slice(0, 3).join(", ")}
+                          {entry.domains.length > 3 && ` (+${entry.domains.length - 3})`}
+                        </div>
+                        <div className="text-[10px] text-text-muted mt-1 flex items-center gap-1.5">
+                          <span>{dateStr}</span>
+                          <span>·</span>
+                          <span className={`capitalize ${
+                            entry.status === "done" ? "text-success" :
+                            entry.status === "error" ? "text-danger" : "text-brand"
+                          }`}>
+                            {entry.status}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => void deleteHistoryEntry(entry.id, e)}
+                        className="opacity-0 group-hover:opacity-100 hover:text-danger p-1 rounded transition-opacity"
+                        title="Delete scan"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </GlassCard>
         </div>
       )}
 

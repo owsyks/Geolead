@@ -28,27 +28,9 @@ import {
 } from '../services/domains.js';
 import { runBulkAcquisitionScan, investorChat, type BulkScanResult } from '../services/acquisitionAdvisor.js';
 import { requireAuth } from '../middleware/auth.js';
+import prisma from '../config/db.js';
 
 const router = Router();
-
-// ─── In-memory job store (avoids Heroku's 30s router timeout) ────────────────
-// Jobs run in the background; clients poll /acquisition-scan/status/:jobId.
-type ScanJob = {
-  userId: string;
-  status: 'processing' | 'done' | 'error';
-  result?: BulkScanResult;
-  error?: string;
-  domains: string[];
-  startedAt: Date;
-};
-const scanJobs = new Map<string, ScanJob>();
-
-function pruneOldJobs() {
-  const cutoff = Date.now() - 30 * 60 * 1000; // keep 30 min
-  for (const [id, job] of scanJobs) {
-    if (job.startedAt.getTime() < cutoff) scanJobs.delete(id);
-  }
-}
 
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -75,17 +57,42 @@ router.get('/archive-check', wrap(async (req, res) => {
   }
 }));
 
+// List past acquisition scans (persistent history from DB).
+router.get('/acquisition-scan/history', wrap(async (req, res) => {
+  const limit = Math.min(parseInt(String(req.query.limit || '20'), 10), 50);
+  const scans = await prisma.acquisitionScan.findMany({
+    where: { userId: req.userId! },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+  res.json(scans);
+}));
+
 // Poll background scan job status — must be before /:id routes.
 router.get('/acquisition-scan/status/:jobId', wrap(async (req, res) => {
-  const job = scanJobs.get(req.params.jobId);
-  if (!job || job.userId !== req.userId) return res.status(404).json({ error: 'Job not found or expired.' });
-  res.json({
-    jobId: req.params.jobId,
-    status: job.status,
-    domainCount: job.domains.length,
-    result: job.result ?? null,
-    error: job.error ?? null,
+  const scan = await prisma.acquisitionScan.findFirst({
+    where: { id: req.params.jobId, userId: req.userId! },
   });
+  if (!scan) return res.status(404).json({ error: 'Job not found or expired.' });
+  res.json({
+    jobId: scan.id,
+    status: scan.status,
+    domainCount: scan.domainCount,
+    result: scan.result ?? null,
+    error: scan.error ?? null,
+  });
+}));
+
+// Delete a past scan from database history.
+router.delete('/acquisition-scan/:jobId', wrap(async (req, res) => {
+  const scan = await prisma.acquisitionScan.findFirst({
+    where: { id: req.params.jobId, userId: req.userId! },
+  });
+  if (!scan) return res.status(404).json({ error: 'Job not found.' });
+  await prisma.acquisitionScan.delete({
+    where: { id: req.params.jobId },
+  });
+  res.json({ success: true });
 }));
 
 router.get('/dashboard', wrap(async (req, res) => {
@@ -193,29 +200,36 @@ router.post('/:id/analyze', wrap(async (req, res) => {
 }));
 
 // Bulk AI acquisition scan — starts background job to avoid Heroku 30s timeout.
-// Client polls GET /acquisition-scan/status/:jobId until status === 'done'.
+// Scan record is persisted to DB immediately; client polls status/:jobId.
 router.post('/acquisition-scan', wrap(async (req, res) => {
   const domains = asStringArray(req.body.domains);
   if (!domains.length) return res.status(400).json({ error: 'domains array is required.' });
   if (domains.length > 100) return res.status(400).json({ error: 'Maximum 100 domains per scan.' });
 
-  pruneOldJobs();
-  const jobId = randomBytes(32).toString('base64url');
   const userId = req.userId!;
-  scanJobs.set(jobId, { userId, status: 'processing', domains, startedAt: new Date() });
 
-  // Fire-and-forget — response returns immediately.
+  // Create persistent DB record immediately so history is available even if server restarts.
+  const scan = await prisma.acquisitionScan.create({
+    data: {
+      userId,
+      status: 'processing',
+      domains,
+      domainCount: domains.length,
+    },
+  });
+
+  // Fire-and-forget — response returns immediately with DB scan id.
   void runBulkAcquisitionScan(domains, userId)
-    .then(result => {
-      const job = scanJobs.get(jobId);
-      if (job) { job.status = 'done'; job.result = result; }
-    })
-    .catch((err: unknown) => {
-      const job = scanJobs.get(jobId);
-      if (job) { job.status = 'error'; job.error = (err as any)?.message || 'Scan failed.'; }
-    });
+    .then(result => prisma.acquisitionScan.update({
+      where: { id: scan.id },
+      data: { status: 'done', result: result as any, scannedAt: new Date() },
+    }))
+    .catch((err: unknown) => prisma.acquisitionScan.update({
+      where: { id: scan.id },
+      data: { status: 'error', error: (err as any)?.message || 'Scan failed.' },
+    }).catch(() => undefined));
 
-  res.json({ jobId, status: 'processing', domainCount: domains.length });
+  res.json({ jobId: scan.id, status: 'processing', domainCount: domains.length });
 }));
 
 // AI investor chat using inline analysis data (no domain ID required).
