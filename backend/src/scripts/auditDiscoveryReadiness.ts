@@ -69,4 +69,13 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+// The imported Serper service owns a Redis connection. This is a one-shot
+// deployment audit, not a long-running worker, so terminate explicitly once
+// all probes have completed instead of leaving the connection to hold the
+// process (and deployment) open.
+void main()
+  .then(() => process.exit(process.exitCode || 0))
+  .catch((error) => {
+    console.error('[Discovery readiness] Unexpected audit failure.', error instanceof Error ? error.message : 'unknown error');
+    process.exit(1);
+  });
