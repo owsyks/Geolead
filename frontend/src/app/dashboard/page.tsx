@@ -132,7 +132,7 @@ type ExportRow = Record<string, ExportCellValue>;
 
 export default function DashboardPage() {
   // Input Form States
-  const { activeDomain } = useDomainContext();
+  const { activeDomain, domains, setActiveDomainId } = useDomainContext();
   const [searchName, setSearchName] = useState("");
   const [keyword, setKeyword] = useState("");
   const [domainIdea, setDomainIdea] = useState("");
@@ -140,6 +140,23 @@ export default function DashboardPage() {
   const [searchDepth, setSearchDepth] = useState(50);
   const [railOpen, setRailOpen] = useState(false);
   const [searchFormMessage, setSearchFormMessage] = useState("");
+
+  const selectMobileSearchDomain = (domainId: string) => {
+    const domain = domains.find((item) => item.id === domainId && !item.archivedAt);
+    setActiveDomainId(domain?.id || null);
+    if (!domain) return;
+
+    setDomainIdea(domain.name);
+    setKeyword(
+      [domain.city || domain.state, domain.niche || domain.industry]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || domain.name.replace(/\.[a-z]+$/i, "")
+    );
+    setCityState([domain.city, domain.state].filter(Boolean).join(", "));
+    setSearchName((current) => current.trim() || `${domain.name.replace(/\.[a-z]+$/i, "")} buyer search`);
+    setSearchFormMessage("");
+  };
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
   // user never re-types keyword/domain/geo — they just pick from the portfolio.
@@ -1363,10 +1380,14 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
-                <DomainSelector label="Source domain" emptyAction={{ label: "Add to portfolio", href: "/portfolio" }} />
-                {activeDomain ? (
-                  <p className="mt-2 text-[10px] text-success">Search fields are filled from {activeDomain.name}. You can edit them below.</p>
-                ) : null}
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Source domain</label>
+                <select value={activeDomain?.id || ""} onChange={(event) => selectMobileSearchDomain(event.target.value)} className="w-full h-11 bg-surface-2 border border-border rounded-lg px-3 text-sm text-text focus:outline-none focus:border-brand">
+                  <option value="">Choose a domain from your portfolio</option>
+                  {domains.filter((domain) => !domain.archivedAt).map((domain) => (
+                    <option key={domain.id} value={domain.id}>{domain.name}</option>
+                  ))}
+                </select>
+                {activeDomain ? <p className="mt-2 text-[10px] text-success">Selected: {activeDomain.name}. Search details are ready below.</p> : null}
               </div>
               <div>
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Search Name</label>
@@ -2040,8 +2061,14 @@ export default function DashboardPage() {
               <TrendingUp className="w-12 h-12 text-text-faint mb-4" />
               <h3 className="text-base font-bold text-text-muted">Welcome to GeoLead AI</h3>
               <p className="text-xs text-text-faint max-w-sm mt-1 leading-relaxed">Generate keyword variations and discover high-intent local buyers for your domain assets. Submit a query in the rail.</p>
-              <div className="lg:hidden mt-6 w-full max-w-md text-left">
-                <DomainSelector label="Choose a domain to research" emptyAction={{ label: "Add to portfolio", href: "/portfolio" }} />
+              <div className="lg:hidden mt-6 w-full max-w-md text-left rounded-xl border border-border bg-surface p-4">
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Choose a domain to research</label>
+                <select value={activeDomain?.id || ""} onChange={(event) => selectMobileSearchDomain(event.target.value)} className="w-full h-11 bg-bg border border-border rounded-lg px-3 text-sm text-text focus:outline-none focus:border-brand">
+                  <option value="">Choose from your portfolio</option>
+                  {domains.filter((domain) => !domain.archivedAt).map((domain) => (
+                    <option key={domain.id} value={domain.id}>{domain.name}</option>
+                  ))}
+                </select>
                 <button type="button" onClick={() => setRailOpen(true)} className="mt-3 h-11 w-full rounded-lg bg-brand text-sm font-bold text-bg shadow-[0_0_12px_rgba(20,184,166,0.3)]">
                   {activeDomain ? `Find buyers for ${activeDomain.name}` : "Create lead search"}
                 </button>
