@@ -308,7 +308,9 @@ router.post('/tickets/:id/reply', wrap(async (req, res) => {
 
   const recipient = ticket.user?.email || ticket.guestEmail;
   if (recipient) {
-    sendTicketReplyEmail(recipient, ticket.subject, body).catch(() => {});
+    sendTicketReplyEmail(recipient, ticket.subject, body, ticket.id).catch((error) => {
+      console.error('[Admin] Failed to send ticket reply notification:', error instanceof Error ? error.message : 'unknown error');
+    });
   }
   res.status(201).json({ ok: true, message });
 }));

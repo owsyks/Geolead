@@ -14,7 +14,7 @@ function systemFrom(): string {
   return `${name} <${email}>`;
 }
 
-async function sendEmail(to: string, subject: string, html: string, textLink: string): Promise<void> {
+async function sendEmail(to: string, subject: string, html: string, textLink: string, text?: string): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.log(`[Mailer] (no RESEND_API_KEY) ${subject} for ${to} -> ${textLink}`);
@@ -23,7 +23,7 @@ async function sendEmail(to: string, subject: string, html: string, textLink: st
   try {
     await axios.post(
       'https://api.resend.com/emails',
-      { from: systemFrom(), to, subject, html },
+      { from: systemFrom(), to, subject, html, ...(text ? { text } : {}) },
       { headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, timeout: 15000 }
     );
   } catch (err: any) {
@@ -102,6 +102,69 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+export function renderTicketReplyEmail(subject: string, replyBody: string, ticketId: string): string {
+  const safeSubject = escapeHtml(subject);
+  const safeTicketId = escapeHtml(ticketId);
+  const safeReply = escapeHtml(replyBody).replace(/\r?\n/g, '<br>');
+  const conversationLink = `${frontendUrl()}/dashboard`;
+
+  // Table layout and inline styles are deliberate: they render consistently
+  // across Gmail, Outlook, Apple Mail, and narrow mobile clients.
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GeoLead AI support reply</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f7f6;color:#101817;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">GeoLead AI Support replied to your ticket: ${safeSubject}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f7f6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:620px;background:#ffffff;border:1px solid #dce7e4;border-radius:16px;overflow:hidden;">
+            <tr>
+              <td style="padding:24px 28px;background:#0b1110;color:#ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="font-size:20px;font-weight:800;letter-spacing:-0.3px;">GeoLead <span style="color:#19c5b1;">AI</span></td>
+                    <td align="right" style="font-size:11px;font-weight:700;letter-spacing:1.2px;color:#8fa39e;text-transform:uppercase;">Support</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:30px 28px 12px;">
+                <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#0aa995;text-transform:uppercase;margin-bottom:10px;">New support reply</div>
+                <h1 style="margin:0;font-size:24px;line-height:1.3;letter-spacing:-0.4px;color:#101817;">${safeSubject}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 28px 6px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f5faf9;border-left:4px solid #19c5b1;border-radius:8px;">
+                  <tr>
+                    <td style="padding:20px;font-size:15px;line-height:1.7;color:#263b37;word-break:break-word;">${safeReply}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:22px 28px 30px;">
+                <a href="${conversationLink}" style="display:inline-block;background:#19bda9;color:#07110f;text-decoration:none;font-size:14px;font-weight:800;padding:13px 20px;border-radius:8px;">Open support conversation&nbsp;&rarr;</a>
+                <p style="margin:18px 0 0;font-size:12px;line-height:1.6;color:#71817d;">Ticket reference: <strong style="color:#42534f;">${safeTicketId}</strong><br>Open GeoLead AI to continue the conversation with our support team.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 28px;background:#f8fbfa;border-top:1px solid #e4ecea;font-size:11px;line-height:1.6;color:#82908d;">This is a transactional support notification from GeoLead AI. Please use the button above to reply inside your secure support thread.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 export async function sendContactNotification(payload: {
   name: string;
   email: string;
@@ -130,11 +193,24 @@ export async function sendContactNotification(payload: {
   );
 }
 
-export async function sendTicketReplyEmail(to: string, subject: string, replyBody: string): Promise<void> {
+export async function sendTicketReplyEmail(to: string, subject: string, replyBody: string, ticketId: string): Promise<void> {
+  const link = `${frontendUrl()}/dashboard`;
+  const mailSubject = /^re:/i.test(subject.trim()) ? subject.trim() : `Re: ${subject.trim()}`;
+  const plainText = [
+    'GeoLead AI Support',
+    '',
+    subject,
+    '',
+    replyBody,
+    '',
+    `Ticket reference: ${ticketId}`,
+    `Open your support conversation: ${link}`,
+  ].join('\n');
   await sendEmail(
     to,
-    `Re: ${subject}`,
-    wrapPlain(`Re: ${subject}`, escapeHtml(replyBody)),
-    `${frontendUrl()}/dashboard`
+    mailSubject,
+    renderTicketReplyEmail(subject, replyBody, ticketId),
+    link,
+    plainText
   );
 }

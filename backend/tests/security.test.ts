@@ -7,6 +7,7 @@ import { verifyResendWebhook } from '../src/services/webhookSecurity.js';
 import { verifyIpnSignature } from '../src/services/paymento.js';
 import { cleanGeneratedCopy, scoreSpamRisk } from '../src/services/outboundAi.js';
 import { validatePhoneSignals } from '../src/services/contactIntelligence.js';
+import { renderTicketReplyEmail } from '../src/services/mailer.js';
 import {
   campaignEmailLogTenantWhere,
   isConsistentReplyThread,
@@ -108,4 +109,17 @@ test('self-hosted phone validation rejects placeholders and normalizes E.164 sig
     structurallyValid: true,
     reason: 'Structurally valid phone signal.',
   });
+});
+
+test('support reply email escapes user-controlled ticket content', () => {
+  const html = renderTicketReplyEmail(
+    '<img src=x onerror=alert(1)> Help',
+    '<script>alert(1)</script>\nSecond line',
+    'ticket-123',
+  );
+  assert.equal(html.includes('<script>alert(1)</script>'), false);
+  assert.equal(html.includes('<img src=x onerror=alert(1)>'), false);
+  assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;<br>Second line/);
+  assert.match(html, /GeoLead/);
+  assert.match(html, /ticket-123/);
 });
