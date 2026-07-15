@@ -139,6 +139,7 @@ export default function DashboardPage() {
   const [cityState, setCityState] = useState("");
   const [searchDepth, setSearchDepth] = useState(50);
   const [railOpen, setRailOpen] = useState(false);
+  const [searchFormMessage, setSearchFormMessage] = useState("");
 
   // Auto-populate lead-search inputs from the active portfolio domain so the
   // user never re-types keyword/domain/geo — they just pick from the portfolio.
@@ -760,7 +761,11 @@ export default function DashboardPage() {
   // Handle Search Form Submission
   const handleTriggerSearch = async (event?: React.SyntheticEvent) => {
     event?.preventDefault();
-    if (!searchName.trim() || !keyword || !domainIdea) return;
+    if (!searchName.trim() || !keyword || !domainIdea) {
+      setSearchFormMessage("Choose a portfolio domain, then complete the search name and niche.");
+      return;
+    }
+    setSearchFormMessage("");
 
     if (isDemoMode) {
       const newDemoId = `demo-task-${window.crypto.randomUUID()}`;
@@ -880,7 +885,7 @@ export default function DashboardPage() {
       setDomainIdea("");
       setCityState("");
     } catch {
-      alert("Error starting search query. Ensure the backend server is running.");
+      setSearchFormMessage("Could not start this search. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1358,6 +1363,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
+                <DomainSelector label="Source domain" emptyAction={{ label: "Add to portfolio", href: "/portfolio" }} />
+                {activeDomain ? (
+                  <p className="mt-2 text-[10px] text-success">Search fields are filled from {activeDomain.name}. You can edit them below.</p>
+                ) : null}
+              </div>
+              <div>
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Search Name</label>
                 <input type="text" required maxLength={80} value={searchName} onChange={(e) => setSearchName(e.target.value)} placeholder="e.g. Dallas dentists — July"
                   className="w-full h-10 bg-surface-2 border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand" />
@@ -1387,6 +1398,7 @@ export default function DashboardPage() {
                 if (searchName.trim() && keyword && domainIdea) setRailOpen(false);
               }}
                 className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
+              {searchFormMessage ? <p role="alert" className="text-xs text-danger">{searchFormMessage}</p> : null}
               {tasks.length > 0 && <div className="pt-3 border-t border-border"><h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Recent Searches</h4>
                 {tasks.slice(0, 5).map((task) => (
                   <div key={task.id} className="flex items-center gap-1 rounded-lg hover:bg-surface-2 transition-colors">
@@ -2028,6 +2040,12 @@ export default function DashboardPage() {
               <TrendingUp className="w-12 h-12 text-text-faint mb-4" />
               <h3 className="text-base font-bold text-text-muted">Welcome to GeoLead AI</h3>
               <p className="text-xs text-text-faint max-w-sm mt-1 leading-relaxed">Generate keyword variations and discover high-intent local buyers for your domain assets. Submit a query in the rail.</p>
+              <div className="lg:hidden mt-6 w-full max-w-md text-left">
+                <DomainSelector label="Choose a domain to research" emptyAction={{ label: "Add to portfolio", href: "/portfolio" }} />
+                <button type="button" onClick={() => setRailOpen(true)} className="mt-3 h-11 w-full rounded-lg bg-brand text-sm font-bold text-bg shadow-[0_0_12px_rgba(20,184,166,0.3)]">
+                  {activeDomain ? `Find buyers for ${activeDomain.name}` : "Create lead search"}
+                </button>
+              </div>
             </div>
           )}
         </main>
