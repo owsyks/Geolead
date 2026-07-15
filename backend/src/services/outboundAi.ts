@@ -90,6 +90,10 @@ export interface GeneratedEmail {
   websiteIntel: WebsiteIntel;
   complianceNotes: string[];
   variants: GeneratedEmailVariant[];
+  // UI/API consumers can distinguish a reviewed local safe fallback from
+  // provider-generated copy without exposing provider credentials or errors.
+  generationSource: 'AI' | 'SAFE_FALLBACK';
+  degradedReason?: 'NO_PROVIDER_CONFIGURED' | 'PROVIDER_UNAVAILABLE';
 }
 
 export interface GeneratedFollowUpVariant {
@@ -124,9 +128,23 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
   // Resolve the NVIDIA key at call time so changes saved in Settings take
   // effect without a restart. Empty key => local template fallback.
   const nvidiaKey = await getNvidiaKey(input.userId);
-  const generated = nvidiaKey
-    ? await generateHumanSequences(normalizedInput, websiteIntel).catch(() => localGenerate(normalizedInput, websiteIntel))
-    : localGenerate(normalizedInput, websiteIntel);
+  let generationSource: GeneratedEmail['generationSource'] = 'SAFE_FALLBACK';
+  let degradedReason: GeneratedEmail['degradedReason'] = 'NO_PROVIDER_CONFIGURED';
+  let generated: ReturnType<typeof localGenerate>;
+  if (nvidiaKey) {
+    try {
+      generated = await generateHumanSequences(normalizedInput, websiteIntel);
+      generationSource = 'AI';
+      degradedReason = undefined;
+    } catch {
+      // Never surface an upstream provider error to tenants. The local copy is
+      // constrained, spam-scored, and explicitly marked as a safe fallback.
+      generated = localGenerate(normalizedInput, websiteIntel);
+      degradedReason = 'PROVIDER_UNAVAILABLE';
+    }
+  } else {
+    generated = localGenerate(normalizedInput, websiteIntel);
+  }
 
   // Resolve recipient/sender tokens into readable text before scoring/return so
   // the output never shows raw "{{businessName}}" / "{{senderName}}".
@@ -190,6 +208,8 @@ export async function generateOutboundEmail(input: EmailGenerationInput): Promis
       'Stop follow-ups when a reply, bounce, complaint, or unsubscribe is received.',
       'Keep daily volume and sender rotation conservative until the domain is warmed up.',
     ],
+    generationSource,
+    ...(degradedReason ? { degradedReason } : {}),
   };
 }
 

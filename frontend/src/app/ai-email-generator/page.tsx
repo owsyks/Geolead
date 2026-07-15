@@ -125,6 +125,8 @@ export default function AiEmailGeneratorPage() {
           "Include truthful sender identity, physical address, and an unsubscribe link.",
           "Stop the sequence after replies, bounces, complaints, or opt-outs.",
         ],
+        generationSource: "SAFE_FALLBACK",
+        degradedReason: "PROVIDER_UNAVAILABLE",
         variants: fallbackVariants,
       });
       setMessage("Backend offline. Showing local fallback copy.");
@@ -302,6 +304,11 @@ export default function AiEmailGeneratorPage() {
         <section className="space-y-5">
           {result ? (
             <>
+              {result.generationSource === "SAFE_FALLBACK" ? (
+                <div className="rounded-lg border border-copper/30 bg-copper/10 px-3 py-2 text-xs text-copper">
+                  Safe fallback copy is shown because an AI provider is unavailable. It is deterministic and spam-scored; review it before sending.
+                </div>
+              ) : null}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <GlassCard className="p-5 flex items-center gap-3">
                   <ScoreRing score={Math.max(0, 100 - result.spamScore * 10)} size="sm" />

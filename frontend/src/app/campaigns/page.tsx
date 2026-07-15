@@ -1147,6 +1147,8 @@ interface CampaignVariant {
 }
 interface VariantsResponse {
   generatedAt: string | null;
+  generationSource: "AI" | "SAFE_FALLBACK";
+  degradedReason?: "NO_PROVIDER_CONFIGURED" | "PROVIDER_UNAVAILABLE";
   variants: CampaignVariant[];
   best: {
     subject: { key: string; subject: string; openRate: number } | null;
@@ -1212,6 +1214,11 @@ function VariantsModal({ campaign, onClose }: { campaign: { id: string; name: st
       </div>
 
       {error ? <div className="mb-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</div> : null}
+      {!loading && data?.generationSource === "SAFE_FALLBACK" ? (
+        <div className="mb-3 rounded-lg border border-copper/30 bg-copper/10 px-3 py-2 text-xs text-copper">
+          Safe fallback variants are active because an AI provider is unavailable. They are spam-scored; review before sending.
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="py-10 flex items-center justify-center gap-2 text-sm text-text-muted"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>

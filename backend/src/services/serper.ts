@@ -89,7 +89,7 @@ async function incrementKeyUsage(key: string): Promise<void> {
   await redisConnection.incr(`serper:usage:${keyId(key)}`).catch(() => undefined);
 }
 
-async function quarantineKey(key: string, seconds: number): Promise<void> {
+export async function quarantineSerperKey(key: string, seconds: number): Promise<void> {
   await redisConnection.set(`serper:quarantine:${keyId(key)}`, '1', 'EX', seconds).catch(() => undefined);
 }
 
@@ -149,7 +149,11 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 429 || status === 403 || status === 401) {
-        await quarantineKey(key, status === 429 ? 60 : 24 * 60 * 60);
+        // Authentication/authorization failures are not transient. Keep these
+        // credentials out of the rotation for a week so a rejected platform
+        // key cannot consume a request on every user search. Rate limits get a
+        // short retry window instead.
+        await quarantineSerperKey(key, status === 429 ? 60 : 7 * 24 * 60 * 60);
         console.warn(`[Serper.dev] Platform key rejected (${status}) on ${path}; rotating to the next key.`);
         continue;
       }

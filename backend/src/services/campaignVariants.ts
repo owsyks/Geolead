@@ -71,6 +71,8 @@ export interface GeneratedVariantFollowUp {
 export interface VariantBundle {
   generatedAt: string;
   variants: GeneratedVariant[];
+  generationSource: 'AI' | 'SAFE_FALLBACK';
+  degradedReason?: 'NO_PROVIDER_CONFIGURED' | 'PROVIDER_UNAVAILABLE';
 }
 
 // ─── Greeting / CTA / signature rotation pools (local fallback + enrichment) ──
@@ -276,8 +278,16 @@ async function aiVariants(input: VariantInput): Promise<GeneratedVariant[]> {
 export async function generateCampaignVariants(input: VariantInput): Promise<VariantBundle> {
   const hasKey = Boolean(await getNvidiaKey(input.userId).catch(() => undefined));
   let variants: GeneratedVariant[];
+  let generationSource: VariantBundle['generationSource'] = 'SAFE_FALLBACK';
+  let degradedReason: VariantBundle['degradedReason'] = hasKey ? 'PROVIDER_UNAVAILABLE' : 'NO_PROVIDER_CONFIGURED';
   try {
-    variants = hasKey ? await aiVariants(input) : localVariants(input);
+    if (hasKey) {
+      variants = await aiVariants(input);
+      generationSource = 'AI';
+      degradedReason = undefined;
+    } else {
+      variants = localVariants(input);
+    }
   } catch {
     variants = localVariants(input);
   }
@@ -315,5 +325,10 @@ export async function generateCampaignVariants(input: VariantInput): Promise<Var
     };
   });
 
-  return { generatedAt: new Date().toISOString(), variants };
+  return {
+    generatedAt: new Date().toISOString(),
+    variants,
+    generationSource,
+    ...(degradedReason ? { degradedReason } : {}),
+  };
 }

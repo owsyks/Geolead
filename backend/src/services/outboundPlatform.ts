@@ -23,6 +23,39 @@ const encryptedFieldPattern = /(api|secret|token|password|key|access)/i;
 
 let schedulerStarted = false;
 let tickInProgress = false;
+const OUTBOUND_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+
+/**
+ * Atomically claims a queued message before calling an external provider.
+ * The status predicate is the cross-process lock: only one backend/worker can
+ * transition QUEUED -> SENDING, so a second process cannot duplicate a send.
+ */
+async function claimQueuedEmailLog(emailLogId: string): Promise<boolean> {
+  const claim = await prisma.emailLog.updateMany({
+    where: { id: emailLogId, status: 'QUEUED' },
+    data: { status: 'SENDING', processingStartedAt: new Date(), errorMessage: null },
+  });
+  return claim.count === 1;
+}
+
+async function failStaleOutboundClaims(now: Date): Promise<void> {
+  const staleBefore = new Date(now.getTime() - OUTBOUND_CLAIM_TIMEOUT_MS);
+  const result = await prisma.emailLog.updateMany({
+    where: {
+      status: 'SENDING',
+      // Existing pre-migration SENDING rows have no timestamp and are also
+      // ambiguous, so they must be failed closed rather than replayed.
+      OR: [{ processingStartedAt: { lt: staleBefore } }, { processingStartedAt: null }],
+    },
+    data: {
+      status: 'FAILED',
+      errorMessage: 'Send claim timed out before provider confirmation. Not retried automatically to prevent a duplicate email.',
+    },
+  });
+  if (result.count > 0) {
+    console.error(`[Outbound] Marked ${result.count} stale send claim(s) FAILED for safe manual review.`);
+  }
+}
 
 export interface CampaignCreateInput {
   name: string;
@@ -729,6 +762,8 @@ export async function getCampaignVariants(campaignId: string, userId: string) {
 
   return {
     generatedAt: bundle?.generatedAt || null,
+    generationSource: bundle?.generationSource || 'SAFE_FALLBACK',
+    degradedReason: bundle?.degradedReason || (bundle ? undefined : 'NO_PROVIDER_CONFIGURED'),
     variants,
     best: {
       subject: bestByOpen ? { key: bestByOpen.key, subject: bestByOpen.subject, openRate: bestByOpen.performance.openRate } : null,
@@ -828,7 +863,12 @@ export async function queueCampaignSends(campaignId: string, senderAccountIdOver
   // fall back to local hardcoded variants so every send has subject rotation.
   let bundle = (campaign.metadata as any)?.variants as VariantBundle | undefined;
   if (!bundle) {
-    bundle = { generatedAt: new Date().toISOString(), variants: localVariants({ geoDomain: campaign.geoDomain, niche: campaign.niche, cityState: campaign.cityState || undefined }) };
+    bundle = {
+      generatedAt: new Date().toISOString(),
+      variants: localVariants({ geoDomain: campaign.geoDomain, niche: campaign.niche, cityState: campaign.cityState || undefined }),
+      generationSource: 'SAFE_FALLBACK',
+      degradedReason: 'NO_PROVIDER_CONFIGURED',
+    };
   }
   const approvedVariants = (bundle?.variants || []).filter((v) => v.approved);
   const variantStats = approvedVariants.length ? await getVariantStats(campaign.id) : {};
@@ -927,6 +967,10 @@ export async function forceSendCampaign(campaignId: string, userId: string) {
     const sender = log.senderAccount || (await getRotatedSender(log.campaign.userId || undefined));
     if (!sender) continue;
 
+    // Force-send shares the same durable claim as the scheduler. This also
+    // prevents a user click from racing the background queue.
+    if (!(await claimQueuedEmailLog(log.id))) continue;
+
     // Assign variant if missing
     if (!log.variant) {
       const campaignMeta = (log.campaign?.metadata as any || {});
@@ -943,7 +987,7 @@ export async function forceSendCampaign(campaignId: string, userId: string) {
       const providerResponse = await sendWithRetry(log, sender);
       await prisma.emailLog.update({
         where: { id: log.id },
-        data: { status: providerResponse.dryRun ? 'SIMULATED' : 'SENT', sentAt: new Date(), providerMessageId: providerResponse.providerMessageId },
+        data: { status: providerResponse.dryRun ? 'SIMULATED' : 'SENT', sentAt: new Date(), providerMessageId: providerResponse.providerMessageId, processingStartedAt: null },
       });
       if (log.campaignLeadId) {
         await prisma.campaignLead.update({ where: { id: log.campaignLeadId }, data: { status: 'SENT', stage: 'Contacted', lastSentAt: new Date() } });
@@ -957,7 +1001,7 @@ export async function forceSendCampaign(campaignId: string, userId: string) {
         await new Promise((r) => setTimeout(r, 60_000));
       }
     } catch (err: any) {
-      await prisma.emailLog.update({ where: { id: log.id }, data: { status: 'FAILED', errorMessage: err.message } });
+      await prisma.emailLog.update({ where: { id: log.id }, data: { status: 'FAILED', processingStartedAt: null, errorMessage: err.message } });
     }
   }
 
@@ -979,6 +1023,12 @@ export async function processOutboundQueueTick() {
 
 async function runOutboundQueueTick() {
   const now = new Date();
+
+  // A process may die after receiving provider acceptance but before it can
+  // record SENT. Fail closed instead of re-queuing such records: automatic
+  // replay would be a duplicate email. Operators can inspect/retry FAILED
+  // records deliberately.
+  await failStaleOutboundClaims(now);
 
   // Only pull logs whose campaign is ACTIVE. Past-due QUEUED logs from
   // paused/stopped campaigns would otherwise sort first (oldest scheduledAt) and
@@ -1133,6 +1183,10 @@ async function runOutboundQueueTick() {
     // Plan daily send cap for the sender's owner (fail-closed: no owner ⇒ skip).
     if (!sender.userId || !(await ownerHasSendBudget(sender.userId))) continue;
 
+    // This must be the final operation before a provider call. It is an atomic
+    // database compare-and-set, valid across all backend and worker replicas.
+    if (!(await claimQueuedEmailLog(log.id))) continue;
+
     try {
       // Assign variant if missing (pre-existing queued emails from before auto-generation)
       if (!log.variant) {
@@ -1156,6 +1210,7 @@ async function runOutboundQueueTick() {
           status: wasDryRun ? 'SIMULATED' : 'SENT',
           sentAt: new Date(),
           providerMessageId: providerResponse.providerMessageId,
+          processingStartedAt: null,
           metadata: {
             ...(log.metadata as Record<string, unknown> | null),
             providerResponse,
@@ -1183,7 +1238,7 @@ async function runOutboundQueueTick() {
     } catch (error: any) {
       await prisma.emailLog.update({
         where: { id: log.id },
-        data: { status: 'FAILED', errorMessage: error.message },
+        data: { status: 'FAILED', processingStartedAt: null, errorMessage: error.message },
       });
       await recordEmailEvent(log.id, 'FAILED', { error: error.message });
     }

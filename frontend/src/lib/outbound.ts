@@ -365,6 +365,8 @@ export interface GeneratedOutboundEmail {
     painPointSignals: string[];
   };
   complianceNotes: string[];
+  generationSource: "AI" | "SAFE_FALLBACK";
+  degradedReason?: "NO_PROVIDER_CONFIGURED" | "PROVIDER_UNAVAILABLE";
   variants: Array<{
     key: "A" | "B" | "C";
     label: string;

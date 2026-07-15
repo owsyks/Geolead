@@ -43,6 +43,11 @@ interface ProviderConfig {
   minMaxTokens?: number;
 }
 
+export interface AiReadiness {
+  configuredProviders: string[];
+  fallbackAvailable: true;
+}
+
 // Order matters: NVIDIA first (already configured), then free tiers ordered
 // fastest/tightest-quota -> deepest/largest-quota (see the plan doc for why).
 const PROVIDERS: ProviderConfig[] = [
@@ -119,6 +124,16 @@ export async function getNvidiaKey(userId?: string | null): Promise<string | und
     if (key) return key;
   }
   return undefined;
+}
+
+// Exposes configuration state without ever returning keys. Local deterministic
+// generators remain available when this list is empty or every provider fails.
+export async function getAiReadiness(userId?: string | null): Promise<AiReadiness> {
+  const configuredProviders: string[] = [];
+  for (const cfg of PROVIDERS) {
+    if (await getSetting(cfg.keySettingKey, userId)) configuredProviders.push(cfg.name);
+  }
+  return { configuredProviders, fallbackAvailable: true };
 }
 
 async function callProvider(cfg: ProviderConfig, messages: AiMessage[], options: AiChatOptions): Promise<string> {

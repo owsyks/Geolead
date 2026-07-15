@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { quarantineSerperKey } from '../services/serper.js';
 
 async function main(): Promise<void> {
   const keyNames = [
@@ -46,11 +47,19 @@ async function main(): Promise<void> {
         organicResults: Array.isArray(response.data?.organic) ? response.data.organic.length : 0,
       }));
     } catch (error: any) {
+      const status = Number(error?.response?.status || 0);
+      // Persist auth failures to the same Redis quarantine used at runtime.
+      // This keeps known-bad platform credentials out of the first real user
+      // search after a deploy, without printing or altering secret values.
+      if (status === 401 || status === 403) {
+        await quarantineSerperKey(key, 7 * 24 * 60 * 60);
+      }
       console.error(JSON.stringify({
         variables: variableNames,
-        serperProbeStatus: error?.response?.status || null,
+        serperProbeStatus: status || null,
         errorCode: error?.code || null,
-        message: error?.response?.status ? 'Serper rejected the platform credential or request.' : 'Serper could not be reached.',
+        message: status ? 'Serper rejected the platform credential or request.' : 'Serper could not be reached.',
+        quarantined: status === 401 || status === 403,
       }));
     }
   }

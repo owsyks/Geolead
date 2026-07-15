@@ -492,12 +492,19 @@ model EmailLog {
   repliedAt        DateTime?
   bouncedAt        DateTime?
   unsubscribedAt   DateTime?
+  // A database-backed claim prevents two scheduler processes from sending the
+  // same queued email. A stale claim is failed closed for operator review,
+  // rather than retried automatically and risking a duplicate send.
+  processingStartedAt DateTime?
   errorMessage     String?     @db.Text
   metadata         Json?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   events           EmailEvent[]
   replies          Reply[]
+
+  @@index([status, scheduledAt])
+  @@index([status, processingStartedAt])
 }
 
 model EmailEvent {
