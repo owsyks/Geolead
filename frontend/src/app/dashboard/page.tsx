@@ -1628,7 +1628,10 @@ export default function DashboardPage() {
             <div className="lg:hidden shrink-0 border-b border-border bg-surface-2/30 px-3 py-3">
               <div className="flex items-center justify-between gap-3 mb-1.5">
                 <label htmlFor="mobile-search-history" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Your lead searches</label>
-                <span className="text-[10px] text-text-faint">{tasks.length} saved</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-text-faint">{tasks.length} saved</span>
+                  <button type="button" onClick={() => setRailOpen(true)} className="h-8 rounded-lg bg-brand px-2.5 text-[11px] font-bold text-bg shadow-[0_0_10px_rgba(20,184,166,0.25)]">New search</button>
+                </div>
               </div>
               <select
                 id="mobile-search-history"
@@ -2132,14 +2135,6 @@ export default function DashboardPage() {
 
       {/* WhatsApp Validation Panel */}
       {showWaPanel && (<WaValidationPanel leads={leads} taskId={selectedTask?.id} onClose={() => setShowWaPanel(false)} />)}
-
-      {/* Mobile search control stays above the bottom navigation. */}
-      {!railOpen && (
-        <button onClick={() => setRailOpen(true)} aria-label="Open lead search"
-          className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-brand text-bg flex items-center justify-center shadow-[0_4px_16px_rgba(20,184,166,0.4)] hover:bg-brand-hover transition-colors">
-          <Search className="w-5 h-5" />
-        </button>
-      )}
 
       {/* Solo Send Composer Modal */}
       <ComposerModal

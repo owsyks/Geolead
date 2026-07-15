@@ -260,6 +260,7 @@ export default function PortfolioPage() {
       title="Domain Portfolio"
       eyebrow="Asset Management"
       subtitle="Add, categorize, analyze, and pipeline domains all the way to sale."
+      contentClassName="overflow-x-hidden"
       actions={
         <>
           <button

@@ -368,7 +368,7 @@ export default function SupportBubble() {
         onClick={toggleOpen}
         aria-label="Support chat"
         className={cn(
-          "fixed right-4 lg:right-5 z-[60] w-14 h-14 rounded-full bg-brand text-bg shadow-[0_4px_20px_rgba(20,184,166,0.45)] flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all",
+          "fixed right-4 lg:right-5 z-30 lg:z-[60] w-14 h-14 rounded-full bg-brand text-bg shadow-[0_4px_20px_rgba(20,184,166,0.45)] flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all",
           // Logged-in pages have a fixed mobile bottom nav (h-14 + safe-area);
           // clear it on small screens instead of sitting on top of its icons.
           user ? "bottom-20 lg:bottom-5" : "bottom-5"
@@ -382,7 +382,7 @@ export default function SupportBubble() {
 
       {open && (
         <div className={cn(
-          "fixed right-4 lg:right-5 z-[60] w-[340px] max-w-[calc(100vw-2rem)] h-[480px] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden animate-[supportPanelIn_0.18s_ease-out]",
+          "fixed right-4 lg:right-5 z-30 lg:z-[60] w-[340px] max-w-[calc(100vw-2rem)] h-[480px] bg-bg-elevated border border-border-strong rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] flex flex-col overflow-hidden animate-[supportPanelIn_0.18s_ease-out]",
           user ? "bottom-40 max-h-[calc(100vh-11rem)] lg:bottom-24 lg:max-h-[calc(100vh-8rem)]" : "bottom-24 max-h-[calc(100vh-8rem)]"
         )}>
           <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface-2">
