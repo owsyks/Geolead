@@ -100,6 +100,22 @@ const REGISTRATION_RESEND_MS = 60 * 1000;
 const REGISTRATION_SEND_WINDOW_MS = 60 * 60 * 1000;
 const REGISTRATION_MAX_SENDS = 5;
 const REGISTRATION_MAX_ATTEMPTS = 5;
+const REGISTRATION_USER_LIMIT = 50;
+
+class RegistrationCapacityError extends Error {
+  constructor() { super('REGISTRATION_LIMIT_REACHED'); }
+}
+
+async function registrationHasCapacity(): Promise<boolean> {
+  return (await prisma.user.count()) < REGISTRATION_USER_LIMIT;
+}
+
+function registrationClosedResponse(res: Response) {
+  return res.status(403).json({
+    error: `Registration is currently limited to ${REGISTRATION_USER_LIMIT} accounts and all places have been claimed.`,
+    code: 'REGISTRATION_LIMIT_REACHED',
+  });
+}
 
 function registrationCodeHash(email: string, code: string): string {
   const secret = process.env.JWT_SECRET;
@@ -159,6 +175,10 @@ router.post('/registration-code', trustedBrowserOrigin, rateLimit('auth-registra
   if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
+  // Do not spend transactional-email capacity when public registration is
+  // already full. The authoritative check is repeated in the serializable
+  // account-creation transaction below to prevent concurrent oversubscription.
+  if (!(await registrationHasCapacity())) return registrationClosedResponse(res);
 
   const now = new Date();
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -203,6 +223,7 @@ router.post('/register', trustedBrowserOrigin, rateLimit('auth-register', 10, 15
   // Passwordless seeded accounts are activated only through the email-bound
   // reset flow. Registration must never let an attacker claim a known address.
   if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+  if (!(await registrationHasCapacity())) return registrationClosedResponse(res);
 
   const challenge = await prisma.registrationChallenge.findUnique({ where: { email } });
   if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) {
@@ -222,26 +243,40 @@ router.post('/register', trustedBrowserOrigin, rateLimit('auth-register', 10, 15
 
   const passwordHash = await hashPassword(password);
   let user: any;
-  try {
-    user = await prisma.$transaction(async (tx) => {
-      const consumed = await tx.registrationChallenge.updateMany({
-        where: { email, codeHash: challenge.codeHash, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: REGISTRATION_MAX_ATTEMPTS } },
-        data: { consumedAt: new Date() },
-      });
-      if (consumed.count !== 1) throw new Error('REGISTRATION_CODE_ALREADY_USED');
-      return tx.user.create({
-        data: {
-          name, email, passwordHash, emailVerified: true, role: 'ADMIN', plan: 'trial', planStatus: 'trialing', trialEndsAt: trialEndFromNow(),
-          userSettings: { create: {} },
-          notificationPreference: { create: {} },
-        },
-      });
-    });
-  } catch (error: any) {
-    if (error?.code === 'P2002') return res.status(409).json({ error: 'An account with this email already exists.' });
-    if (error?.message === 'REGISTRATION_CODE_ALREADY_USED') return res.status(400).json({ error: 'This verification code is invalid or has expired.' });
-    throw error;
+  for (let retry = 0; retry < 3; retry += 1) {
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        // SERIALIZABLE makes the count-and-create operation safe across every
+        // backend replica. If two signups race for the final place, PostgreSQL
+        // aborts one transaction and we retry against the updated count.
+        if ((await tx.user.count()) >= REGISTRATION_USER_LIMIT) {
+          throw new RegistrationCapacityError();
+        }
+        const consumed = await tx.registrationChallenge.updateMany({
+          where: { email, codeHash: challenge.codeHash, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: REGISTRATION_MAX_ATTEMPTS } },
+          data: { consumedAt: new Date() },
+        });
+        if (consumed.count !== 1) throw new Error('REGISTRATION_CODE_ALREADY_USED');
+        return tx.user.create({
+          data: {
+            name, email, passwordHash, emailVerified: true, role: 'ADMIN', plan: 'trial', planStatus: 'trialing', trialEndsAt: trialEndFromNow(),
+            userSettings: { create: {} },
+            notificationPreference: { create: {} },
+          },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      break;
+    } catch (error: any) {
+      if (error?.code === 'P2034' && retry < 2) continue;
+      if (error?.code === 'P2002') return res.status(409).json({ error: 'An account with this email already exists.' });
+      if (error instanceof RegistrationCapacityError || error?.message === 'REGISTRATION_LIMIT_REACHED') {
+        return registrationClosedResponse(res);
+      }
+      if (error?.message === 'REGISTRATION_CODE_ALREADY_USED') return res.status(400).json({ error: 'This verification code is invalid or has expired.' });
+      throw error;
+    }
   }
+  if (!user) return res.status(503).json({ error: 'Registration is temporarily busy. Please try again.' });
 
   const access = issueAccessToken(user.id, user.email);
   const refresh = await issueRefreshToken(user.id, sessionMeta(req));
