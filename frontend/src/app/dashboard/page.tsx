@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useEffectEvent, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { ComposerModal } from "./ComposerModal";
 import { VerificationModal, type EmailProgress } from "./VerificationModal";
 import { DomainSelector } from "@/components/DomainSelector";
@@ -8,7 +9,6 @@ import { OutboundShell, MetricCard } from "@/components/OutboundShell";
 import { GlassCard, ScoreRing } from "@/components/ui";
 import { useDomainContext } from "@/lib/domainContext";
 import { authFetch, fetchOutbound } from "@/lib/outbound";
-import { readCache, writeCache } from "@/lib/cache";
 import {
   Search,
   MapPin,
@@ -40,8 +40,6 @@ const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
 const DEMO_TASK_ONE_CREATED_AT = "2026-05-21T23:00:00.000Z";
 const DEMO_TASK_TWO_CREATED_AT = "2026-05-21T22:00:00.000Z";
-
-const HISTORY_CACHE_KEY = "dashboard.history";
 
 const INPUT = "w-full h-10 bg-bg border border-border rounded-lg px-3 text-xs text-text focus:outline-none focus:border-brand transition-colors";
 const LABEL = "block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5";
@@ -131,6 +129,7 @@ type ExportCellValue = string | number;
 type ExportRow = Record<string, ExportCellValue>;
 
 export default function DashboardPage() {
+  const router = useRouter();
   // Input Form States
   const { activeDomain, domains, setActiveDomainId } = useDomainContext();
   const [searchName, setSearchName] = useState("");
@@ -176,8 +175,15 @@ export default function DashboardPage() {
   }, [activeDomain]);
 
   // Data States
-  const [tasks, setTasks] = useState<SearchTask[]>(() => readCache<SearchTask[]>(HISTORY_CACHE_KEY) ?? []);
+  // Search history is deliberately loaded from the authenticated API instead
+  // of local storage. A shared browser must never briefly render another
+  // account's cached lead searches while the session is being restored.
+  const [tasks, setTasks] = useState<SearchTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<SearchTask | null>(null);
+  const selectedTaskIdRef = useRef<string | null>(null);
+  const requestedTaskIdRef = useRef<string | null>(
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("task"),
+  );
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<SearchTask | null>(null);
@@ -298,7 +304,6 @@ export default function DashboardPage() {
 
       const remaining = tasks.filter((item) => item.id !== task.id);
       setTasks(remaining);
-      writeCache(HISTORY_CACHE_KEY, remaining);
       setTaskPendingDelete(null);
 
       if (selectedTask?.id === task.id) {
@@ -308,7 +313,11 @@ export default function DashboardPage() {
         setTotalPages(1);
         setSelectedLeadIds(new Set());
         if (remaining.length > 0) handleSelectTask(remaining[0]);
-        else setSelectedTask(null);
+        else {
+          selectedTaskIdRef.current = null;
+          setSelectedTask(null);
+          if (typeof window !== "undefined") window.history.replaceState(null, "", "/dashboard");
+        }
       }
     } catch (error) {
       setDeleteTaskError(error instanceof Error ? error.message : "Failed to delete search.");
@@ -390,7 +399,7 @@ export default function DashboardPage() {
     setCampaignCreating(true);
     try {
       const leadIds = Array.from(selectedLeadIds);
-      await fetchOutbound(`/api/outbound/campaigns`, {
+      const created = await fetchOutbound<{ id: string }>(`/api/outbound/campaigns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -408,9 +417,12 @@ export default function DashboardPage() {
           status: 'DRAFT',
         }),
       });
+      // Close this modal and hand the user straight to the new draft campaign
+      // instead of leaving them stuck on the Lead Explorer.
       setShowCampaignModal(false);
       setSelectedLeadIds(new Set());
       setCampaignName('');
+      router.push(created?.id ? `/campaigns?open=${created.id}` : '/campaigns?status=DRAFT');
     } catch (err) {
       console.error('Create campaign error:', err);
     }
@@ -424,16 +436,21 @@ export default function DashboardPage() {
   // Fetch search task history
   const fetchHistory = async () => {
     try {
-      const response = await authFetch(`${BACKEND_URL}/api/history`);
+      const response = await authFetch(`${BACKEND_URL}/api/history?limit=100`);
       if (!response.ok) throw new Error();
       const data = await response.json();
       setTasks(data);
-      writeCache(HISTORY_CACHE_KEY, data);
       setIsDemoMode(false);
 
-      // Auto-select latest task if available
-      if (data.length > 0 && !selectedTask) {
-        handleSelectTask(data[0]);
+      // Restore a linked search first; otherwise, returning users land on
+      // their newest search instead of an empty welcome screen.
+      const requestedId = requestedTaskIdRef.current || selectedTaskIdRef.current;
+      const nextTask = data.find((task: SearchTask) => task.id === requestedId) || data[0];
+      if (nextTask && nextTask.id !== selectedTaskIdRef.current) {
+        handleSelectTask(nextTask, false);
+      } else if (requestedTaskIdRef.current && !data.some((task: SearchTask) => task.id === requestedTaskIdRef.current)) {
+        requestedTaskIdRef.current = null;
+        if (typeof window !== "undefined") window.history.replaceState(null, "", "/dashboard");
       }
     } catch {
       console.log("Could not connect to backend server. Loading offline demo mode.");
@@ -479,6 +496,8 @@ export default function DashboardPage() {
 
     setTasks(mockTasks);
     // Select first task by default
+    selectedTaskIdRef.current = mockTasks[0].id;
+    setSelectedTask(mockTasks[0]);
     setDemoTaskLeads(mockTasks[0].id);
   };
 
@@ -638,9 +657,31 @@ export default function DashboardPage() {
   };
 
   // Select a task and load its leads
-  const handleSelectTask = (task: SearchTask) => {
+  const handleSelectTask = (task: SearchTask, resetLeadView = true) => {
+    selectedTaskIdRef.current = task.id;
+    requestedTaskIdRef.current = task.id;
     setSelectedTask(task);
     setPage(1);
+
+    if (resetLeadView) {
+      setSearchFilterInput("");
+      setSearchFilter("");
+      setMinScore(0);
+      setHasEmailsOnly(false);
+      setChannelFilter("all");
+      setRoleFilter("all");
+      setMinBuyerIntent(0);
+      setMinPriority(0);
+      setNotContactedOnly(false);
+      setSelectedLeadIds(new Set());
+      setShowBulkActions(false);
+    }
+
+    if (typeof window !== "undefined" && !isDemoMode) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("task", task.id);
+      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    }
 
     if (isDemoMode) {
       setDemoTaskLeads(task.id);
@@ -1420,19 +1461,6 @@ export default function DashboardPage() {
               }}
                 className="w-full h-10 bg-brand text-bg rounded-lg text-xs font-bold hover:bg-brand-hover transition-colors shadow-[0_0_12px_rgba(20,184,166,0.3)]">Start Lead Discovery</button>
               {searchFormMessage ? <p role="alert" className="text-xs text-danger">{searchFormMessage}</p> : null}
-              {tasks.length > 0 && <div className="pt-3 border-t border-border"><h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Recent Searches</h4>
-                {tasks.slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-center gap-1 rounded-lg hover:bg-surface-2 transition-colors">
-                    <button type="button" onClick={() => { handleSelectTask(task); setRailOpen(false); }}
-                      className="min-w-0 flex-1 text-left px-3 py-2 text-xs text-text-muted flex items-center justify-between gap-2">
-                      <span className="truncate">{task.name || task.domainIdea}</span>
-                      <span className={`text-[9px] font-bold uppercase ${task.status === 'COMPLETED' ? 'text-success' : task.status === 'FAILED' ? 'text-danger' : 'text-copper'}`}>{task.status}</span>
-                    </button>
-                    <button type="button" aria-label={`Delete ${task.name || task.domainIdea} search`} onClick={(event) => requestDeleteTask(task, event)} className="p-2 mr-1 rounded-md text-text-faint hover:text-danger hover:bg-danger/10 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}</div>}
             </div>
           </div>
         )}
@@ -1596,8 +1624,32 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {tasks.length > 0 && (
+            <div className="lg:hidden shrink-0 border-b border-border bg-surface-2/30 px-3 py-3">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <label htmlFor="mobile-search-history" className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Your lead searches</label>
+                <span className="text-[10px] text-text-faint">{tasks.length} saved</span>
+              </div>
+              <select
+                id="mobile-search-history"
+                value={selectedTask?.id || ""}
+                onChange={(event) => {
+                  const task = tasks.find((item) => item.id === event.target.value);
+                  if (task) handleSelectTask(task);
+                }}
+                className="h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm font-bold text-text focus:outline-none focus:border-brand"
+              >
+                <option value="" disabled>Select a saved lead search</option>
+                {tasks.map((task) => (
+                  <option key={task.id} value={task.id}>{task.name || task.domainIdea} · {task.totalLeads} leads · {task.status.toLowerCase()}</option>
+                ))}
+              </select>
+              {selectedTask ? <p className="mt-1.5 truncate text-[10px] text-text-muted">{selectedTask.keyword} · {selectedTask.totalLeads} leads · {selectedTask.validEmails} verified emails</p> : null}
+            </div>
+          )}
+
           {selectedTask ? (
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-3 pb-20 lg:p-6 lg:pb-6 space-y-4 lg:space-y-6">
               {/* Active scraping progress */}
               {(selectedTask.status === "PENDING" || selectedTask.status === "PROCESSING") && (
                 <GlassCard className="p-6 relative overflow-hidden">

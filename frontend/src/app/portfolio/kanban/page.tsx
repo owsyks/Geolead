@@ -91,7 +91,7 @@ export default function PortfolioKanbanPage() {
           <div className="p-6 text-sm text-text-muted">Loading…</div>
         ) : (
           <>
-          <div className="md:hidden flex-1 min-h-0 overflow-y-auto bg-bg p-3">
+          <div className="md:hidden flex-1 min-h-0 overflow-y-auto bg-bg p-3 pb-20">
             <div className="sticky top-0 z-10 pb-3 bg-bg">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">Pipeline stage</label>
               <select value={mobileStatus} onChange={(event) => setMobileStatus(event.target.value as PortfolioStatus)} className="mt-1 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-bold text-text">

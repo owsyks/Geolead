@@ -448,7 +448,7 @@ function ReplyDetail({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 lg:p-6 flex flex-col gap-4 lg:gap-6">
+      <div className="flex-1 overflow-y-auto p-3 pb-20 lg:p-6 flex flex-col gap-4 lg:gap-6">
         {/* AI Summary */}
         <GlassCard className="bg-brand/5 border-brand/20 p-3 lg:p-5 flex flex-col sm:flex-row gap-4">
           <div className="flex flex-col items-center justify-center shrink-0">

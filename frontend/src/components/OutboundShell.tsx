@@ -270,7 +270,7 @@ export function OutboundShell({
       </aside>
 
       {/* ── Main Content ── */}
-      <main className={cn("flex-1 ml-0 lg:ml-[288px] flex flex-col pb-16 lg:pb-0", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
+      <main className={cn("flex-1 ml-0 lg:ml-[288px] flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0", fullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
         {/* Header */}
         <header className="h-[52px] lg:h-[72px] shrink-0 sticky top-0 z-10 glass border-b border-border flex items-center justify-between px-3 lg:px-8">
           <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
@@ -284,7 +284,7 @@ export function OutboundShell({
             </div>
           </div>
           <div className="flex items-center gap-1 lg:gap-4 shrink-0">
-            {actions && <div className="hidden sm:flex items-center gap-2">{actions}</div>}
+            {actions && <div className="hidden sm:flex items-center gap-2 overflow-x-auto max-w-[52vw] lg:max-w-none [&>button]:shrink-0">{actions}</div>}
             <Link href="/watchlist?tab=notifications" className="relative w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-2 text-text-muted">
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full border border-bg" />}
@@ -303,7 +303,7 @@ export function OutboundShell({
 
         {/* Page actions remain reachable on phones without crowding the title bar. */}
         {actions && (
-          <div className="sm:hidden border-b border-border bg-bg px-3 py-2 overflow-x-auto">
+          <div className="sm:hidden border-b border-border bg-surface-2/30 px-3 py-2 overflow-x-auto">
             <div className="flex items-center gap-2 min-w-max">{actions}</div>
           </div>
         )}

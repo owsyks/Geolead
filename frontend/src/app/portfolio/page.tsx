@@ -326,6 +326,30 @@ export default function PortfolioPage() {
             <option value="">All statuses</option>
             {DOMAIN_STATUSES.map((status) => (<option key={status} value={status}>{status}</option>))}
           </select>
+          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
+            {Object.entries(SORT_LABELS).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
+          </select>
+          <button onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} className="h-10 px-3 rounded-lg border border-border bg-bg text-sm text-text-muted hover:text-text">
+            {sortDir === "asc" ? "Asc" : "Desc"}
+          </button>
+          <details className="xl:hidden rounded-lg border border-border bg-bg text-sm text-text-muted">
+            <summary className="h-10 cursor-pointer list-none px-3 flex items-center font-semibold">More filters</summary>
+            <div className="grid gap-2 border-t border-border p-3">
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text">
+                <option value="">All categories</option>
+                {allCategories.map((category) => (<option key={category} value={category}>{category}</option>))}
+              </select>
+              <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text">
+                <option value="">All tags</option>
+                {allTags.map((tag) => (<option key={tag} value={tag}>#{tag}</option>))}
+              </select>
+              <label className="flex h-10 items-center gap-2 text-xs text-text-muted">
+                <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} className="h-4 w-4 accent-brand" />
+                Show archived
+              </label>
+            </div>
+          </details>
+          <div className="hidden xl:contents">
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
             <option value="">All categories</option>
             {allCategories.map((category) => (<option key={category} value={category}>{category}</option>))}
@@ -334,16 +358,11 @@ export default function PortfolioPage() {
             <option value="">All tags</option>
             {allTags.map((tag) => (<option key={tag} value={tag}>#{tag}</option>))}
           </select>
-          <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">
-            {Object.entries(SORT_LABELS).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
-          </select>
-          <button onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))} className="h-10 px-3 rounded-lg border border-border bg-bg text-sm text-text-muted hover:text-text">
-            {sortDir === "asc" ? "Asc" : "Desc"}
-          </button>
           <label className="flex items-center gap-2 text-xs text-text-muted whitespace-nowrap">
             <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} className="h-4 w-4 accent-brand" />
             Show archived
           </label>
+          </div>
         </div>
 
         {loading ? (
@@ -388,7 +407,7 @@ export default function PortfolioPage() {
                   <div className="mt-3 flex flex-wrap gap-1.5">{domain.tags.map((tag) => <span key={tag} className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-text-muted">#{tag}</span>)}</div>
                 ) : null}
 
-                <div className="mt-4 grid grid-cols-4 gap-2">
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button onClick={() => { setActiveDomainId(domain.id); setMessage(`Selected ${domain.name} for lead-gen, email, and campaign workflows.`); }} className="h-9 rounded-lg border border-brand/30 bg-brand-soft text-xs font-bold text-brand inline-flex items-center justify-center gap-1"><ArrowUpRight className="h-3.5 w-3.5" /> Use</button>
                   <Link href={`/portfolio/${domain.id}`} className="h-9 rounded-lg border border-border bg-surface text-xs font-bold text-text-muted inline-flex items-center justify-center gap-1"><ExternalLink className="h-3.5 w-3.5" /> Open</Link>
                   <button onClick={() => openEdit(domain)} className="h-9 rounded-lg border border-border bg-surface text-xs font-bold text-text-muted inline-flex items-center justify-center gap-1"><Edit3 className="h-3.5 w-3.5" /> Edit</button>
