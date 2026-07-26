@@ -49,8 +49,8 @@ services:
       - postgres
       - redis
     ports:
-      # Bind to loopback only; Nginx on the host proxies 443 -> 127.0.0.1:5000.
-      - "127.0.0.1:5000:5000"
+      # Expose port 5000 on all interfaces for API access.
+      - "0.0.0.0:5000:5000"
 
   worker:
     build:
