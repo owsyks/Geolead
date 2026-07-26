@@ -1,32 +1,33 @@
 # GeoLead AI — Deployment Guide (Vercel + Heroku)
 
 - **Frontend (Next.js)** → Vercel
-- **Backend (Express + Prisma + workers + WebSocket)** → VPS Server (`oxvon@41.102.186.150`)
+- **Backend (Express + Prisma + workers + WebSocket)** → VPS Server (`0xvon@bore.pub` port `35802`)
 - **CI/CD Deployment** → GitHub Actions (`.github/workflows/deploy.yml`)
 
 ---
 
-## Target Server Configuration (`oxvon@41.102.186.150`)
+## Target Server Configuration (`0xvon@bore.pub` Port `35802`)
 
-To switch or redeploy the server backend to **`oxvon@41.102.186.150`**:
+To switch or redeploy the server backend via the **bore.pub tunnel**:
 
 ### 1. Update GitHub Repository Secrets (for Automated CI/CD)
-Navigate to your GitHub Repository → **Settings** → **Secrets and variables** → **Actions**, and update the repository secrets:
-- `SSH_HOST`: `41.102.186.150`
-- `SSH_USER`: `oxvon`
-- `SSH_KEY`: *(Your private SSH key authorized for user `oxvon`)*
+Navigate to your GitHub Repository → **Settings** → **Secrets and variables** → **Actions**, and set:
+- `SSH_HOST`: `bore.pub`
+- `SSH_PORT`: `35802`
+- `SSH_USER`: `0xvon`
+- `SSH_KEY`: *(Your private SSH key authorized for user `0xvon`)*
 
 ### 2. Manual / One-Click Script Deployment
 Run the automated deployment helper from the repository root:
 
 - **PowerShell (Windows)**:
   ```powershell
-  .\deploy\deploy-vps-41.102.186.150.ps1
+  .\deploy\deploy-vps-bore.ps1
   ```
 - **Bash (Linux / Mac)**:
   ```bash
-  chmod +x deploy/deploy-vps-41.102.186.150.sh
-  ./deploy/deploy-vps-41.102.186.150.sh
+  chmod +x deploy/deploy-vps-bore.sh
+  ./deploy/deploy-vps-bore.sh
   ```
 
 
