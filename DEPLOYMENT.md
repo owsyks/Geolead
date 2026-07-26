@@ -1,13 +1,34 @@
 # GeoLead AI — Deployment Guide (Vercel + Heroku)
 
 - **Frontend (Next.js)** → Vercel
-- **Backend (Express + Prisma + workers + WebSocket)** → Heroku (always-on dyno)
-- **Database** → Heroku Postgres add-on
-- **Redis** → optional (the app falls back to an in-process scheduler if absent)
+- **Backend (Express + Prisma + workers + WebSocket)** → VPS Server (`oxvon@192.168.1.21`)
+- **CI/CD Deployment** → GitHub Actions (`.github/workflows/deploy.yml`)
 
-The backend runs a persistent IMAP sync worker, the send scheduler, and a
-WebSocket server, so it must run on an **always-on dyno** (Basic or higher —
-NOT an Eco dyno, which sleeps and would stop the worker).
+---
+
+## Target Server Configuration (`oxvon@192.168.1.21`)
+
+To switch or redeploy the server backend to **`oxvon@192.168.1.21`**:
+
+### 1. Update GitHub Repository Secrets (for Automated CI/CD)
+Navigate to your GitHub Repository → **Settings** → **Secrets and variables** → **Actions**, and update the repository secrets:
+- `SSH_HOST`: `192.168.1.21`
+- `SSH_USER`: `oxvon`
+- `SSH_KEY`: *(Your private SSH key authorized for user `oxvon`)*
+
+### 2. Manual / One-Click Script Deployment
+Run the automated deployment helper from the repository root:
+
+- **PowerShell (Windows)**:
+  ```powershell
+  .\deploy\deploy-vps-192.168.1.21.ps1
+  ```
+- **Bash (Linux / Mac)**:
+  ```bash
+  chmod +x deploy/deploy-vps-192.168.1.21.sh
+  ./deploy/deploy-vps-192.168.1.21.sh
+  ```
+
 
 ---
 
