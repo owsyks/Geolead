@@ -19,6 +19,9 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
     }
   });
   headers.set("bypass-tunnel-reminder", "true");
+  if (!headers.get("user-agent")) {
+    headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+  }
 
   let body: BodyInit | null = null;
   if (req.method !== "GET" && req.method !== "HEAD") {
