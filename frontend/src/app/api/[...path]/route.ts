@@ -14,7 +14,8 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
 
   const headers = new Headers();
   req.headers.forEach((value, key) => {
-    if (key.toLowerCase() !== "host") {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey !== "host" && lowerKey !== "content-length") {
       headers.set(key, value);
     }
   });
