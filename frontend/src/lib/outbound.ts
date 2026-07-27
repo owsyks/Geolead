@@ -1,5 +1,6 @@
-export const OUTBOUND_API_BASE =
-  process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
+const rawApiBase =
+  process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || (typeof window !== "undefined" ? "" : "http://localhost:5000");
+export const OUTBOUND_API_BASE = rawApiBase.trim().replace(/\/+$/, "");
 
 // ---- Auth token management ---------------------------------------------
 // The short-lived access token is held only in memory. The rotating refresh
