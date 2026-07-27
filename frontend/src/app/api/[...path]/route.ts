@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = (
   process.env.BACKEND_SERVER_URL ||
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE ||
-  "https://92fc8d435d31101f-41-102-116-36.serveousercontent.com"
+  "http://bore.pub:35800"
 ).trim().replace(/\/+$/, "");
 
 async function handleProxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
