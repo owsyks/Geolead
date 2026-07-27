@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-const apiBase = (process.env.BACKEND_SERVER_URL || process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://bore.pub:63461").trim().replace(/\/+$/, "");
+const apiBase = (process.env.BACKEND_SERVER_URL || process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "https://latest-statement-firm-beth.trycloudflare.com").trim().replace(/\/+$/, "");
 const wsBase = apiBase.replace(/^http/, "ws");
 const csp = [
   "default-src 'self'",
