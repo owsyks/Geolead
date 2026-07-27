@@ -150,11 +150,21 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
       used?: number;
       tier?: string;
     } | null = null;
-    try {
-      body = await response.json();
-      if (body?.error) message = body.error;
-    } catch {
-      /* non-JSON error body */
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      try {
+        body = await response.json();
+        if (body?.error) message = body.error;
+      } catch {
+        /* non-JSON error body */
+      }
+    } else {
+      const text = await response.text();
+      if (response.status === 429) {
+        message = "Server rate limited request. Please wait a moment.";
+      } else if (text.includes("Security Checkpoint")) {
+        message = "Security checkpoint active. Please refresh page.";
+      }
     }
     // 402 ⇒ plan/quota gate. Notify the global upgrade handler so the UI can
     // prompt an upgrade instead of surfacing a raw error at the call site.
@@ -169,6 +179,12 @@ async function doFetchOutbound<T>(path: string, init?: RequestInit, _retried = f
       });
     }
     throw new ApiError(response.status, message, body?.code, body || undefined);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    await response.text();
+    throw new ApiError(response.status, "Server returned a non-JSON response.");
   }
 
   return response.json() as Promise<T>;
