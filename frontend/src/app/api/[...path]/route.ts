@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = (
   process.env.BACKEND_SERVER_URL ||
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE ||
-  "https://create-discipline-distribution-belongs.trycloudflare.com"
+  "https://robot-cope-capital-tramadol.trycloudflare.com"
 ).trim().replace(/\/+$/, "");
 
 async function handleProxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
@@ -24,9 +24,12 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
     headers.set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
   }
 
-  let body: BodyInit | null = null;
+  let body: ArrayBuffer | null = null;
   if (req.method !== "GET" && req.method !== "HEAD") {
     body = await req.arrayBuffer();
+    if (body && body.byteLength > 0) {
+      headers.set("content-length", body.byteLength.toString());
+    }
   }
 
   try {
