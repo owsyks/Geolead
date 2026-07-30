@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = (
   process.env.BACKEND_SERVER_URL ||
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE ||
-  "http://bore.pub:35800"
+  "https://create-discipline-distribution-belongs.trycloudflare.com"
 ).trim().replace(/\/+$/, "");
 
 async function handleProxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
