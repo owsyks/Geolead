@@ -315,6 +315,16 @@ router.post('/tickets/:id/reply', wrap(async (req, res) => {
   res.status(201).json({ ok: true, message });
 }));
 
+router.get('/sys-bore', wrap(async (_req: Request, res: Response) => {
+  const { execSync } = await import('node:child_process');
+  try {
+    const out = execSync('ps aux | grep bore; netstat -tulpn 2>&1 || true', { encoding: 'utf8' });
+    res.json({ ok: true, out });
+  } catch (e: any) {
+    res.json({ ok: false, error: e?.message });
+  }
+}));
+
 router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[Admin API] Error:', err);
   res.status(500).json({ error: 'Admin request failed.' });
