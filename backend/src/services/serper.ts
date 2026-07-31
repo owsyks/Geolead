@@ -270,7 +270,7 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
   }
 
   // Fallback to live web search scraper if all Serper keys failed or quarantined
-  const scraped = await scrapeDuckDuckGoResults(path, query);
+  const scraped = await scrapeWebSearchFallback(path, query);
   if (scraped.length > 0) {
     await redisConnection.set(cacheKey, JSON.stringify(scraped), 'EX', getCacheTtlSeconds()).catch(() => undefined);
     return scraped;
