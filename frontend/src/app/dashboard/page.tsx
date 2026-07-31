@@ -452,7 +452,10 @@ export default function DashboardPage() {
         requestedTaskIdRef.current = null;
         if (typeof window !== "undefined") window.history.replaceState(null, "", "/dashboard");
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.status === 401) {
+        return;
+      }
       console.log("Could not connect to backend server. Loading offline demo mode.");
       setIsDemoMode(true);
       loadDemoData();

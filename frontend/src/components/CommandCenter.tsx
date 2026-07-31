@@ -157,7 +157,11 @@ export default function CommandCenter() {
       setEvents(data.activity);
       writeCache(OVERVIEW_CACHE_KEY, data);
       setOffline(false);
-    } catch {
+    } catch (err: any) {
+      if (err?.status === 401) {
+        setOffline(false);
+        return;
+      }
       setOverview(demoOverview);
       setEvents(demoOverview.activity);
       setOffline(true);
