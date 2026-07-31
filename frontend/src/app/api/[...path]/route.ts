@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = (
-  process.env.BACKEND_SERVER_URL ||
-  process.env.NEXT_PUBLIC_OUTBOUND_API_BASE ||
-  "https://jews-sufficient-der-announcements.trycloudflare.com"
-).trim().replace(/\/+$/, "");
+let envTarget = (process.env.BACKEND_SERVER_URL || process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "").trim().replace(/\/+$/, "");
+if (!envTarget || envTarget.includes("trycloudflare.com")) {
+  envTarget = "https://hiking-discounts-behavioral-jackson.trycloudflare.com";
+}
+const BACKEND_URL = envTarget;
 
 async function handleProxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
