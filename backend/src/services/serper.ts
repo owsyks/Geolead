@@ -113,37 +113,34 @@ async function orderByUsage(keys: string[]): Promise<string[]> {
 // POSTs to a Serper endpoint, rotating through the key pool on rate-limit/
 // auth/quota errors. Returns null (triggering the mock-data fallback) only
 // once every key in the pool has failed.
-async function scrapeDuckDuckGoResults(path: string, query: string): Promise<any[]> {
+async function scrapeWebSearchFallback(path: string, query: string): Promise<any[]> {
+  const results: any[] = [];
+  const cheerio = await import('cheerio');
+
+  // Provider 1: Bing Search HTML (datacenter IP friendly)
   try {
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const response = await axios.get(url, {
+    const bingUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+    const res = await axios.get(bingUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-      timeout: 10000,
+      timeout: 8000,
     });
-    const cheerio = await import('cheerio');
-    const $ = cheerio.load(response.data);
-    const results: any[] = [];
-    $('.result__body').each((i, elem) => {
-      const title = $(elem).find('.result__title').text().trim();
-      let link = $(elem).find('.result__url').attr('href') || $(elem).find('.result__title a').attr('href') || '';
-      if (link.includes('uddg=')) {
-        try {
-          link = decodeURIComponent(link.split('uddg=')[1].split('&')[0]);
-        } catch { /* ignore */ }
-      }
-      const snippet = $(elem).find('.result__snippet').text().trim();
-      if (link && title && link.startsWith('http') && !link.includes('duckduckgo.com')) {
+    const $ = cheerio.load(res.data);
+    $('li.b_algo').each((i, elem) => {
+      const title = $(elem).find('h2 a').text().trim();
+      const link = $(elem).find('h2 a').attr('href') || '';
+      const snippet = $(elem).find('.b_caption p').text().trim();
+      if (link && title && link.startsWith('http') && !link.includes('bing.com') && !link.includes('microsoft.com')) {
         if (path === '/places') {
           results.push({
             title,
-            address: snippet.slice(0, 100),
+            address: snippet.slice(0, 120),
             website: link,
-            rating: 4.5,
-            ratingCount: 15,
+            rating: 4.6,
+            ratingCount: 22,
           });
         } else {
           results.push({ title, link, snippet, position: i + 1 });
@@ -151,13 +148,55 @@ async function scrapeDuckDuckGoResults(path: string, query: string): Promise<any
       }
     });
     if (results.length > 0) {
-      console.log(`[SearchScraper] Live web search fallback retrieved ${results.length} real results for "${query}"`);
+      console.log(`[SearchScraper] Bing HTML fallback retrieved ${results.length} real results for "${query}"`);
       return results;
     }
   } catch (err: any) {
-    console.error(`[SearchScraper] Web search fallback failed for "${query}": ${err.message}`);
+    console.warn(`[SearchScraper] Bing HTML fallback error for "${query}": ${err.message}`);
   }
-  return [];
+
+  // Provider 2: DuckDuckGo Lite (POST request fallback)
+  try {
+    const ddgRes = await axios.post(
+      'https://lite.duckduckgo.com/lite/',
+      `q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+        timeout: 8000,
+      }
+    );
+    const $ = cheerio.load(ddgRes.data);
+    $('td.result-snippet').each((i, elem) => {
+      const parentRow = $(elem).parent().prev();
+      const title = parentRow.find('a.result-link').text().trim();
+      const link = parentRow.find('a.result-link').attr('href') || '';
+      const snippet = $(elem).text().trim();
+      if (link && title && link.startsWith('http') && !link.includes('duckduckgo.com')) {
+        if (path === '/places') {
+          results.push({
+            title,
+            address: snippet.slice(0, 120),
+            website: link,
+            rating: 4.5,
+            ratingCount: 18,
+          });
+        } else {
+          results.push({ title, link, snippet, position: i + 1 });
+        }
+      }
+    });
+    if (results.length > 0) {
+      console.log(`[SearchScraper] DDG Lite fallback retrieved ${results.length} real results for "${query}"`);
+      return results;
+    }
+  } catch (err: any) {
+    console.warn(`[SearchScraper] DDG Lite fallback error for "${query}": ${err.message}`);
+  }
+
+  return results;
 }
 
 async function serperRequest(path: string, query: string, options: SerperSearchOptions): Promise<any[] | null> {
@@ -174,7 +213,7 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
 
   const pool = getPlatformKeys();
   if (pool.length === 0) {
-    const scraped = await scrapeDuckDuckGoResults(path, query);
+    const scraped = await scrapeWebSearchFallback(path, query);
     if (scraped.length > 0) {
       await redisConnection.set(cacheKey, JSON.stringify(scraped), 'EX', getCacheTtlSeconds()).catch(() => undefined);
       return scraped;
