@@ -247,9 +247,14 @@ export async function seedAdminAndClaim(): Promise<void> {
     let admin = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
     if (!admin) {
       admin = await prisma.user.create({
-        data: { email: ADMIN_EMAIL, name: ADMIN_NAME, role: 'ADMIN', emailVerified: true },
+        data: { email: ADMIN_EMAIL, name: ADMIN_NAME, role: 'ADMIN', emailVerified: true, plan: 'enterprise', planStatus: 'active' },
       });
       console.log(`[Auth] Seeded admin user ${ADMIN_EMAIL}. Use "forgot password" to set its password.`);
+    } else {
+      admin = await prisma.user.update({
+        where: { id: admin.id },
+        data: { plan: 'enterprise', planStatus: 'active', trialEndsAt: null, role: 'ADMIN', emailVerified: true, isActive: true },
+      });
     }
     await ensureUserWorkspace(admin.id);
 

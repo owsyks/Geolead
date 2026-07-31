@@ -57,6 +57,7 @@ export async function requireVerifiedEmail(req: Request, res: Response, next: Ne
 export function requirePlanCapacity(metric: QuotaMetric) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
+    if (isAdminEmail(req.userEmail)) return next();
     try {
       await assertQuota(req.userId, metric, 1);
       return next();

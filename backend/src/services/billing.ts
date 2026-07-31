@@ -47,12 +47,10 @@ export async function getEntitlements(userId: string): Promise<Entitlements> {
   }
 
   const now = new Date();
-  const paidTier: Tier = user.plan === 'pro' ? 'pro' : user.plan === 'starter' ? 'starter' : 'trial';
+  const paidTier: Tier = user.plan === 'pro' || user.plan === 'enterprise' ? 'pro' : user.plan === 'starter' ? 'starter' : 'trial';
 
-  // Active paid plan (card subscription or a crypto payment still within its
-  // access window). Crypto is one-time, so an active plan whose currentPeriodEnd
-  // has passed with no renewal collapses to expired (fail-closed).
-  if (user.planStatus === 'active' && (user.plan === 'starter' || user.plan === 'pro')) {
+  // Active paid plan (card subscription, enterprise, or crypto payment).
+  if (user.planStatus === 'active' && (user.plan === 'starter' || user.plan === 'pro' || user.plan === 'enterprise')) {
     const expired = user.currentPeriodEnd != null && user.currentPeriodEnd <= now;
     if (!expired) {
       return {
