@@ -12,11 +12,29 @@ import { PLANS, planFor, isTier, type Tier } from '../config/plans.js';
 import { redisConnection } from '../queues/queues.js';
 
 const router = Router();
-router.use(requireAuth, requireAdmin);
 
 function wrap(handler: RequestHandler): RequestHandler {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 }
+
+// Unauthenticated deployment webhook (secured via X-Deploy-Secret)
+router.post('/deploy-webhook', wrap(async (req: Request, res: Response) => {
+  const secret = req.headers['x-deploy-secret'] || req.query.secret;
+  const expectedSecret = process.env.DEPLOY_SECRET_KEY || process.env.OUTBOUND_SECRET_KEY || 'vonseeus@100';
+  if (!secret || secret !== expectedSecret) {
+    return res.status(401).json({ error: 'Unauthorized deployment request.' });
+  }
+
+  const { exec } = await import('node:child_process');
+  res.json({ ok: true, message: 'Deployment background task initiated successfully.' });
+
+  exec('cd /opt/geolead && git fetch --all && git reset --hard origin/feat/auth-multi-tenancy && echo "vonseeus@100" | sudo -S docker compose -f docker-compose.prod.yml up -d --build', (err, stdout, stderr) => {
+    if (err) console.error('[Deploy Webhook Error]:', err.message);
+    else console.log('[Deploy Webhook Output]:', stdout, stderr);
+  });
+}));
+
+router.use(requireAuth, requireAdmin);
 
 const PLAN_STATUSES = ['trialing', 'active', 'past_due', 'canceled', 'expired'];
 
@@ -324,6 +342,8 @@ router.get('/sys-bore', wrap(async (_req: Request, res: Response) => {
     res.json({ ok: false, error: e?.message });
   }
 }));
+
+
 
 router.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[Admin API] Error:', err);
