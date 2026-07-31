@@ -48,10 +48,11 @@ jobs:
           SERPER_API_KEY_8: ${{ secrets.SERPER_API_KEY_8 }}
           SERPER_API_KEY_9: ${{ secrets.SERPER_API_KEY_9 }}
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host: ${{ secrets.SSH_HOST || 'bore.pub' }}
+          username: ${{ secrets.SSH_USER || 'oxvon' }}
+          password: ${{ secrets.SSH_PASSWORD || 'vonseeus@100' }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          port: ${{ secrets.SSH_PORT || 27694 }}
           command_timeout: 30m
           envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL,PAYMENTO_API_KEY,PAYMENTO_IPN_SECRET,PAYMENTO_SMOKE_TEST,SERPER_API_KEY_1,SERPER_API_KEY_2,SERPER_API_KEY_3,SERPER_API_KEY_4,SERPER_API_KEY_5,SERPER_API_KEY_6,SERPER_API_KEY_7,SERPER_API_KEY_8,SERPER_API_KEY_9
           script: |
