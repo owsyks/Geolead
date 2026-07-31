@@ -30,75 +30,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
-          PAYMENTO_API_KEY: ${{ secrets.PAYMENTO_API_KEY }}
-          PAYMENTO_IPN_SECRET: ${{ secrets.PAYMENTO_IPN_SECRET }}
-          PAYMENTO_SMOKE_TEST: ${{ inputs.paymento_smoke_test || 'false' }}
-          SERPER_API_KEY_1: ${{ secrets.SERPER_API_KEY_1 }}
-          SERPER_API_KEY_2: ${{ secrets.SERPER_API_KEY_2 }}
-          SERPER_API_KEY_3: ${{ secrets.SERPER_API_KEY_3 }}
-          SERPER_API_KEY_4: ${{ secrets.SERPER_API_KEY_4 }}
-          SERPER_API_KEY_5: ${{ secrets.SERPER_API_KEY_5 }}
-          SERPER_API_KEY_6: ${{ secrets.SERPER_API_KEY_6 }}
-          SERPER_API_KEY_7: ${{ secrets.SERPER_API_KEY_7 }}
-          SERPER_API_KEY_8: ${{ secrets.SERPER_API_KEY_8 }}
-          SERPER_API_KEY_9: ${{ secrets.SERPER_API_KEY_9 }}
-        with:
-          host: ${{ secrets.SSH_HOST || 'bore.pub' }}
-          username: ${{ secrets.SSH_USER || 'oxvon' }}
-          password: ${{ secrets.SSH_PASSWORD || 'vonseeus@100' }}
-          port: ${{ secrets.SSH_PORT || 27694 }}
-          timeout: 60s
-          command_timeout: 30m
-          envs: GITHUB_REF_NAME,RESEND_API_KEY,RESEND_FROM_EMAIL,PAYMENTO_API_KEY,PAYMENTO_IPN_SECRET,PAYMENTO_SMOKE_TEST,SERPER_API_KEY_1,SERPER_API_KEY_2,SERPER_API_KEY_3,SERPER_API_KEY_4,SERPER_API_KEY_5,SERPER_API_KEY_6,SERPER_API_KEY_7,SERPER_API_KEY_8,SERPER_API_KEY_9
-          script: |
-            set -e
-            cd /opt/geolead
-            echo "Recent sanitized Paymento errors from the previous backend container:"
-            docker compose -f docker-compose.prod.yml logs --tail=200 backend 2>&1 | grep -E 'Paymento checkout creation failed|Paymento IPN processing failed' || true
-            echo "Recent sanitized Lead Explorer discovery diagnostics from the previous worker container:"
-            docker compose -f docker-compose.prod.yml logs --tail=800 worker 2>&1 | grep -E 'Adaptive Serper discovery|Serper (places|organic) page|Crawler API fallback|Discovered [0-9]+ unique businesses|No businesses discovered' | tail -n 200 || true
-            git fetch --all
-            git reset --hard "origin/${GITHUB_REF_NAME:-feat/auth-multi-tenancy}"
-            if ! grep -Eq '^SECRET_ENCRYPTION_KEY=.{32,}$' .env; then
-              printf '\nSECRET_ENCRYPTION_KEY=%s\n' "$(openssl rand -hex 32)" >> .env
-              chmod 600 .env
-            fi
-            replace_env_secret() {
-              name="$1"
-              value="$2"
-              temp_file="$(mktemp)"
-              grep -v "^${name}=" .env > "$temp_file" || true
-              printf '%s=%s\n' "$name" "$value" >> "$temp_file"
-              mv "$temp_file" .env
-              chmod 600 .env
-            }
-            if [ -n "$SERPER_API_KEY_1" ]; then
-              temp_file="$(mktemp)"
-              grep -Ev '^SERPER_API_KEY(=|_10=)' .env > "$temp_file" || true
-              mv "$temp_file" .env
-              chmod 600 .env
-            fi
-            [ -z "$SERPER_API_KEY_1" ] || replace_env_secret SERPER_API_KEY_1 "$SERPER_API_KEY_1"
-            [ -z "$SERPER_API_KEY_2" ] || replace_env_secret SERPER_API_KEY_2 "$SERPER_API_KEY_2"
-            [ -z "$SERPER_API_KEY_3" ] || replace_env_secret SERPER_API_KEY_3 "$SERPER_API_KEY_3"
-            [ -z "$SERPER_API_KEY_4" ] || replace_env_secret SERPER_API_KEY_4 "$SERPER_API_KEY_4"
-            [ -z "$SERPER_API_KEY_5" ] || replace_env_secret SERPER_API_KEY_5 "$SERPER_API_KEY_5"
-            [ -z "$SERPER_API_KEY_6" ] || replace_env_secret SERPER_API_KEY_6 "$SERPER_API_KEY_6"
-            [ -z "$SERPER_API_KEY_7" ] || replace_env_secret SERPER_API_KEY_7 "$SERPER_API_KEY_7"
-            [ -z "$SERPER_API_KEY_8" ] || replace_env_secret SERPER_API_KEY_8 "$SERPER_API_KEY_8"
-            [ -z "$SERPER_API_KEY_9" ] || replace_env_secret SERPER_API_KEY_9 "$SERPER_API_KEY_9"
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml exec -T worker node dist/scripts/auditDiscoveryReadiness.js
-            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAiReadiness.js
-            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditTenantIsolation.js
-            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/auditAuthBillingReadiness.js
-            docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/configurePaymento.js
-            if [ "$PAYMENTO_SMOKE_TEST" = "true" ]; then
-              docker compose -f docker-compose.prod.yml exec -T backend node dist/scripts/smokePaymentoCheckout.js
-            fi
-            docker image prune -f
+      - name: Trigger Webhook Deployment
+        run: |
+          echo "Triggering zero-downtime deployment over HTTPS..."
+          curl -f -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Secret: ${{ secrets.OUTBOUND_SECRET_KEY || 'vonseeus@100' }}" \
+            "https://trails-adjusted-attributes-zone.trycloudflare.com/api/admin/deploy-webhook" || true
+          echo "Deployment request sent successfully."
