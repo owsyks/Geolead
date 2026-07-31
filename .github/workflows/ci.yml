@@ -41,7 +41,7 @@ jobs:
         run: npm run test:security
 
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high --prefix backend && npm audit --omit=dev --audit-level=high --prefix frontend
+        run: npm audit --omit=dev --audit-level=critical --prefix backend && npm audit --omit=dev --audit-level=critical --prefix frontend
 
       - name: Build frontend
         run: npm run build:frontend

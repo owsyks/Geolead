@@ -53,12 +53,12 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    return callback(null, allowedOrigins.includes(origin.replace(/\/$/, '')));
+    // Allow any requesting origin dynamically (with credentials support)
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-GeoLead-Client', 'X-Inbound-Secret'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-GeoLead-Client', 'X-Inbound-Secret', 'X-Requested-With', 'Accept'],
 }));
 app.set('trust proxy', 1);
 // Capture the raw request body so the Paymento IPN signature can be
@@ -785,6 +785,8 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 const server = http.createServer(app);
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
 attachOutboundWebSocket(server);
 
 // Bind to all interfaces (0.0.0.0) so platform routers (Heroku, Docker, etc.)

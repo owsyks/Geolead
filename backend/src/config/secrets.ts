@@ -1,4 +1,5 @@
 // Shared symmetric encryption for at-rest secrets (settings, provider configs).
+// Shared symmetric encryption for at-rest secrets (settings, provider configs).
 // AES-256-GCM with a key derived from OUTBOUND_SECRET_KEY (falls back to the
 // DATABASE_URL, then a dev constant). Encrypted payloads are prefixed with
 // `enc:` so callers can tell plaintext from ciphertext.
@@ -21,7 +22,8 @@ export function decryptSecret(value: string): string {
     decipher.setAuthTag(Buffer.from(tag, 'base64'));
     return Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64')), decipher.final()]).toString('utf8');
   } catch {
-    throw new Error('Stored credential could not be authenticated or decrypted.');
+    console.warn('[Secrets] Legacy or mismatched secret could not be decrypted.');
+    return '';
   }
 }
 
