@@ -8,7 +8,7 @@ import { DomainSelector } from "@/components/DomainSelector";
 import { OutboundShell, MetricCard } from "@/components/OutboundShell";
 import { GlassCard, ScoreRing } from "@/components/ui";
 import { useDomainContext } from "@/lib/domainContext";
-import { authFetch, fetchOutbound } from "@/lib/outbound";
+import { authFetch, fetchOutbound, OUTBOUND_API_BASE as BACKEND_URL } from "@/lib/outbound";
 import {
   Search,
   MapPin,
@@ -34,8 +34,6 @@ import {
   X,
 } from "lucide-react";
 
-// API URL (Express backend) — env override allowed for non-localhost setups
-const BACKEND_URL = process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000";
 const MAX_SEARCH_DEPTH = 200;
 const DEMO_CREATED_AT = "2026-05-22T00:00:00.000Z";
 const DEMO_TASK_ONE_CREATED_AT = "2026-05-21T23:00:00.000Z";

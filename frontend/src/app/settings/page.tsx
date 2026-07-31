@@ -190,7 +190,7 @@ export default function SettingsPage() {
     } catch (err: unknown) {
       let msg = err instanceof Error ? err.message : "Test failed.";
       try {
-        const res = await authFetch(`${process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000"}/api/settings/test/${provider}`, { method: "POST" });
+        const res = await authFetch(`/api/settings/test/${provider}`, { method: "POST" });
         const body = await res.json();
         if (body?.message) msg = body.message;
       } catch { /* ignore */ }
@@ -541,7 +541,7 @@ function GmailInboxCard() {
     } catch (err: unknown) {
       let msg = err instanceof Error ? err.message : "Test failed.";
       try {
-        const res = await authFetch(`${process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000"}/api/inbox/mailbox/test`, {
+        const res = await authFetch(`/api/inbox/mailbox/test`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: form.email, imapHost: form.imapHost, imapPort: Number(form.imapPort) || 993, useSsl: form.useSsl, username: form.username || form.email, ...(form.appPassword.trim() ? { appPassword: form.appPassword } : {}) }),
         });
