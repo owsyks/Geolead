@@ -440,10 +440,12 @@ export default function DashboardPage() {
       setTasks(data);
       setIsDemoMode(false);
 
-      // Restore a linked search first; otherwise, returning users land on
-      // their newest search instead of an empty welcome screen.
+      // Restore a linked search first; otherwise, select the newest search
+      // with leads so returning users land on live prospects instead of empty searches.
       const requestedId = requestedTaskIdRef.current || selectedTaskIdRef.current;
-      const nextTask = data.find((task: SearchTask) => task.id === requestedId) || data[0];
+      const nextTask = data.find((task: SearchTask) => task.id === requestedId)
+        || data.find((task: SearchTask) => (task.totalLeads || 0) > 0 || (task.validEmails || 0) > 0)
+        || data[0];
       if (nextTask && nextTask.id !== selectedTaskIdRef.current) {
         handleSelectTask(nextTask, false);
       } else if (requestedTaskIdRef.current && !data.some((task: SearchTask) => task.id === requestedTaskIdRef.current)) {
