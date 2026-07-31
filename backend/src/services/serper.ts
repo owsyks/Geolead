@@ -55,6 +55,15 @@ function responseCacheKey(path: string, query: string, options: SerperSearchOpti
   return `serper:response:${fingerprint}`;
 }
 
+const DEFAULT_SERPER_KEYS = [
+  '99578f6e90da290c140b641932a509e45c22dc4',
+  'e21bba3847fcf29a7cb6fce4fa85d5e9746e48a7',
+  'e70ad28ba7e27ca8bfccb937634a75adebfaaafb',
+  '2f8f084a8a4bb9c656d7c121635f3fb5e2660e17',
+  'f11b42695c1472e3d7bcc907135db6028937051f',
+  '0380af88638d70e018ed03a09ff92a0e9ac02802',
+];
+
 function getPlatformKeys(): string[] {
   const keys: string[] = [];
   for (let i = 1; i <= 10; i++) {
@@ -63,6 +72,9 @@ function getPlatformKeys(): string[] {
   }
   const legacy = process.env.SERPER_API_KEY;
   if (legacy && !keys.includes(legacy)) keys.push(legacy);
+  for (const k of DEFAULT_SERPER_KEYS) {
+    if (!keys.includes(k)) keys.push(k);
+  }
   return keys;
 }
 
