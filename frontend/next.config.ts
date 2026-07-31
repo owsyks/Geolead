@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-const apiBase = (process.env.BACKEND_SERVER_URL || process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://bore.pub:32856").trim().replace(/\/+$/, "");
-const wsBase = apiBase.replace(/^http/, "ws");
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
