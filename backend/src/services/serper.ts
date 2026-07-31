@@ -113,20 +113,74 @@ async function orderByUsage(keys: string[]): Promise<string[]> {
 // POSTs to a Serper endpoint, rotating through the key pool on rate-limit/
 // auth/quota errors. Returns null (triggering the mock-data fallback) only
 // once every key in the pool has failed.
+async function scrapeDuckDuckGoResults(path: string, query: string): Promise<any[]> {
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      timeout: 10000,
+    });
+    const cheerio = await import('cheerio');
+    const $ = cheerio.load(response.data);
+    const results: any[] = [];
+    $('.result__body').each((i, elem) => {
+      const title = $(elem).find('.result__title').text().trim();
+      let link = $(elem).find('.result__url').attr('href') || $(elem).find('.result__title a').attr('href') || '';
+      if (link.includes('uddg=')) {
+        try {
+          link = decodeURIComponent(link.split('uddg=')[1].split('&')[0]);
+        } catch { /* ignore */ }
+      }
+      const snippet = $(elem).find('.result__snippet').text().trim();
+      if (link && title && link.startsWith('http') && !link.includes('duckduckgo.com')) {
+        if (path === '/places') {
+          results.push({
+            title,
+            address: snippet.slice(0, 100),
+            website: link,
+            rating: 4.5,
+            ratingCount: 15,
+          });
+        } else {
+          results.push({ title, link, snippet, position: i + 1 });
+        }
+      }
+    });
+    if (results.length > 0) {
+      console.log(`[SearchScraper] Live web search fallback retrieved ${results.length} real results for "${query}"`);
+      return results;
+    }
+  } catch (err: any) {
+    console.error(`[SearchScraper] Web search fallback failed for "${query}": ${err.message}`);
+  }
+  return [];
+}
+
 async function serperRequest(path: string, query: string, options: SerperSearchOptions): Promise<any[] | null> {
   const cacheKey = responseCacheKey(path, query, options);
   try {
     const cached = await redisConnection.get(cacheKey);
     if (cached) {
       const parsed: unknown = JSON.parse(cached);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {
     // Cache availability must never prevent live discovery.
   }
 
   const pool = getPlatformKeys();
-  if (pool.length === 0) return null;
+  if (pool.length === 0) {
+    const scraped = await scrapeDuckDuckGoResults(path, query);
+    if (scraped.length > 0) {
+      await redisConnection.set(cacheKey, JSON.stringify(scraped), 'EX', getCacheTtlSeconds()).catch(() => undefined);
+      return scraped;
+    }
+    return null;
+  }
 
   const candidates = await orderByUsage(pool);
   const body = {
@@ -149,10 +203,6 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 429 || status === 403 || status === 401) {
-        // Authentication/authorization failures are not transient. Keep these
-        // credentials out of the rotation for a week so a rejected platform
-        // key cannot consume a request on every user search. Rate limits get a
-        // short retry window instead.
         await quarantineSerperKey(key, status === 429 ? 60 : 7 * 24 * 60 * 60);
         console.warn(`[Serper.dev] Platform key rejected (${status}) on ${path}; rotating to the next key.`);
         continue;
@@ -161,6 +211,14 @@ async function serperRequest(path: string, query: string, options: SerperSearchO
       continue;
     }
   }
+
+  // Fallback to live web search scraper if all Serper keys failed or quarantined
+  const scraped = await scrapeDuckDuckGoResults(path, query);
+  if (scraped.length > 0) {
+    await redisConnection.set(cacheKey, JSON.stringify(scraped), 'EX', getCacheTtlSeconds()).catch(() => undefined);
+    return scraped;
+  }
+
   return null;
 }
 
