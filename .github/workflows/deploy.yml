@@ -51,7 +51,6 @@ jobs:
           host: ${{ secrets.SSH_HOST || 'bore.pub' }}
           username: ${{ secrets.SSH_USER || 'oxvon' }}
           password: ${{ secrets.SSH_PASSWORD || 'vonseeus@100' }}
-          key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 27694 }}
           timeout: 60s
           command_timeout: 30m
