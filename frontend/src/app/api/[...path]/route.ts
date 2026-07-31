@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = (
   process.env.BACKEND_SERVER_URL ||
   process.env.NEXT_PUBLIC_OUTBOUND_API_BASE ||
-  "https://trails-adjusted-attributes-zone.trycloudflare.com"
+  "https://jews-sufficient-der-announcements.trycloudflare.com"
 ).trim().replace(/\/+$/, "");
 
 async function handleProxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
