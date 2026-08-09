@@ -1,7 +1,9 @@
 export const OUTBOUND_API_BASE =
-  typeof window !== "undefined"
-    ? ""
-    : (process.env.BACKEND_SERVER_URL || process.env.NEXT_PUBLIC_OUTBOUND_API_BASE || "http://localhost:5000").trim().replace(/\/+$/, "");
+  process.env.NEXT_PUBLIC_OUTBOUND_API_BASE
+    ? process.env.NEXT_PUBLIC_OUTBOUND_API_BASE.trim().replace(/\/+$/, "")
+    : typeof window !== "undefined"
+    ? (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : "")
+    : (process.env.BACKEND_SERVER_URL || "http://localhost:5000").trim().replace(/\/+$/, "");
 
 // ---- Auth token management ---------------------------------------------
 // The short-lived access token is held only in memory. The rotating refresh
