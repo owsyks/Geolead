@@ -33,6 +33,10 @@ interface ScrapingJobData {
   taskId: string;
 }
 
+const SERPER_MAX_REQUESTS_PER_TASK = boundedIntegerEnv('SERPER_MAX_REQUESTS_PER_TASK', 100, 10, 200);
+const SERPER_MAX_PAGES_PER_QUERY = boundedIntegerEnv('SERPER_MAX_PAGES_PER_QUERY', 8, 3, 10);
+const SERPER_CANDIDATE_MULTIPLIER = boundedNumberEnv('SERPER_CANDIDATE_MULTIPLIER', 2.25, 1.25, 3);
+
 const worker = new Worker<ScrapingJobData>(
   'scraping-queue',
   async (job: Job<ScrapingJobData>) => {
@@ -88,9 +92,20 @@ const worker = new Worker<ScrapingJobData>(
       };
 
       const requestedDepth = Math.max(1, task.searchDepth);
-      const candidateTarget = Math.min(400, Math.ceil(requestedDepth * 1.25));
-      const requestBudget = Math.min(50, Math.max(6, Math.ceil(requestedDepth / 5)));
-      const queryCount = Math.min(16, Math.max(4, Math.ceil(requestedDepth / 15)));
+      // Serper commonly returns about ten rows even when a larger `num` value is
+      // requested. Scale useful yield with additional diverse pages instead of
+      // relying on `num`, and oversample before crawling because unreachable,
+      // duplicate, and irrelevant sites will reduce the final lead count.
+      const candidateTarget = Math.min(600, Math.ceil(requestedDepth * SERPER_CANDIDATE_MULTIPLIER));
+      const requestBudget = Math.min(
+        SERPER_MAX_REQUESTS_PER_TASK,
+        Math.max(12, Math.ceil(requestedDepth / 2)),
+      );
+      const queryCount = Math.min(24, Math.max(6, Math.ceil(requestedDepth / 10)));
+      const pageLimit = Math.min(
+        SERPER_MAX_PAGES_PER_QUERY,
+        Math.max(3, Math.ceil(requestedDepth / 10)),
+      );
       const generatedQueries = generateQueryVariations(
         task.keyword,
         task.country || undefined,
@@ -106,7 +121,8 @@ const worker = new Worker<ScrapingJobData>(
           );
       console.log(
         `[Worker] Adaptive Serper discovery: target ${candidateTarget} candidates, ` +
-        `${queries.length} diverse queries, budget ${requestBudget} requests.`,
+        `${queries.length} diverse queries, budget ${requestBudget} requests, ` +
+        `up to ${pageLimit} pages per productive query.`,
       );
 
       type SearchSource = 'places' | 'organic';
@@ -275,7 +291,7 @@ const worker = new Worker<ScrapingJobData>(
 
       // Phase 3: spend remaining credits only on queries that proved they add
       // unique domains. Low-yield duplicate queries never receive extra pages.
-      for (let page = 2; page <= 3; page++) {
+      for (let page = 2; page <= pageLimit; page++) {
         if (serperUnavailable) break;
         const opportunities = queryYields
           .flatMap((item) => [
@@ -810,4 +826,16 @@ function extractDomainKey(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+function boundedIntegerEnv(name: string, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(process.env[name] || '', 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function boundedNumberEnv(name: string, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseFloat(process.env[name] || '');
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
 }
